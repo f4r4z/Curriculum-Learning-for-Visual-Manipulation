@@ -19,11 +19,11 @@ if __name__ == "__main__":
     }
 
     envs = SubprocVectorEnv(
-        [lambda: LowDimensionalObsEnv(**env_args) for _ in range(2)]
+        [lambda: LowDimensionalObsEnv(**env_args) for _ in range(16)]
     )
     envs = GymVecEnvs(envs)
     # import ipdb; ipdb.set_trace()
 
     # Create the agent with two layer of 128 units
-    model = SAC("MlpPolicy", envs, verbose=1, policy_kwargs=dict(net_arch=[128, 128]))
-    model.learn(total_timesteps=10000, log_interval=4)
+    model = SAC("MlpPolicy", envs, verbose=1, policy_kwargs=dict(net_arch=[128, 128]), tensorboard_log="../logs")
+    model.learn(total_timesteps=1000000, log_interval=10)

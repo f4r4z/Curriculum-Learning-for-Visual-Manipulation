@@ -76,8 +76,8 @@ class GymVecEnvs(VecEnv):
         obs, rewards, dones, infos = self.envs.step(actions)
         id, *_ = np.where(dones)
         if len(id) > 0:
-            obs = self.envs.reset(id=id)
-            obs[id] = obs
+            obs_new = self.envs.reset(id=id)
+            obs[id] = obs_new
         return obs, rewards, dones, infos
     
     def step_async(self, actions):
