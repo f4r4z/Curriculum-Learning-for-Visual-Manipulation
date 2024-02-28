@@ -20,6 +20,7 @@ import tyro
 class Args:
     video_filename: str = "output.mp4"
     """filename of the video output file"""
+    model_filename: str = "close_the_microwave"
     # Algorithm specific arguments
     train: bool = False
     """if toggled, model will train otherwise just evaluate"""
@@ -57,6 +58,7 @@ if __name__ == "__main__":
         "camera_widths": 128,
     }
 
+    print("setting up environment")
     envs = SubprocVectorEnv(
         [lambda: LowDimensionalObsEnv(**env_args) for _ in range(args.num_envs)]
     )
@@ -65,14 +67,15 @@ if __name__ == "__main__":
 
     # Create the agent with two layer of 128 units
     if args.train:
+        print("training")
         model = PPO("MlpPolicy", envs, verbose=1, policy_kwargs=dict(net_arch=[128, 128]), tensorboard_log="../logs")
         model.learn(total_timesteps=args.total_timesteps, log_interval=100)
-        model.save("models/close_the_microwave")
+        model.save(f"models/{args.model_filename}")
 
         del model
 
-
-    model = PPO.load("models/close_the_microwave")
+    print("loading model")
+    model = PPO.load(f"models/{args.model_filename}")
 
     obs = envs.reset()
 
@@ -81,7 +84,7 @@ if __name__ == "__main__":
     off_env.reset()
     images = []
 
-    for i in range(50):
+    for i in range(500):
         action, _states = model.predict(obs)
         obs, rewards, dones, info = envs.step(action)
 
