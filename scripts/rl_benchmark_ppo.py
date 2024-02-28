@@ -4,6 +4,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import CheckpointCallback
 from libero.libero.envs import SubprocVectorEnv, OffScreenRenderEnv, DummyVectorEnv
 from libero.libero import get_libero_path
 
@@ -31,6 +32,9 @@ class Args:
     learning_rate: float = 2.5e-4
     """the learning rate of the optimizer"""
     num_envs: int = 4
+    """number of LIBERO environments"""
+    save_freq: int = 10000
+    "save frequency of model checkpoint during training"
 
 def obs_to_video(images, filename):
     """
@@ -77,8 +81,9 @@ if __name__ == "__main__":
     # Create the agent with two layer of 128 units
     if args.train:
         print("training")
-        model = PPO("MlpPolicy", envs, verbose=1, policy_kwargs=dict(net_arch=[128, 128]), tensorboard_log="../logs")
-        model.learn(total_timesteps=args.total_timesteps, log_interval=100)
+        checkpoint_callback = CheckpointCallback(save_freq=args.save_freq, save_path='models/model_checkpoints/', name_prefix="pulisic_ppo_model")
+        model = PPO("MlpPolicy", envs, verbose=1, policy_kwargs=dict(net_arch=[128, 128]), tensorboard_log="./logs")
+        model.learn(total_timesteps=args.total_timesteps, log_interval=100, callback=checkpoint_callback)
         model.save(f"models/{args.model_filename}")
 
         del model
@@ -101,7 +106,7 @@ if __name__ == "__main__":
             # for visualization
             off_obs, _, _, _, = off_env.step(action[0])
             images.append(off_obs["agentview_image"])
-            print(rewards[0])
+            # print(rewards[0])
 
 
         obs_to_video(images, f"videos/{args.video_filename}")
