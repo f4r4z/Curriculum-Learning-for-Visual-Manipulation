@@ -26,9 +26,12 @@ if __name__ == "__main__":
     }
 
     print("setting up environment")
-    envs = OffScreenRenderEnv(**env_args)
+    envs = SubprocVectorEnv(
+        [lambda: OffScreenRenderEnv(**env_args) for _ in range(2)]
+    )
+
     envs.seed(0)
     envs.reset()
 
     for i in range(10):
-        obs, rewards, dones, info = envs.step([0.] * 7)
+        obs, rewards, dones, info = envs.step([[0.] * 7, [0.] * 7])
