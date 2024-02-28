@@ -4,7 +4,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from stable_baselines3 import PPO
-from libero.libero.envs import SubprocVectorEnv, OffScreenRenderEnv
+from libero.libero.envs import SubprocVectorEnv, DummyVectorEnv, OffScreenRenderEnv
 from libero.libero import get_libero_path
 
 from src.envs import LowDimensionalObsEnv, GymVecEnvs
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     }
 
     print("setting up environment")
-    envs = SubprocVectorEnv(
+    envs = DummyVectorEnv(
         [lambda: OffScreenRenderEnv(**env_args) for _ in range(2)]
     )
 

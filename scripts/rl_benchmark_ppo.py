@@ -4,7 +4,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from stable_baselines3 import PPO
-from libero.libero.envs import SubprocVectorEnv, OffScreenRenderEnv
+from libero.libero.envs import SubprocVectorEnv, OffScreenRenderEnv, DummyVectorEnv
 from libero.libero import get_libero_path
 
 from src.envs import LowDimensionalObsEnv, GymVecEnvs
@@ -23,7 +23,9 @@ class Args:
     model_filename: str = "close_the_microwave"
     # Algorithm specific arguments
     train: bool = False
-    """if toggled, model will train otherwise just evaluate"""
+    """if toggled, model will train otherwise it would not"""
+    eval: bool = True
+    """if toggled, model will load and evaluate a model otherwise it would not"""
     total_timesteps: int = 250000
     """total timesteps of the experiments"""
     learning_rate: float = 2.5e-4
@@ -59,7 +61,14 @@ if __name__ == "__main__":
     }
 
     print("setting up environment")
+
+    '''
     envs = SubprocVectorEnv(
+        [lambda: LowDimensionalObsEnv(**env_args) for _ in range(args.num_envs)]
+    )
+    '''
+    
+    envs = DummyVectorEnv(
         [lambda: LowDimensionalObsEnv(**env_args) for _ in range(args.num_envs)]
     )
     envs = GymVecEnvs(envs)
@@ -74,25 +83,26 @@ if __name__ == "__main__":
 
         del model
 
-    print("loading model")
-    model = PPO.load(f"models/{args.model_filename}")
+    if args.eval:
+        print("loading model")
+        model = PPO.load(f"models/{args.model_filename}")
 
-    obs = envs.reset()
+        obs = envs.reset()
 
-    # second environment for visualization
-    off_env = OffScreenRenderEnv(**env_args)
-    off_env.reset()
-    images = []
+        # second environment for visualization
+        off_env = OffScreenRenderEnv(**env_args)
+        off_env.reset()
+        images = []
 
-    for i in range(500):
-        action, _states = model.predict(obs)
-        obs, rewards, dones, info = envs.step(action)
+        for i in range(500):
+            action, _states = model.predict(obs)
+            obs, rewards, dones, info = envs.step(action)
 
-        # for visualization
-        off_obs, _, _, _, = off_env.step(action[0])
-        images.append(off_obs["agentview_image"])
-        print(rewards[0])
+            # for visualization
+            off_obs, _, _, _, = off_env.step(action[0])
+            images.append(off_obs["agentview_image"])
+            print(rewards[0])
 
 
-    obs_to_video(images, f"videos/{args.video_filename}")
-    off_env.close()
+        obs_to_video(images, f"videos/{args.video_filename}")
+        off_env.close()
