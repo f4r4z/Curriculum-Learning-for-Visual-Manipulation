@@ -92,7 +92,7 @@ class GymVecEnvs(VecEnv):
     def env_is_wrapped(self, wrapper_class, indices):
         return False
     
-    def get_attr(self, attr_name):
+    def get_attr(self, attr_name, indices = None):
         return self.envs.get_env_attr(attr_name)
     
     def set_attr(self, attr_name, value, indices):
