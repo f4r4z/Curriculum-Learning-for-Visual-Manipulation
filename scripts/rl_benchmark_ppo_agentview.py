@@ -3,12 +3,12 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, SAC
 from stable_baselines3.common.callbacks import CheckpointCallback
 from libero.libero.envs import SubprocVectorEnv, OffScreenRenderEnv, DummyVectorEnv
 from libero.libero import get_libero_path
 
-from src.envs import LowDimensionalObsEnv, GymVecEnvs
+from src.envs import LowDimensionalObsEnv, AgentViewEnv, GymVecEnvs
 
 from IPython.display import display, HTML
 from PIL import Image
@@ -22,7 +22,6 @@ class Args:
     video_filename: str = "output.mp4"
     """filename of the video output file"""
     model_filename: str = "close_the_microwave"
-    """filename of the final model output file"""
     # Algorithm specific arguments
     train: bool = False
     """if toggled, model will train otherwise it would not"""
@@ -74,7 +73,7 @@ if __name__ == "__main__":
     '''
     
     envs = DummyVectorEnv(
-        [lambda: LowDimensionalObsEnv(**env_args) for _ in range(args.num_envs)]
+        [lambda: AgentViewEnv(**env_args) for _ in range(args.num_envs)]
     )
     envs = GymVecEnvs(envs)
     # import ipdb; ipdb.set_trace()
@@ -82,8 +81,8 @@ if __name__ == "__main__":
     # Create the agent with two layer of 128 units
     if args.train:
         print("training")
-        checkpoint_callback = CheckpointCallback(save_freq=args.save_freq, save_path='models/model_checkpoints/', name_prefix="pulisic_ppo_model")
-        model = PPO("MlpPolicy", envs, verbose=1, policy_kwargs=dict(net_arch=[128, 128]), tensorboard_log="./logs")
+        checkpoint_callback = CheckpointCallback(save_freq=args.save_freq, save_path='models/model_checkpoints/', name_prefix="pulisic_ppo_agentview_model")
+        model = PPO("CnnPolicy", envs, verbose=1, policy_kwargs=dict(net_arch=[128, 128]), tensorboard_log="./logs")
         model.learn(total_timesteps=args.total_timesteps, log_interval=10, callback=checkpoint_callback)
         model.save(f"models/{args.model_filename}")
 
@@ -108,9 +107,7 @@ if __name__ == "__main__":
             off_obs, _, _, _, = off_env.step(action[0])
             images.append(off_obs["agentview_image"])
             
-            # if done, stop
-            if dones[0]:
-                break
+
 
         obs_to_video(images, f"videos/{args.video_filename}")
         off_env.close()

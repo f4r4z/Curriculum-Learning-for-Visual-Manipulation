@@ -16,7 +16,7 @@ import tyro
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 
-from libero.libero.envs import SubprocVectorEnv
+from libero.libero.envs import SubprocVectorEnv, DummyVectorEnv
 from libero.libero import get_libero_path
 
 from src.envs import LowDimensionalObsEnv, GymVecEnvs
@@ -159,7 +159,7 @@ if __name__ == "__main__":
         "camera_widths": 128,
     }
 
-    envs = SubprocVectorEnv(
+    envs = DummyVectorEnv(
         [lambda: LowDimensionalObsEnv(**env_args) for _ in range(args.num_envs)]
     )
     envs = GymVecEnvs(envs)
@@ -209,9 +209,12 @@ if __name__ == "__main__":
             actions[step] = action
             logprobs[step] = logprob
 
+            print(action.cpu().numpy())
             # TRY NOT TO MODIFY: execute the game and log data.
-            next_obs, reward, terminations, truncations, infos = envs.step(action.cpu().numpy())
-            next_done = np.logical_or(terminations, truncations)
+            # next_obs, reward, terminations, truncations, infos = envs.step(action.cpu().numpy())
+            next_obs, reward, next_done, infos = envs.step(action.cpu().numpy())
+            # next_done = np.logical_or(terminations, truncations)
+
             rewards[step] = torch.tensor(reward).to(device).view(-1)
             next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(next_done).to(device)
 
