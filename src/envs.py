@@ -68,6 +68,7 @@ class GymVecEnvs(VecEnv):
         self.envs = envs
         num_envs = len(envs)
         super().__init__(num_envs, envs.observation_space[0], envs.action_space[0])
+        self.rewards = np.zeros(num_envs)
 
     def reset(self):
         return self.envs.reset()
@@ -78,13 +79,20 @@ class GymVecEnvs(VecEnv):
         if len(id) > 0:
             obs_new = self.envs.reset(id=id)
             obs[id] = obs_new
+        self.rewards = rewards
         return obs, rewards, dones, infos
     
     def step_async(self, actions):
-        pass
+        self.actions = actions
 
     def step_wait(self):
-        pass
+        obs, rewards, dones, infos = self.envs.step(self.actions)
+        id, *_ = np.where(dones)
+        if len(id) > 0:
+            obs_new = self.envs.reset(id=id)
+            obs[id] = obs_new
+        self.rewards = rewards
+        return obs, rewards, dones, infos
 
     def close(self) -> None:
         return self.envs.close()

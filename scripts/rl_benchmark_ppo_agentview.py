@@ -4,11 +4,12 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from stable_baselines3 import PPO, SAC
-from stable_baselines3.common.callbacks import CheckpointCallback
+from stable_baselines3.common.callbacks import CheckpointCallback, ProgressBarCallback
 from libero.libero.envs import SubprocVectorEnv, OffScreenRenderEnv, DummyVectorEnv
 from libero.libero import get_libero_path
 
 from src.envs import LowDimensionalObsEnv, AgentViewEnv, GymVecEnvs
+from src.callbacks import TensorboardCallback
 
 from IPython.display import display, HTML
 from PIL import Image
@@ -82,8 +83,9 @@ if __name__ == "__main__":
     if args.train:
         print("training")
         checkpoint_callback = CheckpointCallback(save_freq=args.save_freq, save_path='models/model_checkpoints/', name_prefix="pulisic_ppo_agentview_model")
+        tensorboard_callback = TensorboardCallback()
         model = PPO("CnnPolicy", envs, verbose=1, policy_kwargs=dict(net_arch=[128, 128]), tensorboard_log="./logs")
-        model.learn(total_timesteps=args.total_timesteps, log_interval=10, callback=checkpoint_callback)
+        model.learn(total_timesteps=args.total_timesteps, log_interval=1, progress_bar=True, callback=[checkpoint_callback, tensorboard_callback])
         model.save(f"models/{args.model_filename}")
 
         del model
