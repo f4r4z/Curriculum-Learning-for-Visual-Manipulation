@@ -20,9 +20,12 @@ import tyro
 
 @dataclass
 class Args:
-    video_filename: str = "output.mp4"
-    """filename of the video output file"""
-    model_filename: str = "close_the_microwave"
+    video_path: str = "videos/output.mp4"
+    """file path of the video output file"""
+    model_path: str = "models/close_the_microwave"
+    """file path of the model output file"""
+    checkpoints_path: str = "models/checkpoints/"
+    """directory path of the models checkpoints"""
     # Algorithm specific arguments
     train: bool = False
     """if toggled, model will train otherwise it would not"""
@@ -82,17 +85,17 @@ if __name__ == "__main__":
     # Create the agent with two layer of 128 units
     if args.train:
         print("training")
-        checkpoint_callback = CheckpointCallback(save_freq=args.save_freq, save_path='models/model_checkpoints/', name_prefix="pulisic_ppo_agentview_model")
+        checkpoint_callback = CheckpointCallback(save_freq=args.save_freq, save_path=args.checkpoints_path, name_prefix="pulisic_ppo_agentview_model")
         tensorboard_callback = TensorboardCallback()
         model = PPO("CnnPolicy", envs, verbose=1, policy_kwargs=dict(net_arch=[128, 128]), tensorboard_log="./logs")
-        model.learn(total_timesteps=args.total_timesteps, log_interval=1, progress_bar=True, callback=[checkpoint_callback, tensorboard_callback])
-        model.save(f"models/{args.model_filename}")
+        model.learn(total_timesteps=args.total_timesteps, log_interval=10, progress_bar=True, callback=[checkpoint_callback, tensorboard_callback])
+        model.save(f"{args.model_path}")
 
         del model
 
     if args.eval:
         print("loading model")
-        model = PPO.load(f"models/{args.model_filename}")
+        model = PPO.load(f"{args.model_path}")
 
         obs = envs.reset()
 
@@ -111,6 +114,6 @@ if __name__ == "__main__":
             
 
 
-        obs_to_video(images, f"videos/{args.video_filename}")
+        obs_to_video(images, f"{args.video_path}")
         off_env.close()
         envs.close()
