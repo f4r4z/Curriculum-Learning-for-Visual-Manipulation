@@ -20,8 +20,40 @@ from dataclasses import dataclass
 import torch as th
 import torch.nn as nn
 
+import numpy as np
 import tyro
 
+
+def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
+    nn.init.orthogonal_(layer.weight, std)
+    nn.init.constant_(layer.bias, bias_const)
+    return layer
+
+class CustomCNN2(BaseFeaturesExtractor):
+    def __init__(self, observation_space, features_dim: int = 512):
+        super().__init__(observation_space, features_dim)
+        n_input_channels = observation_space.shape[0]
+        self.cnn = nn.Sequential(
+            layer_init(nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4, padding=0)),
+            nn.ReLU(),
+            layer_init(nn.Conv2d(32, 64, kernel_size=4, stride=2)),
+            nn.ReLU(),
+            layer_init(nn.Conv2d(64, 64, kernel_size=3, stride=1)),
+            nn.ReLU(),
+            nn.Flatten(),
+        )
+
+        # Compute shape by doing one forward pass
+        with th.no_grad():
+            n_flatten = self.cnn(
+                th.as_tensor(observation_space.sample()[None]).float()
+            ).shape[1]
+
+        self.linear = nn.Sequential(layer_init(nn.Linear(n_flatten, features_dim)), nn.ReLU())
+
+    def forward(self, observations: th.Tensor) -> th.Tensor:
+        return self.linear(self.cnn(observations))
+    
 class CustomCNN(BaseFeaturesExtractor):
     """
     :param observation_space: (gym.Space)
@@ -34,6 +66,7 @@ class CustomCNN(BaseFeaturesExtractor):
         # We assume CxHxW images (channels first)
         # Re-ordering will be done by pre-preprocessing or wrapper
         n_input_channels = observation_space.shape[0]
+        print("input channels: ", n_input_channels)
         self.cnn = nn.Sequential(
             nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4, padding=0),
             nn.ReLU(),
@@ -121,8 +154,8 @@ if __name__ == "__main__":
     if args.train:
         print("training")
         policy_kwargs = dict(
-            features_extractor_class=CustomCNN,
-            features_extractor_kwargs=dict(features_dim=128),
+            features_extractor_class=CustomCNN2,
+            features_extractor_kwargs=dict(features_dim=512),
         )
         checkpoint_callback = CheckpointCallback(save_freq=args.save_freq, save_path=args.checkpoints_path, name_prefix="pulisic_ppo_agentview_model")
         tensorboard_callback = TensorboardCallback()
