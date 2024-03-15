@@ -1,3 +1,4 @@
 tyro
 stable_baselines3
 IPython
+imageio
