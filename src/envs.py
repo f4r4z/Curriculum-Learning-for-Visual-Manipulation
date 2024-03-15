@@ -20,10 +20,11 @@ class AgentViewEnv(OffScreenRenderEnv):
     def step(self, action):
         obs, reward, done, info = super().step(action)
         success = self.check_success()
-        reward = 10 * success
+        reward = 10.0 * success
         self.step_count += 1
-        done = success or self.step_count > 500
-        return obs["agentview_image"], reward, done, info
+        truncated = self.step_count > 250
+        done = success or truncated
+        return obs["agentview_image"], reward, done, truncated, info
 
     def reset(self):
         obs = super().reset()
@@ -50,10 +51,11 @@ class LowDimensionalObsEnv(OffScreenRenderEnv):
     def step(self, action):
         obs, reward, done, info = super().step(action)
         success = self.check_success()
-        reward = 10 * success
+        reward = 10.0 * success
         self.step_count += 1
-        done = success or self.step_count > 500
-        return self.get_low_dim_obs(obs), reward, done, info
+        truncated = self.step_count > 250
+        done = success or truncated
+        return self.get_low_dim_obs(obs), reward, done, truncated, info
     
     def reset(self):
         obs = super().reset()
@@ -74,7 +76,7 @@ class GymVecEnvs(VecEnv):
         return self.envs.reset()
     
     def step(self, actions):
-        obs, rewards, dones, infos = self.envs.step(actions)
+        obs, rewards, dones, _, infos = self.envs.step(actions)
         id, *_ = np.where(dones)
         if len(id) > 0:
             obs_new = self.envs.reset(id=id)
@@ -86,7 +88,7 @@ class GymVecEnvs(VecEnv):
         self.actions = actions
 
     def step_wait(self):
-        obs, rewards, dones, infos = self.envs.step(self.actions)
+        obs, rewards, dones, _, infos = self.envs.step(self.actions)
         id, *_ = np.where(dones)
         if len(id) > 0:
             obs_new = self.envs.reset(id=id)
