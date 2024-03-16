@@ -62,6 +62,39 @@ class LowDimensionalObsEnv(OffScreenRenderEnv):
         self.step_count = 0
         return self.get_low_dim_obs(obs)
     
+class LowDimensionalObsGymEnv(gym.Env):
+    """ Sparse reward environment with all the low-dimensional states
+    """
+    def __init__(self, **kwargs):
+        self.env = OffScreenRenderEnv(**kwargs)
+        obs = self.env.env._get_observations()
+        low_dim_obs = self.get_low_dim_obs(obs)
+        self.observation_space = Box(low=-np.inf, high=np.inf, shape=low_dim_obs.shape, dtype="float32")
+        self.action_space = Box(low=-1, high=1, shape=(7,), dtype="float32")
+        self.step_count = 0
+    
+    def get_low_dim_obs(self, obs):
+        return np.concatenate([
+            obs[k] for k in obs.keys() if not k.endswith("image")
+        ], axis = -1)
+    
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        success = self.env.check_success()
+        reward = 10.0 * success
+        self.step_count += 1
+        truncated = self.step_count >= 250
+        done = success or truncated
+        return self.get_low_dim_obs(obs), reward, done, truncated, info
+    
+    def reset(self, seed=None):
+        obs = self.env.reset()
+        self.step_count = 0
+        return self.get_low_dim_obs(obs), {}
+    
+    def seed(self, seed=None):
+        return self.env.seed(seed)
+    
 
 class GymVecEnvs(VecEnv):
     """ Vectorized environment for gymnasium environments
