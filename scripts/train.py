@@ -17,7 +17,7 @@ from libero.libero.envs import OffScreenRenderEnv
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.callbacks import CheckpointCallback
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, SAC
 
 from src.envs import LowDimensionalObsGymEnv
 
@@ -43,13 +43,11 @@ class Args:
     bddl_file_name: str = "libero_90/KITCHEN_SCENE6_close_the_microwave.bddl"
 
     # Algorithm specific arguments
-    train: bool = True
-    """if toggled, model will train otherwise it would not"""
-    eval: bool = False
-    """if toggled, model will load and evaluate a model otherwise it would not"""
+    alg: str = "ppo"
+    """algorithm to use for training"""
     total_timesteps: int = 250000
     """total timesteps of the experiments"""
-    learning_rate: float = 2.5e-4
+    learning_rate: float = 1e-3
     """the learning rate of the optimizer"""
     n_steps: int = 512
     """number of steps to run for each environment per update"""
@@ -101,67 +99,54 @@ if __name__ == "__main__":
         torch.manual_seed(args.seed)
         np.random.seed(args.seed)
 
-    if args.train:
-        print("Start training")
-        run_name = os.path.join(task_name, "ppo", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
-        save_path = os.path.join(args.save_path, run_name)
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
-        if args.wandb:
-            wandb.init(
-                project=args.wandb_project,
-                entity=args.wandb_entity,
-                dir=save_path,
-                config=vars(args),
-                sync_tensorboard=True,
-                name=run_name
-            )
-        call_back = CheckpointCallback(save_freq=args.save_freq, save_path=save_path, name_prefix="model")
+    print("Start training")
+    run_name = os.path.join(task_name, args.alg, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    save_path = os.path.join(args.save_path, run_name)
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    if args.wandb:
+        wandb.init(
+            project=args.wandb_project,
+            entity=args.wandb_entity,
+            dir=save_path,
+            config=vars(args),
+            sync_tensorboard=True,
+            name=run_name
+        )
+    call_back = CheckpointCallback(save_freq=args.save_freq, save_path=save_path, name_prefix="model")
+
+    if args.alg == "ppo":
         model = PPO(
             "MlpPolicy",
             envs,
             verbose=1,
             policy_kwargs=dict(net_arch=[128, 128]),
+            learning_rate=args.learning_rate,
             tensorboard_log=save_path,
             n_steps=args.n_steps,
             ent_coef=args.ent_coef,
             seed=args.seed
         )
-        model.learn(total_timesteps=args.total_timesteps, log_interval=1, callback=call_back)
-        model.save(save_path)
+        log_interval = 1
+    elif args.alg == "sac":
+        model = SAC(
+            "MlpPolicy",
+            envs,
+            verbose=1,
+            policy_kwargs=dict(net_arch=[128, 128]),
+            tensorboard_log=save_path,
+            seed=args.seed,
+            learning_rate=args.learning_rate,
+            learning_starts=1000,
+            batch_size=256,
+            train_freq=(1, "step"),
+            gradient_steps=-1,
+        )
+        log_interval = 32
+    else:
+        raise ValueError(f"Algorithm {args.alg} is not in supported list [ppo, sac]")
 
-        del model
+    model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=call_back)
+    model.save(save_path)
 
-    if args.eval:
-        assert args.load_path is not None, "Please provide a model checkpoint path"
-        print("Start evaluation")
-        model = PPO.load(args.load_path)
-
-        obs = envs.reset()
-
-        # second environment for visualization
-        off_env = OffScreenRenderEnv(**env_args)
-        off_env.reset()
-        images = []
-
-        rews = 0
-
-        for i in range(500):
-            action, _states = model.predict(obs)
-            obs, rewards, dones, info = envs.step(action)
-
-            rews += rewards[0]
-            if dones[0]:
-                print("Env Reset, Episode Reward: ", rews)
-
-            # for visualization
-            off_obs, _, _, _, = off_env.step(action[0])
-            images.append(off_obs["agentview_image"])
-            
-            # if done, stop
-            if dones[0]:
-                break
-
-        obs_to_video(images, f"{args.video_path}")
-        off_env.close()
-        envs.close()
+    del model
