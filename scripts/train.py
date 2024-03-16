@@ -53,8 +53,6 @@ class Args:
     """number of steps to run for each environment per update"""
     num_envs: int = 16
     """number of LIBERO environments"""
-    save_freq: int = 10000
-    "save frequency of model checkpoint during training"
     ent_coef: float = 0.01
     """entropy coefficient for the loss calculation"""
 
@@ -93,6 +91,23 @@ if __name__ == "__main__":
         [lambda: Monitor(LowDimensionalObsGymEnv(**env_args)) for _ in range(args.num_envs)]
     )
 
+    """ ## Speed test
+    import time
+    envs.reset()
+    N = 1000
+    start_time = time.time()
+
+    for i in range(N):
+        print(f"Step {i}/{N}")
+        action = np.random.uniform(-1, 1, size=(args.num_envs, 7))
+        obs, rewards, dones, info = envs.step(action)
+        if i % 250 == 0:
+            envs.reset()
+
+    print("Frames per second: ", N * args.num_envs / (time.time() - start_time)) 
+
+    import ipdb; ipdb.set_trace() """
+
     # Seeding everything
     if args.seed is not None:
         envs.seed(args.seed)
@@ -113,7 +128,6 @@ if __name__ == "__main__":
             sync_tensorboard=True,
             name=run_name
         )
-    call_back = CheckpointCallback(save_freq=args.save_freq, save_path=save_path, name_prefix="model")
 
     if args.alg == "ppo":
         model = PPO(
@@ -145,6 +159,8 @@ if __name__ == "__main__":
         log_interval = 32
     else:
         raise ValueError(f"Algorithm {args.alg} is not in supported list [ppo, sac]")
+    
+    call_back = CheckpointCallback(save_freq=log_interval, save_path=save_path, name_prefix="model")
 
     model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=call_back)
     model.save(save_path)
