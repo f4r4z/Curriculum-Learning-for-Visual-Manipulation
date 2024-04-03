@@ -63,7 +63,7 @@ class AgentViewGoalEnv(OffScreenRenderEnv):
         return OrderedDict(
             [
                 ("observation", self.agentview),
-                ("achieved_goal", np.array([qpos])), # TODO: numpy or 1 value is fine?
+                ("achieved_goal", np.array([qpos]).view(*self.desired_goal.shape)), # TODO: numpy or 1 value is fine?
                 ("desired_goal", self.desired_goal) # TODO: do we sample desired goal here?
             ]
         )
@@ -72,8 +72,8 @@ class AgentViewGoalEnv(OffScreenRenderEnv):
         return gym.spaces.Dict(
             {
                 "observation": Box(low=0, high=255, shape=agent_view_shape, dtype="uint8"),
-                "achieved_goal": Box(low=-np.inf, high=np.inf, shape=goal_shape, dtype="uint8"),
-                "desired_goal": Box(low=-np.inf, high=np.inf, shape=goal_shape, dtype="uint8"),
+                "achieved_goal": Box(low=-np.inf, high=np.inf, shape=goal_shape, dtype=np.float16),
+                "desired_goal": Box(low=-np.inf, high=np.inf, shape=goal_shape, dtype=np.float16),
             }
         )
 
