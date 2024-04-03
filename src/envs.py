@@ -32,6 +32,31 @@ class AgentViewEnv(OffScreenRenderEnv):
         obs = super().reset()
         self.step_count = 0
         return obs["agentview_image"]
+    
+class AgentEnv(OffScreenRenderEnv):
+    """ Sparse reward environment with regular observation
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        agent_view_shape = self.env._get_observations()["agentview_image"].shape
+        self.observation_space = Box(low=0, high=255, shape=agent_view_shape, dtype="uint8")
+        self.action_space = Box(low=-1, high=1, shape=(7,), dtype="float32")
+        self.step_count = 0
+
+    def step(self, action):
+        obs, reward, done, info = super().step(action)
+        print(obs)
+        success = self.check_success()
+        reward = 10.0 * success
+        self.step_count += 1
+        truncated = self.step_count > 250
+        done = success or truncated
+        return obs, reward, done, truncated, info
+
+    def reset(self):
+        obs = super().reset()
+        self.step_count = 0
+        return obs
 
 
 class AgentViewGoalEnv(OffScreenRenderEnv):
@@ -51,20 +76,22 @@ class AgentViewGoalEnv(OffScreenRenderEnv):
         self.action_space = Box(low=-1, high=1, shape=(7,), dtype="float32")
         self.step_count = 0
 
-    def _get_obs(self):
+    def _get_obs(self, obs):
         """
         Helper to create the observation
         """
         # Since object is microwave, we will only have one joint
-        for joint in self.env.get_object(self.obj_of_interest).joints:
+        object = self.obj_of_interest # sometimes this is a list?
+        object = "microwave_1"
+        for joint in self.env.get_object(object).joints:
             qpos_addr = self.env.sim.model.get_joint_qpos_addr(joint)
             qpos = self.env.sim.data.qpos[qpos_addr]
 
         return OrderedDict(
             [
-                ("observation", self.agentview),
-                ("achieved_goal", np.array([qpos])), # TODO: numpy or 1 value is fine?
-                ("desired_goal", self.desired_goal) # TODO: do we sample desired goal here?
+                ("observation", obs['agentview_image']),
+                ("achieved_goal", np.array([qpos])),
+                ("desired_goal", self.desired_goal),
             ]
         )
     
@@ -79,16 +106,14 @@ class AgentViewGoalEnv(OffScreenRenderEnv):
 
     def step(self, action):
         obs, reward, done, info = super().step(action)
-        
-        self.agentview = obs["agentview_image"]
-        observation = self._get_obs()
+
+        observation = self._get_obs(obs)
         success = self.check_success()
-        reward = self.compute_reward(obs['achieved_goal']. obs['desired_goal'], _info = None)
+        reward = self.compute_reward(observation['achieved_goal'], observation['desired_goal'], _info = None)
         self.step_count += 1
         truncated = self.step_count > 250
         done = success or truncated
-        # TODO: return agentview or observation? if observation, then _get_obs need to return agentview_image as "observation"
-        info = {"is_success": done, "agentview_image": self.agentview}
+        info = {"is_success": done, "agentview_image": observation.get("observation")}
         return observation, reward, done, truncated, info
 
     def compute_reward(
@@ -104,10 +129,9 @@ class AgentViewGoalEnv(OffScreenRenderEnv):
 
     def reset(self):
         obs = super().reset()
-        self.agentview = obs["agentview_image"]
         self.step_count = 0
-        return self._get_obs()
-
+        return self._get_obs(obs)
+    
 
 class LowDimensionalObsEnv(OffScreenRenderEnv):
     """ Sparse reward environment with all the low-dimensional states
@@ -217,6 +241,94 @@ class GymVecEnvs(VecEnv):
     
     def set_attr(self, attr_name, value, indices):
         self.envs.set_env_attr(attr_name, value, indices)
+
+    def env_method(self, method_name: str, *method_args, indices: Optional[Union[int, List[int], np.ndarray]] = None, **method_kwargs):
+        return super().env_method(method_name, *method_args, indices=indices, **method_kwargs)
+
+
+class GymGoalEnv(gym.Env):
+    '''
+    Gym wrapper for agent goal environment (HER)
+    '''
+    def __init__(self, env: AgentEnv):
+        super().__init__()
+
+        self.env = env
+        self.action_space = self.env.action_space
+
+        close_threshold = 0.0 # taken from articulated_objects.py Microwave object default close ranges
+        self.desired_goal = np.array([close_threshold])
+
+        agent_view_shape = self.env.env._get_observations()["agentview_image"].shape
+        self.observation_space = self._make_observation_space(agent_view_shape, self.desired_goal.shape)
+
+    def _get_obs(self, obs):
+        """
+        Helper to create the observation
+        """
+        # Since object is microwave, we will only have one joint
+        object = self.env.obj_of_interest # sometimes this is a list?
+        object = "microwave_1"
+        for joint in self.env.env.get_object(object).joints:
+            qpos_addr = self.env.sim.model.get_joint_qpos_addr(joint)
+            qpos = self.env.sim.data.qpos[qpos_addr]
+        return OrderedDict(
+            [
+                ("observation", obs['agentview_image']),
+                ("achieved_goal", np.array([qpos])),
+                ("desired_goal", self.desired_goal),
+            ]
+        )
+    
+    def _make_observation_space(self, agent_view_shape, goal_shape):
+        return gym.spaces.Dict(
+            {
+                "observation": Box(low=0, high=255, shape=agent_view_shape, dtype="uint8"),
+                "achieved_goal": Box(low=-np.inf, high=np.inf, shape=goal_shape, dtype="float64"),
+                "desired_goal": Box(low=-np.inf, high=np.inf, shape=goal_shape, dtype="float64"),
+            }
+        )
+
+    def reset(self, seed=None, info={}):
+        obs = self.env.reset()
+        return self._get_obs(obs), info
+    
+    def step(self, action):
+        obs, reward, done, truncated, info = self.env.step(action)
+
+        observation = self._get_obs(obs)
+        # reward = self.compute_reward(observation['achieved_goal'], observation['desired_goal'], _info = None)
+        reward = float(self.compute_reward(observation["achieved_goal"], observation["desired_goal"], None).item())
+        info = {"is_success": done, "agentview_image": observation.get("observation")}
+        return observation, reward, done, truncated, info
+
+    def close(self) -> None:
+        return self.env.close()
+
+    def compute_reward(self, achieved_goal, desired_goal, _info=None):
+        close_ranges = [-0.005, 0.0]
+        close_range = np.array([abs(close_ranges[1] - close_ranges[0])])
+        
+        batch_size = 1
+        if len(achieved_goal) > 1 and len(desired_goal) > 1:
+            # batch rewards
+            batch_size = len(achieved_goal)
+            achieved_goal = np.reshape(achieved_goal, batch_size)
+            desired_goal = np.reshape(desired_goal, batch_size)
+
+        if (desired_goal - close_range).all() < achieved_goal.all() < (desired_goal + close_range).all():
+            return np.full(batch_size, 10.0)
+        else:
+            return np.full(batch_size, 0.0)
+        
+    def env_is_wrapped(self, wrapper_class, indices):
+        return False
+    
+    def get_attr(self, attr_name, indices = None):
+        return self.env.get_env_attr(attr_name)
+    
+    def set_attr(self, attr_name, value, indices):
+        self.env.set_env_attr(attr_name, value, indices)
 
     def env_method(self, method_name: str, *method_args, indices: Optional[Union[int, List[int], np.ndarray]] = None, **method_kwargs):
         return super().env_method(method_name, *method_args, indices=indices, **method_kwargs)
