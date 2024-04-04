@@ -20,7 +20,6 @@ class CustomCNN(BaseFeaturesExtractor):
             n_input_channels = observation_space.get('observation').shape[0]
         else:
             n_input_channels = observation_space.shape[0]
-        print("input channels: ", n_input_channels)
         self.cnn = nn.Sequential(
             nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4, padding=0),
             nn.ReLU(),
