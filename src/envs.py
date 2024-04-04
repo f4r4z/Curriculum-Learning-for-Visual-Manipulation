@@ -99,8 +99,8 @@ class AgentViewGoalEnv(OffScreenRenderEnv):
         return gym.spaces.Dict(
             {
                 "observation": Box(low=0, high=255, shape=agent_view_shape, dtype="uint8"),
-                "achieved_goal": Box(low=-np.inf, high=np.inf, shape=goal_shape, dtype="uint8"),
-                "desired_goal": Box(low=-np.inf, high=np.inf, shape=goal_shape, dtype="uint8"),
+                "achieved_goal": Box(low=-np.inf, high=np.inf, shape=goal_shape, dtype=np.float16),
+                "desired_goal": Box(low=-np.inf, high=np.inf, shape=goal_shape, dtype=np.float16),
             }
         )
 

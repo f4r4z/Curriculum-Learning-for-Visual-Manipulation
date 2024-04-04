@@ -6,13 +6,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from stable_baselines3 import PPO, SAC, HerReplayBuffer
 from stable_baselines3.common.callbacks import CheckpointCallback, ProgressBarCallback
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
-from stable_baselines3.common.env_checker import check_env
 from libero.libero.envs import SubprocVectorEnv, OffScreenRenderEnv, DummyVectorEnv
 from libero.libero import get_libero_path
 
-from src.envs import LowDimensionalObsEnv, AgentViewEnv, AgentEnv, GymVecEnvs, GymGoalEnv
+from src.envs import LowDimensionalObsEnv, AgentViewEnv, AgentViewGoalEnv, GymVecEnvs
 from src.callbacks import TensorboardCallback
-from src. envs_gymapi import AgentViewGymGoalEnv
 
 import gymnasium as gym
 
@@ -159,18 +157,11 @@ if __name__ == "__main__":
     )
     '''
     
-    # envs = DummyVectorEnv(
-    #     [lambda: AgentViewGoalEnv(**env_args) for _ in range(args.num_envs)]
-    # )
-    # envs = GymVecEnvs(envs)
+    envs = DummyVectorEnv(
+        [lambda: AgentViewEnv(**env_args) for _ in range(args.num_envs)]
+    )
+    envs = GymVecEnvs(envs)
     # import ipdb; ipdb.set_trace()
-
-    # envs = AgentEnv(**env_args)
-    # envs = GymGoalEnv(envs)
-
-    envs = AgentViewGymGoalEnv(**env_args)
-
-    # print(check_env(envs))
 
     # Create the agent with two layer of 128 units
     if args.train:
@@ -181,7 +172,7 @@ if __name__ == "__main__":
         )
         checkpoint_callback = CheckpointCallback(save_freq=args.save_freq, save_path=args.checkpoints_path, name_prefix="pulisic_her_sac_agentview_model")
         tensorboard_callback = TensorboardCallback()
-        model = SAC("MultiInputPolicy", envs, verbose=1, replay_buffer_class=HerReplayBuffer, replay_buffer_kwargs=dict(n_sampled_goal=4, goal_selection_strategy='future',), policy_kwargs=policy_kwargs, learning_rate=args.learning_rate, tensorboard_log="./logs")
+        model = SAC("CnnPolicy", envs, verbose=1, policy_kwargs=policy_kwargs, learning_rate=args.learning_rate, tensorboard_log="./logs")
         model.learn(total_timesteps=args.total_timesteps, log_interval=1, progress_bar=True, callback=[checkpoint_callback, tensorboard_callback])
         model.save(f"{args.model_path}")
 

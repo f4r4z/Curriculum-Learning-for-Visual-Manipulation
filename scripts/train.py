@@ -14,12 +14,14 @@ import numpy as np
 
 from libero.libero import get_libero_path
 from libero.libero.envs import OffScreenRenderEnv
-from stable_baselines3.common.vec_env import SubprocVecEnv
+from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.callbacks import CheckpointCallback
-from stable_baselines3 import PPO, SAC
+from stable_baselines3 import PPO, SAC, HerReplayBuffer
 
-from src.envs import LowDimensionalObsGymEnv
+from src.envs_gymapi import LowDimensionalObsGymEnv, AgentViewGymEnv, AgentViewGymGoalEnv
+from src.networks import CustomCNN
+from src.callbacks import TensorboardCallback
 
 @dataclass
 class Args:
@@ -41,17 +43,22 @@ class Args:
 
     # Environment specific arguments
     bddl_file_name: str = "libero_90/KITCHEN_SCENE6_close_the_microwave.bddl"
+    """file name of the BDDL file"""
+    visual_observation: bool = False
+    """if toggled, the environment will return visual observation otherwise it would not"""
 
     # Algorithm specific arguments
     alg: str = "ppo"
     """algorithm to use for training"""
+    her: bool = False
+    """if toggled, SAC will use HER otherwise it would not"""
     total_timesteps: int = 250000
     """total timesteps of the experiments"""
     learning_rate: float = 1e-3
     """the learning rate of the optimizer"""
     n_steps: int = 512
     """number of steps to run for each environment per update"""
-    num_envs: int = 16
+    num_envs: int = 1
     """number of LIBERO environments"""
     ent_coef: float = 0.01
     """entropy coefficient for the loss calculation"""
@@ -86,10 +93,23 @@ if __name__ == "__main__":
     }
 
     print("Setting up environment")
-
-    envs = SubprocVecEnv(
-        [lambda: Monitor(LowDimensionalObsGymEnv(**env_args)) for _ in range(args.num_envs)]
-    )
+    vec_env_class = SubprocVecEnv if args.num_envs > 1 else DummyVecEnv
+    if args.visual_observation:
+        if args.her:
+            envs = vec_env_class(
+                [lambda: Monitor(AgentViewGymGoalEnv(**env_args)) for _ in range(args.num_envs)]
+            )
+        else:
+            envs = vec_env_class(
+                [lambda: Monitor(AgentViewGymEnv(**env_args)) for _ in range(args.num_envs)]
+            )
+    else:
+        if args.her:
+            raise ValueError("HER is only supported for visual observation")
+        else:
+            envs = vec_env_class(
+                [lambda: Monitor(LowDimensionalObsGymEnv(**env_args)) for _ in range(args.num_envs)]
+            )
 
     """ ## Speed test
     import time
@@ -128,13 +148,23 @@ if __name__ == "__main__":
             sync_tensorboard=True,
             name=run_name
         )
+    
+    if args.visual_observation:
+        policy_kwargs = dict(
+            features_extractor_class=CustomCNN,
+            features_extractor_kwargs=dict(features_dim=256),
+        )
+        policy_class = "MultiInputPolicy" if args.her else "CnnPolicy"
+    else:
+        policy_kwargs = dict(net_arch=[128, 128])
+        policy_class = "MlpPolicy"
 
     if args.alg == "ppo":
         model = PPO(
-            "MlpPolicy",
+            policy_class,
             envs,
             verbose=1,
-            policy_kwargs=dict(net_arch=[128, 128]),
+            policy_kwargs=policy_kwargs,
             learning_rate=args.learning_rate,
             tensorboard_log=save_path,
             n_steps=args.n_steps,
@@ -143,26 +173,44 @@ if __name__ == "__main__":
         )
         log_interval = 1
     elif args.alg == "sac":
-        model = SAC(
-            "MlpPolicy",
-            envs,
-            verbose=1,
-            policy_kwargs=dict(net_arch=[128, 128]),
-            tensorboard_log=save_path,
-            seed=args.seed,
-            learning_rate=args.learning_rate,
-            learning_starts=1000,
-            batch_size=256,
-            train_freq=(1, "step"),
-            gradient_steps=-1,
-        )
+        if args.her:
+            model = SAC(
+                policy_class,
+                envs,
+                verbose=1,
+                policy_kwargs=policy_kwargs,
+                tensorboard_log=save_path,
+                seed=args.seed,
+                learning_rate=args.learning_rate,
+                learning_starts=1000,
+                batch_size=256,
+                train_freq=(1, "step"),
+                gradient_steps=-1,
+                replay_buffer_class=HerReplayBuffer,
+                replay_buffer_kwargs=dict(n_sampled_goal=4, goal_selection_strategy='future',)
+            )
+        else:
+            model = SAC(
+                policy_class,
+                envs,
+                verbose=1,
+                policy_kwargs=policy_kwargs,
+                tensorboard_log=save_path,
+                seed=args.seed,
+                learning_rate=args.learning_rate,
+                learning_starts=1000,
+                batch_size=256,
+                train_freq=(1, "step"),
+                gradient_steps=-1,
+            )
         log_interval = 32
     else:
         raise ValueError(f"Algorithm {args.alg} is not in supported list [ppo, sac]")
     
-    call_back = CheckpointCallback(save_freq=log_interval, save_path=save_path, name_prefix="model")
+    checkpoint_call_back = CheckpointCallback(save_freq=log_interval, save_path=save_path, name_prefix="model")
+    tensorboard_callback = TensorboardCallback()
 
-    model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=call_back)
+    model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=[checkpoint_call_back, tensorboard_callback], progress_bar=True)
     model.save(save_path)
 
     del model
