@@ -34,8 +34,12 @@ class Args:
     # Algorithm specific arguments
     alg: str = "ppo"
     """algorithm to use for training"""
+    her: bool = False
+    """if toggled, SAC will use HER otherwise it would not"""
     num_envs: int = 1
     """number of LIBERO environments"""
+    visual_observation: bool = False
+    """if toggled, the environment will return visual observation otherwise it would not"""
 
 def obs_to_video(images, filename):
     """
@@ -100,7 +104,7 @@ if __name__ == "__main__":
 
     # start evaluation
     print("loading model")
-    model = algorithm.load(f"{args.load_path}")
+    model = algorithm.load(f"{args.load_path}", env=envs if args.her else None)
 
     obs = envs.reset()
 
@@ -109,8 +113,7 @@ if __name__ == "__main__":
     for i in range(500):
         action, _states = model.predict(obs)
         obs, rewards, dones, info = envs.step(action)
-
-        images.append(info["agentview_image"])
+        images.append(info[0]["agentview_image"])
         
     obs_to_video(images, f"{args.video_path}")
     envs.close()
