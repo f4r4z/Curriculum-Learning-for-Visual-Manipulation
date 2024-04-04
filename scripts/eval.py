@@ -110,6 +110,7 @@ if __name__ == "__main__":
 
     images = []
 
+    print("generating video")
     for i in range(500):
         action, _states = model.predict(obs)
         obs, rewards, dones, info = envs.step(action)
