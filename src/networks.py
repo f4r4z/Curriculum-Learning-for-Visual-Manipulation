@@ -79,9 +79,11 @@ class CustomCNN2(BaseFeaturesExtractor):
     
 class CustomCombinedExtractor(BaseFeaturesExtractor):
     """
-    :param observation_space: (gym.Space)
+    :param observation_space: (Dict)
     :param features_dim: (int) Number of features extracted.
-        This corresponds to the number of unit for the last layer.
+        This corresponds to the number of unit for the last layer of image.
+    :param goal_dim: (int) Number of goal features extracted.
+        This corresponds to the number of unit for the last layer of goal.
     """
     def __init__(self, observation_space, features_dim: int = 256, goal_dim: int = 32):
         super().__init__(observation_space, features_dim + goal_dim)
