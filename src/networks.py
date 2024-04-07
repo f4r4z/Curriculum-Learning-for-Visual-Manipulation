@@ -44,7 +44,6 @@ class CustomCNN(BaseFeaturesExtractor):
         self.linear = nn.Sequential(nn.Linear(n_flatten, features_dim), nn.ReLU())
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
-        # TODO: should you model handle the desired goal in some way?
         return self.linear(self.cnn(observations["observation"]))
     
 
@@ -77,3 +76,49 @@ class CustomCNN2(BaseFeaturesExtractor):
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
         return self.linear(self.cnn(observations))
+    
+class CustomCombinedExtractor(BaseFeaturesExtractor):
+    """
+    :param observation_space: (gym.Space)
+    :param features_dim: (int) Number of features extracted.
+        This corresponds to the number of unit for the last layer.
+    """
+    def __init__(self, observation_space, features_dim: int = 256, goal_dim: int = 32):
+        super().__init__(observation_space, features_dim + goal_dim)
+        extractors = {}
+
+        for key, subspace in observation_space.items():
+            if key == "observation":
+                n_input_channels = subspace.shape[0]
+                extractors[key] = nn.Sequential(
+                    nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4, padding=0),
+                    nn.ReLU(),
+                    nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
+                    nn.ReLU(),
+                    nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0),
+                    nn.ReLU(),
+                    nn.Flatten(),
+                )
+            elif key == "desired_goal":
+                extractors[key] = nn.Linear(subspace.shape[0], goal_dim)
+
+        # Compute shape by doing one forward pass
+        with th.no_grad():
+            n_flatten = extractors["observation"](
+                th.as_tensor(observation_space.get("observation").sample()[None]).float()
+            ).shape[1]
+        self.linear = nn.Sequential(nn.Linear(n_flatten, features_dim), nn.ReLU())
+        
+        self.extractors = nn.ModuleDict(extractors)
+
+    def forward(self, observations: th.Tensor) -> th.Tensor:
+        encoded_tensor_list = []
+
+        # self.extractors contain nn.Modules that do all the processing.
+        for key, extractor in self.extractors.items():
+            if key == "observation":
+                encoded_tensor_list.append(self.linear(extractor(observations[key])))
+            elif key == "desired_goal":
+                encoded_tensor_list.append(extractor(observations[key]))
+
+        return th.cat(encoded_tensor_list, dim=1)
