@@ -111,10 +111,26 @@ if __name__ == "__main__":
     images = []
 
     print("generating video")
-    for i in range(500):
+    count = 0
+    success = 0
+    total_episodes = 0
+    for i in range(250*10):
         action, _states = model.predict(obs)
         obs, rewards, dones, info = envs.step(action)
         images.append(info[0]["agentview_image"])
+
+        if dones[0] or count >= 250:
+            count = 0
+            success += dones[0]
+            total_episodes += 1
+            print(total_episodes)
+            envs.reset()
+
+        if total_episodes == 10:
+            break
+    
+        count += 1
         
     obs_to_video(images, f"{args.video_path}")
+    print("# of tasks successful", success)
     envs.close()

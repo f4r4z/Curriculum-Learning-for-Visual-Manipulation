@@ -182,7 +182,7 @@ if __name__ == "__main__":
                 tensorboard_log=save_path,
                 seed=args.seed,
                 learning_rate=args.learning_rate,
-                learning_starts=1000*args.num_envs,
+                learning_starts=250*args.num_envs,
                 batch_size=256,
                 train_freq=(1, "step"),
                 gradient_steps=-1,
@@ -207,9 +207,10 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Algorithm {args.alg} is not in supported list [ppo, sac]")
     
-    call_back = CheckpointCallback(save_freq=log_interval*2, save_path=save_path, name_prefix="model")
+    checkpoint_callback = CheckpointCallback(save_freq=log_interval*2, save_path=save_path, name_prefix="model")
+    tensorboard_callback = TensorboardCallback()
 
-    model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=call_back, progress_bar=True)
+    model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=checkpoint_callback, progress_bar=True)
     model.save(save_path)
 
     del model

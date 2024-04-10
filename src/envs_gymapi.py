@@ -52,6 +52,7 @@ class AgentViewGymEnv(gym.Env):
         self.observation_space = Box(low=0, high=255, shape=obs_shape, dtype="uint8")
         self.action_space = Box(low=-1, high=1, shape=(7,), dtype="float32")
 
+        self.custom_attr = {"total_reward": 0, "reward": 0}
         self.step_count = 0
     
     def step(self, action):
@@ -61,12 +62,18 @@ class AgentViewGymEnv(gym.Env):
         self.step_count += 1
         truncated = self.step_count >= 250
         done = success or truncated
+
         info["agentview_image"] = obs["agentview_image"]
+
+        self.custom_attr["reward"] = reward
+        self.custom_attr["total_reward"] = self.custom_attr["total_reward"] + reward
+
         return obs["agentview_image"], reward, done, truncated, info
     
     def reset(self, seed=None):
         obs = self._env.reset()
         self.step_count = 0
+        self.custom_attr = {"total_reward": 0, "reward": 0}
         return obs["agentview_image"], {}
     
     def seed(self, seed=None):
