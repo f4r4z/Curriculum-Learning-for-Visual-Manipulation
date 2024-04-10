@@ -102,7 +102,8 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):
                     nn.Flatten(),
                 )
             elif key == "desired_goal":
-                extractors[key] = nn.Sequential(nn.Linear(subspace.shape[0], goal_dim), nn.ReLU())
+                # extractors[key] = nn.Sequential(nn.Linear(subspace.shape[0], goal_dim), nn.ReLU()) -5
+                extractors[key] = nn.Linear(subspace.shape[0], goal_dim) # -2, 3
 
         # Compute shape by doing one forward pass
         with th.no_grad():
@@ -111,8 +112,8 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):
             ).shape[1]
 
         # 1- Neither go through linear layer
-        self.linear = nn.Sequential(nn.Linear(n_flatten, features_dim), nn.ReLU()) # 2- CNN goes through linear layer
-        # self.linear = nn.Sequential(nn.Linear(n_flatten + goal_dim, features_dim + goal_dim), nn.ReLU()) # 3- Both desired goal and CNN go through linear layer
+        # self.linear = nn.Sequential(nn.Linear(n_flatten, features_dim), nn.ReLU()) # 2- CNN goes through linear layer
+        self.linear = nn.Sequential(nn.Linear(n_flatten + goal_dim, features_dim + goal_dim), nn.ReLU()) # 3- Both desired goal and CNN go through linear layer
         
         self.extractors = nn.ModuleDict(extractors)
 
@@ -122,9 +123,9 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):
         # self.extractors contain nn.Modules that do all the processing.
         for key, extractor in self.extractors.items():
             if key == "observation":
-                encoded_tensor_list.append(self.linear(extractor(observations[key]))) # 2-
-                # encoded_tensor_list.append(extractor(observations[key])) # 3-
+                # encoded_tensor_list.append(self.linear(extractor(observations[key]))) # 2-
+                encoded_tensor_list.append(extractor(observations[key])) # 3-
             elif key == "desired_goal":
                 encoded_tensor_list.append(extractor(observations[key]))
-        return th.cat(encoded_tensor_list, dim=1) # 2-
-        # return self.linear(th.cat(encoded_tensor_list, dim=1)) # 3-
+        # return th.cat(encoded_tensor_list, dim=1) # 2-
+        return self.linear(th.cat(encoded_tensor_list, dim=1)) # 3-

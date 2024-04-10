@@ -187,7 +187,7 @@ if __name__ == "__main__":
                 train_freq=(1, "step"),
                 gradient_steps=-1,
                 replay_buffer_class=HerReplayBuffer,
-                replay_buffer_kwargs=dict(n_sampled_goal=4, goal_selection_strategy='future',)
+                replay_buffer_kwargs=dict(n_sampled_goal=4, goal_selection_strategy='episode',)
             )
         else:
             model = SAC(
