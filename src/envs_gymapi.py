@@ -52,7 +52,7 @@ class AgentViewGymEnv(gym.Env):
         self.observation_space = Box(low=0, high=255, shape=obs_shape, dtype="uint8")
         self.action_space = Box(low=-1, high=1, shape=(7,), dtype="float32")
 
-        self.custom_attr = {"total_reward": 0, "reward": 0}
+        self.custom_attr = {"total_reward": 0, "reward": 0} # custom attributes for tensorboard logging
         self.step_count = 0
     
     def step(self, action):
@@ -62,12 +62,9 @@ class AgentViewGymEnv(gym.Env):
         self.step_count += 1
         truncated = self.step_count >= 250
         done = success or truncated
-
         info["agentview_image"] = obs["agentview_image"]
-
         self.custom_attr["reward"] = reward
         self.custom_attr["total_reward"] = self.custom_attr["total_reward"] + reward
-
         return obs["agentview_image"], reward, done, truncated, info
     
     def reset(self, seed=None):
@@ -98,6 +95,7 @@ class AgentViewGymGoalEnv(gym.Env):
         })
         self.action_space = Box(low=-1, high=1, shape=(7,), dtype="float32")
 
+        self.custom_attr = {"total_reward": 0, "reward": 0} # custom attributes for tensorboard logging
         self.step_count = 0
 
     def get_achieved_goal(self):
@@ -116,6 +114,8 @@ class AgentViewGymGoalEnv(gym.Env):
         truncated = self.step_count >= 250
         done = success or truncated
         info["agentview_image"] = obs["agentview_image"]
+        self.custom_attr["reward"] = reward
+        self.custom_attr["total_reward"] += self.custom_attr["total_reward"]
         return \
             {   
                 "observation": obs["agentview_image"],
@@ -126,6 +126,7 @@ class AgentViewGymGoalEnv(gym.Env):
     def reset(self, seed=None):
         obs = self._env.reset()
         self.step_count = 0
+        self.custom_attr = {"total_reward": 0, "reward": 0}
         return \
             {   
                 "observation": obs["agentview_image"],
@@ -140,4 +141,5 @@ class AgentViewGymGoalEnv(gym.Env):
         self, achieved_goal, desired_goal, _info = None
     ) -> np.float32:
         close_tolerance = 0.005
-        return (np.linalg.norm(achieved_goal - desired_goal, axis=1) < close_tolerance) * 10.0
+        close_tolerance_array = np.full(achieved_goal.shape, close_tolerance)
+        return (np.abs(achieved_goal - desired_goal) < close_tolerance_array) * 10.0

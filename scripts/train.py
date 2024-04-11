@@ -210,7 +210,7 @@ if __name__ == "__main__":
     checkpoint_callback = CheckpointCallback(save_freq=log_interval*2, save_path=save_path, name_prefix="model")
     tensorboard_callback = TensorboardCallback()
 
-    model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=checkpoint_callback, progress_bar=True)
+    model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=[checkpoint_callback, tensorboard_callback], progress_bar=True)
     model.save(save_path)
 
     del model

@@ -8,10 +8,9 @@ class TensorboardCallback(BaseCallback):
 
     def __init__(self, verbose=0):
         super(TensorboardCallback, self).__init__(verbose)
-        # self.f = open("reward_logs.txt", "w")
 
     def _on_step(self) -> bool:
-        self.logger.record('average reward', np.mean(self.training_env.get_attr('total_reward')))
-        # np.savetxt(self.f, self.training_env.rewards, fmt='%d')
-        # self.f.write(f'{str(np.mean(self.training_env.rewards))}\n')
+        for index, custom_attributes in enumerate(self.training_env.get_attr('custom_attr')):
+            self.logger.record(f'total reward for env {index}', custom_attributes.get('total_reward'))
+            self.logger.record(f'reward for env {index}', custom_attributes.get('reward'))
         return True
