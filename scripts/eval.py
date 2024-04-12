@@ -26,6 +26,8 @@ class Args:
     """file path of the video output file"""
     load_path: str = "logs"
     """file path of the model file"""
+    num_episodes: int = 10
+    """number of episodes to generate evaluation"""
 
     # Environment specific arguments
     bddl_file_name: str = "libero_90/KITCHEN_SCENE6_close_the_microwave.bddl"
@@ -114,23 +116,23 @@ if __name__ == "__main__":
     count = 0
     success = 0
     total_episodes = 0
-    for i in range(250*10):
+    for i in range(250*args.num_episodes):
         action, _states = model.predict(obs)
         obs, rewards, dones, info = envs.step(action)
         images.append(info[0]["agentview_image"])
 
-        if dones[0] or count >= 250:
+        if dones[0]:
             count = 0
-            success += dones[0]
+            success += 1 if rewards[0] > 0 else 0
             total_episodes += 1
             print(total_episodes)
             envs.reset()
 
-        if total_episodes == 10:
+        if total_episodes == args.num_episodes:
             break
     
         count += 1
         
     obs_to_video(images, f"{args.video_path}")
-    print("# of tasks successful", success)
+    print("# of tasks successful", success, "out of", total_episodes)
     envs.close()

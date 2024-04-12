@@ -54,7 +54,7 @@ class Args:
     """if toggled, SAC will use HER otherwise it would not"""
     total_timesteps: int = 250000
     """total timesteps of the experiments"""
-    learning_rate: float = 1e-3
+    learning_rate: float = 1e-3 
     """the learning rate of the optimizer"""
     n_steps: int = 512
     """number of steps to run for each environment per update"""
@@ -182,12 +182,12 @@ if __name__ == "__main__":
                 tensorboard_log=save_path,
                 seed=args.seed,
                 learning_rate=args.learning_rate,
-                learning_starts=1000*args.num_envs,
+                learning_starts=250*args.num_envs,
                 batch_size=256,
                 train_freq=(1, "step"),
                 gradient_steps=-1,
                 replay_buffer_class=HerReplayBuffer,
-                replay_buffer_kwargs=dict(n_sampled_goal=4, goal_selection_strategy='episode',)
+                replay_buffer_kwargs=dict(n_sampled_goal=4, goal_selection_strategy='future',)
             )
         else:
             model = SAC(
@@ -208,9 +208,8 @@ if __name__ == "__main__":
         raise ValueError(f"Algorithm {args.alg} is not in supported list [ppo, sac]")
     
     checkpoint_callback = CheckpointCallback(save_freq=log_interval*2, save_path=save_path, name_prefix="model")
-    tensorboard_callback = TensorboardCallback()
 
-    model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=[checkpoint_callback, tensorboard_callback], progress_bar=True)
+    model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=checkpoint_callback, progress_bar=True)
     model.save(save_path)
 
     del model

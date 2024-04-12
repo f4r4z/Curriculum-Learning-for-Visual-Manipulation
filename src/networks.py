@@ -93,17 +93,17 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):
             if key == "observation":
                 n_input_channels = subspace.shape[0]
                 extractors[key] = nn.Sequential(
-                    nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4, padding=0),
+                    nn.Conv2d(n_input_channels, 32, kernel_size=9, stride=2, padding=0),
                     nn.ReLU(),
-                    nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
+                    nn.Conv2d(32, 64, kernel_size=5, stride=2, padding=0),
                     nn.ReLU(),
                     nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0),
                     nn.ReLU(),
                     nn.Flatten(),
                 )
             elif key == "desired_goal":
-                # extractors[key] = nn.Sequential(nn.Linear(subspace.shape[0], goal_dim), nn.ReLU()) -5
-                extractors[key] = nn.Linear(subspace.shape[0], goal_dim) # -2, 3
+                extractors[key] = nn.Sequential(nn.Linear(subspace.shape[0], goal_dim), nn.ReLU()) # -5
+                # extractors[key] = nn.Linear(subspace.shape[0], goal_dim) # -2, 3
 
         # Compute shape by doing one forward pass
         with th.no_grad():
