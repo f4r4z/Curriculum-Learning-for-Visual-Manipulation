@@ -93,15 +93,14 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):
             if key == "observation":
                 n_input_channels = subspace.shape[0]
                 extractors[key] = nn.Sequential(
-                    nn.Conv2d(n_input_channels, 32, kernel_size=3, stride=1, padding=1),
+                    nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4, padding=0),
                     nn.ReLU(),
-                    nn.MaxPool2d(kernel_size=2, stride=2),
-                    nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+                    nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
                     nn.ReLU(),
-                    nn.MaxPool2d(kernel_size=2, stride=2),
-                    nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+                    nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=0),
                     nn.ReLU(),
-                    nn.MaxPool2d(kernel_size=2, stride=2),
+                    nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0),
+                    nn.ReLU(),
                     nn.Flatten(),
                 )
             elif key == "desired_goal":
