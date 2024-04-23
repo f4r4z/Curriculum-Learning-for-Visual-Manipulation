@@ -20,7 +20,7 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3 import PPO, SAC, HerReplayBuffer
 
 from src.envs_gymapi import LowDimensionalObsGymEnv, AgentViewGymEnv, AgentViewGymGoalEnv
-from src.networks import CustomCNN, CustomCombinedExtractor
+from src.networks import CustomCNN, CustomCombinedExtractor, CustomCombinedExtractor2, CustomCombinedPatchExtractor
 from src.callbacks import TensorboardCallback
 
 @dataclass
@@ -151,7 +151,7 @@ if __name__ == "__main__":
     
     if args.visual_observation:
         policy_kwargs = dict(
-            features_extractor_class=CustomCombinedExtractor if args.her else CustomCNN,
+            features_extractor_class=CustomCombinedExtractor2 if args.her else CustomCNN,
             features_extractor_kwargs=dict(features_dim=256),
         )
         policy_class = "MultiInputPolicy" if args.her else "CnnPolicy"
