@@ -185,7 +185,7 @@ if __name__ == "__main__":
                 learning_starts=1000*args.num_envs,
                 batch_size=256,
                 train_freq=(1, "step"),
-                gradient_steps=2,
+                gradient_steps=3,
                 replay_buffer_class=HerReplayBuffer,
                 replay_buffer_kwargs=dict(n_sampled_goal=4, goal_selection_strategy='future',)
             )
