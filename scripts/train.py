@@ -151,7 +151,7 @@ if __name__ == "__main__":
     
     if args.visual_observation:
         policy_kwargs = dict(
-            features_extractor_class=CustomCombinedExtractor2 if args.her else CustomCNN,
+            features_extractor_class=CustomCombinedPatchExtractor if args.her else CustomCNN,
             features_extractor_kwargs=dict(features_dim=256),
         )
         policy_class = "MultiInputPolicy" if args.her else "CnnPolicy"
@@ -185,7 +185,7 @@ if __name__ == "__main__":
                 learning_starts=1000*args.num_envs,
                 batch_size=256,
                 train_freq=(1, "step"),
-                gradient_steps=3,
+                gradient_steps=-1,
                 replay_buffer_class=HerReplayBuffer,
                 replay_buffer_kwargs=dict(n_sampled_goal=4, goal_selection_strategy='future',)
             )

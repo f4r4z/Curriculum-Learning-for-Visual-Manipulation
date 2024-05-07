@@ -93,11 +93,11 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):
             if key == "observation":
                 n_input_channels = subspace.shape[0]
                 extractors[key] = nn.Sequential(
-                    nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4, padding=0),
+                    nn.Conv2d(n_input_channels, 32, kernel_size=9, stride=4, padding=0),
                     nn.ReLU(),
-                    nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
+                    nn.Conv2d(32, 64, kernel_size=7, stride=2, padding=0),
                     nn.ReLU(),
-                    nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=0),
+                    nn.Conv2d(64, 128, kernel_size=5, stride=1, padding=0),
                     nn.ReLU(),
                     nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0),
                     nn.ReLU(),
@@ -211,7 +211,7 @@ class CustomCombinedPatchExtractor(BaseFeaturesExtractor):
         self.bn = nn.BatchNorm2d(embed_size)
         self.flatten = nn.Flatten()
         
-        self.desired_layer = nn.Linear(observation_space["desired_goal"].shape[0], goal_dim)
+        self.desired_layer = nn.Linear(observation_space["desired_goal"].shape[0], goal_dim) # option 1
 
         # Compute shape by doing one forward pass
         with th.no_grad():
@@ -219,7 +219,8 @@ class CustomCombinedPatchExtractor(BaseFeaturesExtractor):
                 th.as_tensor(observation_space.get("observation").sample()[None]).float()
             ))))).shape[1]
 
-        self.linear = nn.Sequential(nn.Linear(n_flatten + goal_dim, features_dim + goal_dim), nn.ReLU())
+        self.linear = nn.Sequential(nn.Linear(n_flatten + goal_dim, features_dim + goal_dim), nn.ReLU()) # option 1
+        # self.linear = nn.Sequential(nn.Linear(n_flatten + observation_space["desired_goal"].shape[0], features_dim + goal_dim, nn.ReLU())) # option 2
 
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
@@ -228,6 +229,6 @@ class CustomCombinedPatchExtractor(BaseFeaturesExtractor):
         observations["observation"] = self.bn(observations["observation"])
         observations["observation"] = self.flatten(observations["observation"])
 
-        observations["desired_goal"] = self.desired_layer(observations["desired_goal"])
+        observations["desired_goal"] = self.desired_layer(observations["desired_goal"]) # option 1
 
         return self.linear(th.cat([observations["observation"], observations["desired_goal"]], dim=1))
