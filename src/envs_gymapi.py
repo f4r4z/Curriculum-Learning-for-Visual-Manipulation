@@ -42,6 +42,74 @@ class LowDimensionalObsGymEnv(gym.Env):
     def seed(self, seed=None):
         return self.env.seed(seed)
     
+class LowDimensionalObsGymGoalEnv(gym.Env):
+    """ Sparse reward environment with all the low-dimensional states with HER
+    """
+    def __init__(self, **kwargs):
+        self._env = OffScreenRenderEnv(**kwargs)
+        self.obj_of_interest = self._env.obj_of_interest[0]  # hardcoded for now
+        obs = self._env.env._get_observations()
+        low_dim_obs = self.get_low_dim_obs(obs)
+        achieved_goal = self.get_achieved_goal()
+        goal_shape = achieved_goal.shape
+        self.desired_goal = np.zeros_like(achieved_goal)  # this is hardcoded and only works for microwave task
+
+        self.observation_space = Dict({
+            "observation": Box(low=-np.inf, high=np.inf, shape=low_dim_obs.shape, dtype="float32"),
+            "desired_goal": Box(low=-np.inf, high=np.inf, shape=goal_shape, dtype="float32"),
+            "achieved_goal": Box(low=-np.inf, high=np.inf, shape=goal_shape, dtype="float32")
+        })
+        self.action_space = Box(low=-1, high=1, shape=(7,), dtype="float32")
+        self.step_count = 0
+
+    def get_low_dim_obs(self, obs):
+        return np.concatenate([
+            obs[k] for k in obs.keys() if not k.endswith("image")
+        ], axis = -1)
+
+    def get_achieved_goal(self):
+        qposs = []
+        for joint in self._env.env.get_object(self.obj_of_interest).joints:
+            qpos_addr = self._env.env.sim.model.get_joint_qpos_addr(joint)
+            qpos = self._env.sim.data.qpos[qpos_addr]
+            qposs.append(qpos)
+        return np.array(qposs)
+    
+    def step(self, action):
+        obs, reward, done, info = self._env.step(action)
+        success = self._env.check_success()
+        reward = 10.0 * success
+        self.step_count += 1
+        truncated = self.step_count >= 250
+        done = success or truncated
+        info["agentview_image"] = obs["agentview_image"]
+        return \
+            {   
+                "observation": self.get_low_dim_obs(obs),
+                "desired_goal": self.desired_goal,
+                "achieved_goal": self.get_achieved_goal()
+            }, reward, done, truncated, info
+    
+    def reset(self, seed=None):
+        obs = self._env.reset()
+        self.step_count = 0
+        return \
+            {   
+                "observation": self.get_low_dim_obs(obs),
+                "desired_goal": self.desired_goal,
+                "achieved_goal": self.get_achieved_goal()
+            }, {}
+    
+    def seed(self, seed=None):
+        return self._env.seed(seed)
+    
+    def compute_reward(
+        self, achieved_goal, desired_goal, _info = None
+    ) -> np.float32:
+        close_tolerance = 0.005
+        close_tolerance_array = np.full(achieved_goal.shape, close_tolerance)
+        return (np.abs(achieved_goal - desired_goal) < close_tolerance_array) * 10.0
+    
 
 class AgentViewGymEnv(gym.Env):
     """ Sparse reward environment with image observations
@@ -67,6 +135,58 @@ class AgentViewGymEnv(gym.Env):
         self.custom_attr["reward"] = reward
         self.custom_attr["total_reward"] = self.custom_attr["total_reward"] + reward
         return obs["agentview_image"], reward, done, truncated, info
+    
+    def reset(self, seed=None):
+        obs = self._env.reset()
+        self.step_count = 0
+        self.custom_attr = {"total_reward": 0, "reward": 0}
+        return obs["agentview_image"], {}
+    
+    def seed(self, seed=None):
+        return self._env.seed(seed)
+    
+class AgentViewSimpleGymEnv(gym.Env):
+    """ Sparse reward environment with image observations but much simpler tasks [For testing only]
+    """
+    def __init__(self, **kwargs):
+        self._env = OffScreenRenderEnv(**kwargs)
+        obs_shape = self._env.env._get_observations()["agentview_image"].shape
+
+        self.observation_space = Box(low=0, high=255, shape=obs_shape, dtype="uint8")
+        self.action_space = Box(low=-1, high=1, shape=(7,), dtype="float32")
+
+        self.custom_attr = {"total_reward": 0, "reward": 0} # custom attributes for tensorboard logging
+        self.step_count = 0
+    
+    def step(self, action):
+        obs, reward, done, info = self._env.step(action)
+        reward = self.compute_reward(self.get_achieved_goal())
+        success = 0 if reward == 0 else 1
+        
+        self.step_count += 1
+        truncated = self.step_count >= 250
+        done = success or truncated
+        info["agentview_image"] = obs["agentview_image"]
+        self.custom_attr["reward"] = reward
+        self.custom_attr["total_reward"] = self.custom_attr["total_reward"] + reward
+        return obs["agentview_image"], reward, done, truncated, info
+
+    def get_achieved_goal(self):
+        qposs = []
+        self.obj_of_interest = self._env.obj_of_interest[0]
+        for joint in self._env.env.get_object(self.obj_of_interest).joints:
+            qpos_addr = self._env.env.sim.model.get_joint_qpos_addr(joint)
+            qpos = self._env.sim.data.qpos[qpos_addr]
+            qposs.append(qpos)
+        return np.array(qposs)
+    
+    def compute_reward(
+        self, achieved_goal, _info = None
+    ) -> np.float32:
+        desired_goal = np.zeros_like(achieved_goal)
+        close_tolerance = 1.000
+        close_tolerance_array = np.full(achieved_goal.shape, close_tolerance)
+        return (np.abs(achieved_goal - desired_goal) < close_tolerance_array) * 10.0
     
     def reset(self, seed=None):
         obs = self._env.reset()

@@ -19,7 +19,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3 import PPO, SAC, HerReplayBuffer
 
-from src.envs_gymapi import LowDimensionalObsGymEnv, AgentViewGymEnv, AgentViewGymGoalEnv
+from src.envs_gymapi import LowDimensionalObsGymEnv, LowDimensionalObsGymGoalEnv, AgentViewGymEnv, AgentViewGymGoalEnv
 from src.networks import CustomCNN, CustomCombinedExtractor, CustomCombinedExtractor2, CustomCombinedPatchExtractor
 from src.callbacks import TensorboardCallback
 
@@ -105,7 +105,9 @@ if __name__ == "__main__":
             )
     else:
         if args.her:
-            raise ValueError("HER is only supported for visual observation")
+            envs = vec_env_class(
+                [lambda: Monitor(LowDimensionalObsGymGoalEnv(**env_args)) for _ in range(args.num_envs)]
+            )
         else:
             envs = vec_env_class(
                 [lambda: Monitor(LowDimensionalObsGymEnv(**env_args)) for _ in range(args.num_envs)]
@@ -157,7 +159,7 @@ if __name__ == "__main__":
         policy_class = "MultiInputPolicy" if args.her else "CnnPolicy"
     else:
         policy_kwargs = dict(net_arch=[128, 128])
-        policy_class = "MlpPolicy"
+        policy_class = "MultiInputPolicy" if args.her else "MlpPolicy"
 
     if args.alg == "ppo":
         model = PPO(

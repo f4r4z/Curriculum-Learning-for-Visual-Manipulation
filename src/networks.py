@@ -44,7 +44,7 @@ class CustomCNN(BaseFeaturesExtractor):
         self.linear = nn.Sequential(nn.Linear(n_flatten, features_dim), nn.ReLU())
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
-        return self.linear(self.cnn(observations["observation"]))
+        return self.linear(self.cnn(observations))
     
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
