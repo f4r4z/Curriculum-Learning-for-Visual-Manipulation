@@ -85,7 +85,7 @@ if __name__ == "__main__":
     args = tyro.cli(Args)
 
     bddl_file_base = get_libero_path("bddl_files")
-    task_name = "libero_90/KITCHEN_SCENE6_close_the_microwave.bddl"
+    task_name = args.bddl_file_name
     env_args = {
         "bddl_file_name": os.path.join(bddl_file_base, task_name),
         "camera_heights": 128,

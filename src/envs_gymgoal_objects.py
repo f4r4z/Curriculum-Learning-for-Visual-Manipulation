@@ -133,6 +133,5 @@ class AgentViewGymGoalWhiteCabinetEnv(gym.Env):
     def compute_reward(
         self, achieved_goal, desired_goal, _info = None
     ) -> np.float32:
-        on_tolerance = 0.005 - 0.0
-        on_tolerance_array = np.full(achieved_goal.shape, on_tolerance)
-        return (np.abs(desired_goal - achieved_goal) < on_tolerance_array) * 10.0
+        on_tolerance = 0.005 - 0.0 # hard coded for white cabinet tolerance
+        return (np.linalg.norm(achieved_goal - desired_goal, axis=1) < on_tolerance) * 10.0

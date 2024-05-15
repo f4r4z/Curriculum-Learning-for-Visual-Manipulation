@@ -261,6 +261,7 @@ class AgentViewGymGoalEnv(gym.Env):
     def compute_reward(
         self, achieved_goal, desired_goal, _info = None
     ) -> np.float32:
-        close_tolerance = 0.005
-        close_tolerance_array = np.full(achieved_goal.shape, close_tolerance)
-        return (np.abs(achieved_goal - desired_goal) < close_tolerance_array) * 10.0
+        close_tolerance = 0.005 # hard coded for microwave task
+        # close_tolerance_array = np.full(achieved_goal.shape, close_tolerance)
+        # return (np.abs(achieved_goal - desired_goal) < close_tolerance_array) * 10.0
+        return (np.linalg.norm(achieved_goal - desired_goal, axis=1) < close_tolerance) * 10.0
