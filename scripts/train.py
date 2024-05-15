@@ -173,7 +173,7 @@ if __name__ == "__main__":
             ent_coef=args.ent_coef,
             seed=args.seed
         )
-        log_interval = 16
+        log_interval = 1
     elif args.alg == "sac":
         if args.her:
             model = SAC(
@@ -205,11 +205,11 @@ if __name__ == "__main__":
                 train_freq=(1, "step"),
                 gradient_steps=-1,
             )
-        log_interval = 32
+        log_interval = 2
     else:
         raise ValueError(f"Algorithm {args.alg} is not in supported list [ppo, sac]")
     
-    checkpoint_callback = CheckpointCallback(save_freq=log_interval*2, save_path=save_path, name_prefix="model")
+    checkpoint_callback = CheckpointCallback(save_freq=log_interval*32, save_path=save_path, name_prefix="model")
 
     model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=checkpoint_callback, progress_bar=True)
     model.save(save_path)
