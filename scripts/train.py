@@ -173,7 +173,7 @@ if __name__ == "__main__":
             ent_coef=args.ent_coef,
             seed=args.seed
         )
-        log_interval = 1
+        log_interval = 16
     elif args.alg == "sac":
         if args.her:
             model = SAC(
