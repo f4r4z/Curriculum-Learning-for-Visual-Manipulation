@@ -52,7 +52,13 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
         low_dim_obs = self.get_low_dim_obs(obs)
         achieved_goal = self.get_achieved_goal()
         goal_shape = achieved_goal.shape
-        self.desired_goal = np.zeros_like(achieved_goal)  # this is hardcoded and only works for microwave task
+
+        if "flat_stove" in self.obj_of_interest:
+            print("HER for flat stove")
+            self.desired_goal = np.full(goal_shape, -0.005)
+        elif "microwave" in self.obj_of_interest or "white_cabinet" in self.obj_of_interest:
+            print("HER for microwave or white cabinet")
+            self.desired_goal = np.zeros_like(achieved_goal)  # this is hardcoded and only works for microwave task
 
         self.observation_space = Dict({
             "observation": Box(low=-np.inf, high=np.inf, shape=low_dim_obs.shape, dtype="float32"),
@@ -106,9 +112,8 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
     def compute_reward(
         self, achieved_goal, desired_goal, _info = None
     ) -> np.float32:
-        close_tolerance = 0.005
-        close_tolerance_array = np.full(achieved_goal.shape, close_tolerance)
-        return (np.abs(achieved_goal - desired_goal) < close_tolerance_array) * 10.0
+        close_tolerance = 0.005 # same for turn off flat stove
+        return (np.linalg.norm(achieved_goal - desired_goal, axis=1) < close_tolerance) * 10.0
     
 
 class AgentViewGymEnv(gym.Env):
