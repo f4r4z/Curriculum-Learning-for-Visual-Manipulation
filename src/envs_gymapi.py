@@ -84,7 +84,7 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
     def step(self, action):
         obs, reward, done, info = self._env.step(action)
         success = self._env.check_success()
-        reward = 10.0 * success
+        reward = self.compute_reward(self.get_achieved_goal(), self.desired_goal)
         self.step_count += 1
         truncated = self.step_count >= 250
         done = success or truncated
@@ -112,8 +112,14 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
     def compute_reward(
         self, achieved_goal, desired_goal, _info = None
     ) -> np.float32:
-        close_tolerance = 0.005 # same for turn off flat stove
-        return (np.linalg.norm(achieved_goal - desired_goal, axis=1) < close_tolerance) * 10.0
+        # batch instance
+        if achieved_goal.ndim > 1:
+            close_tolerance = 0.005 # same for turn off flat stove
+            return (np.linalg.norm(achieved_goal - desired_goal, axis=1) < close_tolerance) * 10.0
+        else:
+            close_tolerance = 0.005 # same for turn off flat stove
+            return (np.linalg.norm(achieved_goal - desired_goal, axis=0) < close_tolerance) * 10.0
+
     
 
 class AgentViewGymEnv(gym.Env):
