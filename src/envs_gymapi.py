@@ -4,9 +4,11 @@ import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import Box, Dict
 
+import torch
 from stable_baselines3.common.vec_env import VecEnv
 from libero.libero.envs import OffScreenRenderEnv, SubprocVectorEnv
 
+from src.rnd import RNDNetworkLowDim
     
 class LowDimensionalObsGymEnv(gym.Env):
     """ Sparse reward environment with all the low-dimensional states
@@ -18,6 +20,14 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.observation_space = Box(low=-np.inf, high=np.inf, shape=low_dim_obs.shape, dtype="float32")
         self.action_space = Box(low=-1, high=1, shape=(7,), dtype="float32")
         self.step_count = 0
+
+        # implementing simple random netork distillation
+        self.target = RNDNetworkLowDim(input_dim=low_dim_obs.shape[0], output_dim=32)
+        self.predictor = RNDNetworkLowDim(input_dim=low_dim_obs.shape[0], output_dim=32)
+        self.optimizer = torch.optim.Adam(self.predictor.parameters(), lr=1e-3)
+        self.loss_fn = torch.nn.MSELoss()
+        for param in self.target.parameters():
+            param.requires_grad = False
     
     def get_low_dim_obs(self, obs):
         return np.concatenate([
@@ -27,7 +37,17 @@ class LowDimensionalObsGymEnv(gym.Env):
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
         success = self.env.check_success()
-        reward = 10.0 * success
+
+        # RND
+        target = self.target(torch.from_numpy(self.get_low_dim_obs(obs)))
+        predictor = self.predictor(torch.from_numpy(self.get_low_dim_obs(obs)))
+        intrinsic_reward = torch.mean((target - predictor) ** 2).item()
+        loss = self.loss_fn(predictor, target)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        reward = 10.0 * success + intrinsic_reward * 10.0
         self.step_count += 1
         truncated = self.step_count >= 250
         done = success or truncated
