@@ -62,6 +62,8 @@ class Args:
     """number of LIBERO environments"""
     ent_coef: float = 0.01
     """entropy coefficient for the loss calculation"""
+    truncate: bool = True
+    """if toggled, algorithm with truncate after 250 steps"""
 
 def obs_to_video(images, filename):
     """
@@ -91,6 +93,9 @@ if __name__ == "__main__":
         "camera_heights": 128,
         "camera_widths": 128,
     }
+
+    if not args.truncate:
+        env_args["horizon"] = args.total_timesteps
 
     print("Setting up environment")
     vec_env_class = SubprocVecEnv if args.num_envs > 1 else DummyVecEnv

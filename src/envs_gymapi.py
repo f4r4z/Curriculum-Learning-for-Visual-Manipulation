@@ -87,6 +87,7 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
         })
         self.action_space = Box(low=-1, high=1, shape=(7,), dtype="float32")
         self.step_count = 0
+        self.episode_count = 0
 
     def get_low_dim_obs(self, obs):
         return np.concatenate([
@@ -107,7 +108,16 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
         reward = self.compute_reward(self.get_achieved_goal(), self.desired_goal)
         self.step_count += 1
         truncated = self.step_count >= 250
-        done = success or truncated
+        truncated = False # added in order not to truncate
+        done = success # or truncated
+        
+        # always truncate first episode for learning starts so HER can sample
+        if self.episode_count == 0 and self.step_count >= 250:
+            truncated = True
+            done = True
+        if done:
+            self.episode_count += 1
+
         info["agentview_image"] = obs["agentview_image"]
         return \
             {   
@@ -135,10 +145,10 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
         # batch instance
         if achieved_goal.ndim > 1:
             close_tolerance = 0.005 # same for turn off flat stove
-            return (np.linalg.norm(achieved_goal - desired_goal, axis=1) < close_tolerance) * 10.0
+            return (np.linalg.norm(achieved_goal - desired_goal, axis=1) < close_tolerance) * 0.1
         else:
             close_tolerance = 0.005 # same for turn off flat stove
-            return (np.linalg.norm(achieved_goal - desired_goal, axis=0) < close_tolerance) * 10.0
+            return (np.linalg.norm(achieved_goal - desired_goal, axis=0) < close_tolerance) * 0.1
 
     
 
