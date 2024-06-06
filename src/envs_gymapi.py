@@ -67,6 +67,7 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
         })
         self.action_space = Box(low=-1, high=1, shape=(7,), dtype="float32")
         self.step_count = 0
+        self.close_tolerance = 0.005 # same for turn off flat stove
 
     def get_low_dim_obs(self, obs):
         return np.concatenate([
@@ -83,7 +84,8 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
     
     def step(self, action):
         obs, reward, done, info = self._env.step(action)
-        success = self._env.check_success()
+        achieved_goal = self.get_achieved_goal()
+        success = np.linalg.norm(achieved_goal - self.desired_goal) < self.close_tolerance  # self._env.check_success()
         reward = 10.0 * success
         self.step_count += 1
         truncated = self.step_count >= 250
@@ -112,8 +114,7 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
     def compute_reward(
         self, achieved_goal, desired_goal, _info = None
     ) -> np.float32:
-        close_tolerance = 0.005 # same for turn off flat stove
-        return (np.linalg.norm(achieved_goal - desired_goal, axis=1) < close_tolerance) * 10.0
+        return (np.linalg.norm(achieved_goal - desired_goal, axis=1) < self.close_tolerance) * 10.0
     
 
 class AgentViewGymEnv(gym.Env):

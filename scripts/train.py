@@ -17,8 +17,9 @@ from libero.libero.envs import OffScreenRenderEnv
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.callbacks import CheckpointCallback
-from stable_baselines3 import PPO, SAC, HerReplayBuffer
+from stable_baselines3 import PPO, SAC
 
+from src.her import HerReplayBuffer
 from src.envs_gymapi import LowDimensionalObsGymEnv, LowDimensionalObsGymGoalEnv, AgentViewGymEnv, AgentViewGymGoalEnv
 from src.networks import CustomCNN, CustomCombinedExtractor, CustomCombinedExtractor2, CustomCombinedPatchExtractor
 from src.callbacks import TensorboardCallback
