@@ -15,7 +15,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import PPO, SAC
 
-from src.envs_gymapi import LowDimensionalObsGymEnv, AgentViewGymEnv, AgentViewGymGoalEnv
+from src.envs_gymapi import LowDimensionalObsGymEnv, AgentViewGymEnv, AgentViewGymGoalEnv, LowDimensionalObsGymGoalEnv
 
 @dataclass
 class Args:
@@ -87,7 +87,9 @@ if __name__ == "__main__":
             )
     else:
         if args.her:
-            raise ValueError("HER is only supported for visual observation")
+            envs = vec_env_class(
+                [lambda: Monitor(LowDimensionalObsGymGoalEnv(**env_args)) for _ in range(args.num_envs)]
+            )
         else:
             envs = vec_env_class(
                 [lambda: Monitor(LowDimensionalObsGymEnv(**env_args)) for _ in range(args.num_envs)]

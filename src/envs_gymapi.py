@@ -7,9 +7,58 @@ from gymnasium.spaces import Box, Dict
 import torch
 from stable_baselines3.common.vec_env import VecEnv
 from libero.libero.envs import OffScreenRenderEnv, SubprocVectorEnv
+from libero.libero.envs.objects.articulated_objects import Microwave, SlideCabinet, Window, Faucet, BasinFaucet, ShortCabinet, ShortFridge, WoodenCabinet, WhiteCabinet, FlatStove
 
 from src.rnd import RNDNetworkLowDim
-    
+
+class MapObjects():
+    '''
+    maps object name to its libero articulated objects
+    '''
+    def __init__(self, obj_name, instruction):
+        self.articulated_object = None
+        self.instruction = instruction
+        if "microwave" in obj_name:
+            self.articulated_object = Microwave()
+        elif "slide_cabinet" in obj_name:
+            self.articulated_object = SlideCabinet()
+        elif "window" in obj_name:
+            self.articulated_object = Window()
+        elif "faucet" in obj_name:
+            self.articulated_object = Faucet()
+        elif "basin_facet" in obj_name:
+            self.articulated_object = BasinFaucet()
+        elif "short_cabinet" in obj_name:
+            self.articulated_object = ShortCabinet()
+        elif "short_fridge" in obj_name:
+            self.articulated_object = ShortFridge()
+        elif "wooden_cabinet" in obj_name:
+            self.articulated_object = WoodenCabinet()
+        elif "white_cabinet" in obj_name:
+            self.articulated_object = WhiteCabinet()
+        elif "flat_stove" in obj_name:
+            self.articulated_object = FlatStove()
+
+    def define_goal(self):
+        if "open" in self.instruction:
+            goal_ranges = self.articulated_object.object_properties["articulation"]["default_open_ranges"]
+            goal_value = min(goal_ranges) if min(goal_ranges) < max(self.articulated_object.object_properties["articulation"]["default_close_ranges"]) else max(goal_ranges)
+        elif "close" in self.instruction:
+            goal_ranges = self.articulated_object.object_properties["articulation"]["default_close_ranges"]
+            goal_value = min(goal_ranges) if min(goal_ranges) < max(self.articulated_object.object_properties["articulation"]["default_open_ranges"]) else max(goal_ranges)
+        elif "turn on" in self.instruction:
+            goal_ranges = self.articulated_object.object_properties["articulation"]["default_turnon_ranges"]
+            goal_value = min(goal_ranges) if min(goal_ranges) < max(self.articulated_object.object_properties["articulation"]["default_turnoff_ranges"]) else max(goal_ranges)
+        elif "turn off" in self.instruction:
+            goal_ranges = self.articulated_object.object_properties["articulation"]["default_turnoff_ranges"]
+            goal_value = min(goal_ranges) if min(goal_ranges) < max(self.articulated_object.object_properties["articulation"]["default_turnon_ranges"]) else max(goal_ranges)
+        else:
+            # this should error out
+            goal_ranges = None
+            goal_value = None
+        
+        return goal_value, goal_ranges
+
 class LowDimensionalObsGymEnv(gym.Env):
     """ Sparse reward environment with all the low-dimensional states
     """
@@ -20,14 +69,6 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.observation_space = Box(low=-np.inf, high=np.inf, shape=low_dim_obs.shape, dtype="float32")
         self.action_space = Box(low=-1, high=1, shape=(7,), dtype="float32")
         self.step_count = 0
-
-        # implementing simple random netork distillation
-        self.target = RNDNetworkLowDim(input_dim=low_dim_obs.shape[0], output_dim=32)
-        self.predictor = RNDNetworkLowDim(input_dim=low_dim_obs.shape[0], output_dim=32)
-        self.optimizer = torch.optim.Adam(self.predictor.parameters(), lr=1e-3)
-        self.loss_fn = torch.nn.MSELoss()
-        for param in self.target.parameters():
-            param.requires_grad = False
     
     def get_low_dim_obs(self, obs):
         return np.concatenate([
@@ -37,17 +78,7 @@ class LowDimensionalObsGymEnv(gym.Env):
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
         success = self.env.check_success()
-
-        # RND
-        target = self.target(torch.from_numpy(self.get_low_dim_obs(obs)))
-        predictor = self.predictor(torch.from_numpy(self.get_low_dim_obs(obs)))
-        intrinsic_reward = torch.mean((target - predictor) ** 2).item()
-        loss = self.loss_fn(predictor, target)
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
-
-        reward = 10.0 * success + intrinsic_reward * 10.0
+        reward = 10.0 * success
         self.step_count += 1
         truncated = self.step_count >= 250
         done = success or truncated
@@ -68,17 +99,23 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
     def __init__(self, **kwargs):
         self._env = OffScreenRenderEnv(**kwargs)
         self.obj_of_interest = self._env.obj_of_interest[0]  # hardcoded for now
+        self.instruction = self._env.language_instruction
         obs = self._env.env._get_observations()
         low_dim_obs = self.get_low_dim_obs(obs)
         achieved_goal = self.get_achieved_goal()
         goal_shape = achieved_goal.shape
 
-        if "flat_stove" in self.obj_of_interest:
-            print("HER for flat stove")
-            self.desired_goal = np.full(goal_shape, -0.005)
-        elif "microwave" in self.obj_of_interest or "white_cabinet" in self.obj_of_interest:
-            print("HER for microwave or white cabinet")
-            self.desired_goal = np.zeros_like(achieved_goal)  # this is hardcoded and only works for microwave task
+        goal_value, self.goal_ranges = MapObjects(self.obj_of_interest, self.instruction).define_goal()
+        
+        print(f"desired goal value for task {self.instruction} with object {self.obj_of_interest} is {goal_value} with tolerance {max(self.goal_ranges) - min(self.goal_ranges)}")
+        self.desired_goal = np.full(goal_shape, goal_value)
+
+        # if "flat_stove" in self.obj_of_interest:
+        #     print("HER for flat stove")
+        #     self.desired_goal = np.full(goal_shape, -0.005)
+        # elif "microwave" in self.obj_of_interest or "white_cabinet" in self.obj_of_interest:
+        #     print("HER for microwave or white cabinet")
+        #     self.desired_goal = np.zeros_like(achieved_goal)  # this is hardcoded and only works for microwave task
 
         self.observation_space = Dict({
             "observation": Box(low=-np.inf, high=np.inf, shape=low_dim_obs.shape, dtype="float32"),
@@ -108,15 +145,15 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
         reward = self.compute_reward(self.get_achieved_goal(), self.desired_goal)
         self.step_count += 1
         truncated = self.step_count >= 250
-        truncated = False # added in order not to truncate
-        done = success # or truncated
+        # truncated = False # added in order not to truncate
+        done = success or truncated
         
         # always truncate first episode for learning starts so HER can sample
-        if self.episode_count == 0 and self.step_count >= 250:
-            truncated = True
-            done = True
-        if done:
-            self.episode_count += 1
+        # if self.episode_count == 0 and self.step_count >= 250:
+        #     truncated = True
+        #     done = True
+        # if done:
+        #     self.episode_count += 1
 
         info["agentview_image"] = obs["agentview_image"]
         return \
@@ -144,11 +181,11 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
     ) -> np.float32:
         # batch instance
         if achieved_goal.ndim > 1:
-            close_tolerance = 0.005 # same for turn off flat stove
-            return (np.linalg.norm(achieved_goal - desired_goal, axis=1) < close_tolerance) * 0.1
+            tolerance = max(self.goal_ranges) - min(self.goal_ranges)
+            return (np.linalg.norm(achieved_goal - desired_goal, axis=1) < tolerance) * 0.1
         else:
-            close_tolerance = 0.005 # same for turn off flat stove
-            return (np.linalg.norm(achieved_goal - desired_goal, axis=0) < close_tolerance) * 0.1
+            tolerance = max(self.goal_ranges) - min(self.goal_ranges)
+            return (np.linalg.norm(achieved_goal - desired_goal, axis=0) < tolerance) * 0.1
 
     
 

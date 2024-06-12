@@ -2,3 +2,4 @@ tyro
 imageio
 stable_baselines3
 IPython
+rllte-core

@@ -21,7 +21,9 @@ from stable_baselines3 import PPO, SAC, HerReplayBuffer
 
 from src.envs_gymapi import LowDimensionalObsGymEnv, LowDimensionalObsGymGoalEnv, AgentViewGymEnv, AgentViewGymGoalEnv
 from src.networks import CustomCNN, CustomCombinedExtractor, CustomCombinedExtractor2, CustomCombinedPatchExtractor
-from src.callbacks import TensorboardCallback
+from src.callbacks import TensorboardCallback, RLeXploreWithOffPolicyRL, RLeXploreWithOnPolicyRL
+
+from rllte.xplore.reward import RND, Disagreement, E3B, Fabric, ICM, NGU, PseudoCounts, RE3, RIDE
 
 @dataclass
 class Args:
@@ -49,9 +51,11 @@ class Args:
 
     # Algorithm specific arguments
     alg: str = "ppo"
-    """algorithm to use for training"""
+    """algorithm to use for training: ppo, sac"""
     her: bool = False
     """if toggled, SAC will use HER otherwise it would not"""
+    exploration_alg: str = None
+    """algorithm for exploration techniques: rnd, e3b, disagreement, re3, ride, icm"""
     total_timesteps: int = 250000
     """total timesteps of the experiments"""
     learning_rate: float = 1e-3 
@@ -165,6 +169,7 @@ if __name__ == "__main__":
     else:
         policy_kwargs = dict(net_arch=[128, 128])
         policy_class = "MultiInputPolicy" if args.her else "MlpPolicy"
+        
 
     if args.alg == "ppo":
         model = PPO(
@@ -189,7 +194,7 @@ if __name__ == "__main__":
                 tensorboard_log=save_path,
                 seed=args.seed,
                 learning_rate=args.learning_rate,
-                learning_starts=1000*args.num_envs,
+                learning_starts=250*args.num_envs,
                 batch_size=256,
                 train_freq=(1, "step"),
                 gradient_steps=-1,
@@ -205,7 +210,7 @@ if __name__ == "__main__":
                 tensorboard_log=save_path,
                 seed=args.seed,
                 learning_rate=args.learning_rate,
-                learning_starts=1000*args.num_envs,
+                learning_starts=250*args.num_envs,
                 batch_size=256,
                 train_freq=(1, "step"),
                 gradient_steps=-1,
@@ -214,9 +219,44 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Algorithm {args.alg} is not in supported list [ppo, sac]")
     
-    checkpoint_callback = CheckpointCallback(save_freq=log_interval*32, save_path=save_path, name_prefix="model")
+    # get device
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=checkpoint_callback, progress_bar=True)
+    '''
+    callback list
+    '''
+    callbacks = []
+
+    # checkpoint callback
+    checkpoint_callback = CheckpointCallback(save_freq=log_interval*32, save_path=save_path, name_prefix="model")
+    callbacks.append(checkpoint_callback)
+
+
+    # exploration technique callbacks
+    if args.exploration_alg is not None:
+        if args.exploration_alg == "rnd":
+            irs = RND(envs, device=device, rwd_norm_type='none', obs_norm_type='none')
+        elif args.exploration_alg == "disagreement":
+            irs = Disagreement(envs, device=device, rwd_norm_type='none', obs_norm_type='none')
+        elif args.exploration_alg == "e3b":
+            irs = E3B(envs, device=device, rwd_norm_type='none', obs_norm_type='none')
+        elif args.exploration_alg == "icm":
+            irs = ICM(envs, device=device, rwd_norm_type='rms', obs_norm_type='none')
+        elif args.exploration_alg == "pseudocounts":
+            irs = PseudoCounts(envs, device=device, rwd_norm_type='rms', obs_norm_type='none')
+        elif args.exploration_alg == "ride":
+            irs = RIDE(envs, device=device, rwd_norm_type='rms', obs_norm_type='none')
+        else:
+            print("You have typed an invalid exploration technique. --help for more information.")
+            exit(1)
+        # on policy vs off policy
+        if args.alg == 'ppo':
+            callbacks.append(RLeXploreWithOnPolicyRL(irs))
+        else:
+            callbacks.append(RLeXploreWithOffPolicyRL(irs))
+    
+    '''train'''
+    model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=callbacks, progress_bar=True)
     model.save(save_path)
 
     del model
