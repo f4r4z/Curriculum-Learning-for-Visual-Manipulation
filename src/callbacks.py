@@ -97,17 +97,16 @@ class RLeXploreWithOffPolicyRL(BaseCallback):
         rewards = th.as_tensor(self.locals["rewards"], device=device)
         dones = th.as_tensor(self.locals["dones"], device=device)
         next_obs = th.as_tensor(self.locals["new_obs"], device=device)
-
         # ===================== watch the interaction ===================== #
         self.irs.watch(obs, actions, rewards, dones, dones, next_obs)
         # ===================== watch the interaction ===================== #
         # ===================== compute the intrinsic rewards ===================== #
-        intrinsic_rewards = self.irs.compute(samples={'observations':obs.unsqueeze(0), 
+        intrinsic_rewards = self.irs.compute(samples={'observations':obs.unsqueeze(0).float(), 
                                             'actions':actions.unsqueeze(0), 
                                             'rewards':rewards.unsqueeze(0),
                                             'terminateds':dones.unsqueeze(0),
                                             'truncateds':dones.unsqueeze(0),
-                                            'next_observations':next_obs.unsqueeze(0)}, 
+                                            'next_observations':next_obs.unsqueeze(0).float()}, 
                                             sync=False)
         # ===================== compute the intrinsic rewards ===================== #
 

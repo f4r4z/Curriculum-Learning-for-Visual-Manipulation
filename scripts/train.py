@@ -242,7 +242,7 @@ if __name__ == "__main__":
         elif args.exploration_alg == "e3b":
             irs = E3B(envs, device=device, rwd_norm_type='none', obs_norm_type='none')
         elif args.exploration_alg == "icm":
-            irs = ICM(envs, device=device, rwd_norm_type='rms', obs_norm_type='none')
+            irs = ICM(envs, device=device, rwd_norm_type='none', obs_norm_type='none')
         elif args.exploration_alg == "pseudocounts":
             irs = PseudoCounts(envs, device=device, rwd_norm_type='rms', obs_norm_type='none')
         elif args.exploration_alg == "ride":
