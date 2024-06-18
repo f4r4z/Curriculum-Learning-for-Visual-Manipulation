@@ -18,8 +18,9 @@ from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3 import PPO, SAC
+from stable_baselines3 import HerReplayBuffer
 
-from src.her import HerReplayBuffer
+from src.her_replay_buffer_modified import HerReplayBufferModified
 from src.envs_gymapi import LowDimensionalObsGymEnv, LowDimensionalObsGymGoalEnv, AgentViewGymEnv, AgentViewGymGoalEnv
 from src.networks import CustomCNN, CustomCombinedExtractor, CustomCombinedExtractor2, CustomCombinedPatchExtractor
 from src.callbacks import TensorboardCallback, RLeXploreWithOffPolicyRL, RLeXploreWithOnPolicyRL
@@ -199,7 +200,7 @@ if __name__ == "__main__":
                 batch_size=256,
                 train_freq=(1, "step"),
                 gradient_steps=-1,
-                replay_buffer_class=HerReplayBuffer,
+                replay_buffer_class=HerReplayBufferModified,
                 replay_buffer_kwargs=dict(n_sampled_goal=4, goal_selection_strategy='future',)
             )
         else:
