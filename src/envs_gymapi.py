@@ -10,6 +10,9 @@ from libero.libero.envs import OffScreenRenderEnv, SubprocVectorEnv
 from libero.libero.envs.objects.articulated_objects import Microwave, SlideCabinet, Window, Faucet, BasinFaucet, ShortCabinet, ShortFridge, WoodenCabinet, WhiteCabinet, FlatStove
 
 from src.rnd import RNDNetworkLowDim
+import datetime
+
+current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
 class MapObjects():
     '''
@@ -152,10 +155,20 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
         # if self.episode_count == 0 and self.step_count >= 250:
         #     truncated = True
         #     done = True
-        # if done:
-        #     self.episode_count += 1
+        if done:
+            self.episode_count += 1
 
         info["agentview_image"] = obs["agentview_image"]
+
+
+        # log observation
+        with open(f"{current_time}_episode_count.txt", 'a') as f:
+            f.write(f"episode: {self.episode_count}.{self.step_count}\n")
+
+        with open(f"{current_time}_obs.npy", 'ab') as f:
+            np.save(f, obs["agentview_image"])
+        # end of log
+
         return \
             {   
                 "observation": self.get_low_dim_obs(obs),
@@ -165,7 +178,7 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
     
     def reset(self, seed=None):
         obs = self._env.reset()
-        self.step_count = 0
+        self.episode_count = 0
         return \
             {   
                 "observation": self.get_low_dim_obs(obs),
@@ -182,10 +195,18 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
         # batch instance
         if achieved_goal.ndim > 1:
             tolerance = max(self.goal_ranges) - min(self.goal_ranges)
-            return (np.linalg.norm(achieved_goal - desired_goal, axis=1) < tolerance) * 0.1
+            # log
+            with open(f"{current_time}_compute_sample_reward.npy", 'ab') as f:
+                np.save(f, (np.linalg.norm(achieved_goal - desired_goal, axis=1) < tolerance) * 1.0)
+            # end of log
+            return (np.linalg.norm(achieved_goal - desired_goal, axis=1) < tolerance) * 1.0
         else:
             tolerance = max(self.goal_ranges) - min(self.goal_ranges)
-            return (np.linalg.norm(achieved_goal - desired_goal, axis=0) < tolerance) * 0.1
+            # log
+            with open(f"{current_time}_compute_main_reward.npy", 'ab') as f:
+                np.save(f, (np.linalg.norm(achieved_goal - desired_goal, axis=0) < tolerance) * 1.0)
+            # end of log
+            return (np.linalg.norm(achieved_goal - desired_goal, axis=0) < tolerance) * 1.0
 
     
 

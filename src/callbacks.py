@@ -16,6 +16,16 @@ class TensorboardCallback(BaseCallback):
             self.logger.record(f'total reward for env {index}', custom_attributes.get('total_reward'))
             self.logger.record(f'reward for env {index}', custom_attributes.get('reward'))
         return True
+
+class DebugCallback(BaseCallback):
+    """
+    A custom callback for logging debugging criteria
+    """
+    def __init__(self, verbose=0):
+        super(DebugCallback, self).__init__(verbose)
+
+    def _on_step(self) -> bool:
+        pass
     
 class RLeXploreWithOnPolicyRL(BaseCallback):
     """
