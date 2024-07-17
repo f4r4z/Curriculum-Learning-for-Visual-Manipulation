@@ -14,6 +14,26 @@ import datetime
 
 current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
+import imageio
+from IPython.display import HTML
+def obs_to_video(images, filename):
+    """
+    converts a list of images to video and writes the file
+    """
+    video_writer = imageio.get_writer(filename, fps=60)
+    for image in images:
+        video_writer.append_data(image[::-1])
+    video_writer.close()
+    HTML("""
+        <video width="640" height="480" controls>
+            <source src="output.mp4" type="video/mp4">
+        </video>
+        <script>
+            var video = document.getElementsByTagName('video')[0];
+            video.playbackRate = 2.0; // Increase the playback speed to 2x
+            </script>    
+    """)
+
 class MapObjects():
     '''
     maps object name to its libero articulated objects
@@ -86,6 +106,18 @@ class LowDimensionalObsGymEnv(gym.Env):
         truncated = self.step_count >= 250
         done = success or truncated
         info["agentview_image"] = obs["agentview_image"]
+
+        # logging
+        log_ranges = [(10000, 11000), (25000, 26000), (50000, 51000), (100000, 101000), (150000, 151000),(200000, 201000),(250000, 251000) , (300000, 301000), (350000 ,351000), (400000, 401000), (450000, 451000), (500000,501000)]
+        for i in log_ranges:
+            if self.step_count <= i[1] and self.step_count >= i[0]:
+                self.images.append(info["agentview_image"])
+
+                if self.step_count >= i[1]:
+                    obs_to_video(self.images, f"training_vid_{self.step_count}.mp4")
+                    self.images.clear()
+        # end of logging
+
         return self.get_low_dim_obs(obs), reward, done, truncated, info
     
     def reset(self, seed=None):
@@ -129,6 +161,9 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
         self.step_count = 0
         self.episode_count = 0
 
+        # logging
+        self.images = []
+
     def get_low_dim_obs(self, obs):
         return np.concatenate([
             obs[k] for k in obs.keys() if not k.endswith("image")
@@ -162,11 +197,20 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
 
 
         # log observation
-        with open(f"{current_time}_episode_count.txt", 'a') as f:
-            f.write(f"episode: {self.episode_count}.{self.step_count}\n")
+        # with open(f"{current_time}_episode_count.txt", 'a') as f:
+        #     f.write(f"episode: {self.episode_count}.{self.step_count}\n")
 
-        with open(f"{current_time}_obs.npy", 'ab') as f:
-            np.save(f, obs["agentview_image"])
+        # with open(f"{current_time}_obs.npy", 'ab') as f:
+        #     np.save(f, obs["agentview_image"])
+        log_ranges = [(10000, 11000), (25000, 26000), (50000, 51000), (100000, 101000), (150000, 151000),(200000, 201000),(250000, 251000) , (300000, 301000), (350000 ,351000), (400000, 401000), (450000, 451000), (500000,501000)]
+
+        for i in log_ranges:
+            if self.step_count <= i[1] and self.step_count >= i[0]:
+                self.images.append(info["agentview_image"])
+
+                if self.step_count >= i[1]:
+                    obs_to_video(self.images, f"training_vid_{self.step_count}.mp4")
+                    self.images.clear()
         # end of log
 
         return \
@@ -195,17 +239,9 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
         # batch instance
         if achieved_goal.ndim > 1:
             tolerance = max(self.goal_ranges) - min(self.goal_ranges)
-            # log
-            with open(f"{current_time}_compute_sample_reward.npy", 'ab') as f:
-                np.save(f, (np.linalg.norm(achieved_goal - desired_goal, axis=1) < tolerance) * 1.0)
-            # end of log
             return (np.linalg.norm(achieved_goal - desired_goal, axis=1) < tolerance) * 1.0
         else:
             tolerance = max(self.goal_ranges) - min(self.goal_ranges)
-            # log
-            with open(f"{current_time}_compute_main_reward.npy", 'ab') as f:
-                np.save(f, (np.linalg.norm(achieved_goal - desired_goal, axis=0) < tolerance) * 1.0)
-            # end of log
             return (np.linalg.norm(achieved_goal - desired_goal, axis=0) < tolerance) * 1.0
 
     
