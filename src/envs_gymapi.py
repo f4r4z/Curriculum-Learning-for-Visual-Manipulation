@@ -92,6 +92,9 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.observation_space = Box(low=-np.inf, high=np.inf, shape=low_dim_obs.shape, dtype="float32")
         self.action_space = Box(low=-1, high=1, shape=(7,), dtype="float32")
         self.step_count = 0
+        
+        self.step_count_tracker = 0
+        self.images = []
     
     def get_low_dim_obs(self, obs):
         return np.concatenate([
@@ -107,14 +110,16 @@ class LowDimensionalObsGymEnv(gym.Env):
         done = success or truncated
         info["agentview_image"] = obs["agentview_image"]
 
+    
         # logging
-        log_ranges = [(10000, 11000), (25000, 26000), (50000, 51000), (100000, 101000), (150000, 151000),(200000, 201000),(250000, 251000) , (300000, 301000), (350000 ,351000), (400000, 401000), (450000, 451000), (500000,501000)]
+        self.step_count_tracker += 1
+        log_ranges = [(2, 40), (250, 252), (50000, 51000), (100000, 101000), (150000, 151000),(200000, 201000),(250000, 251000) , (300000, 301000), (350000 ,351000), (400000, 401000), (450000, 451000), (500000,501000)]
         for i in log_ranges:
-            if self.step_count <= i[1] and self.step_count >= i[0]:
+            if self.step_count_tracker <= i[1] and self.step_count_tracker >= i[0]:
                 self.images.append(info["agentview_image"])
 
-                if self.step_count >= i[1]:
-                    obs_to_video(self.images, f"training_vid_{self.step_count}.mp4")
+                if self.step_count_tracker >= i[1]:
+                    obs_to_video(self.images, f"training_vid_{self.step_count_tracker}.mp4")
                     self.images.clear()
         # end of logging
 
@@ -163,6 +168,7 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
 
         # logging
         self.images = []
+        self.step_count_tracker = 0
 
     def get_low_dim_obs(self, obs):
         return np.concatenate([
@@ -199,17 +205,17 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
         # log observation
         # with open(f"{current_time}_episode_count.txt", 'a') as f:
         #     f.write(f"episode: {self.episode_count}.{self.step_count}\n")
-
+        self.step_count_tracker += 1
         # with open(f"{current_time}_obs.npy", 'ab') as f:
         #     np.save(f, obs["agentview_image"])
-        log_ranges = [(10000, 11000), (25000, 26000), (50000, 51000), (100000, 101000), (150000, 151000),(200000, 201000),(250000, 251000) , (300000, 301000), (350000 ,351000), (400000, 401000), (450000, 451000), (500000,501000)]
+        log_ranges = [(4, 51), (251, 255), (10000, 11000), (25000, 26000), (50000, 51000), (100000, 101000), (150000, 151000),(200000, 201000),(250000, 251000) , (300000, 301000), (350000 ,351000), (400000, 401000), (450000, 451000), (500000,501000)]
 
         for i in log_ranges:
-            if self.step_count <= i[1] and self.step_count >= i[0]:
+            if self.step_count_tracker <= i[1] and self.step_count_tracker >= i[0]:
                 self.images.append(info["agentview_image"])
 
-                if self.step_count >= i[1]:
-                    obs_to_video(self.images, f"training_vid_{self.step_count}.mp4")
+                if self.step_count_tracker >= i[1]:
+                    obs_to_video(self.images, f"training_vid_{self.step_count_tracker}.mp4")
                     self.images.clear()
         # end of log
 
@@ -223,6 +229,7 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
     def reset(self, seed=None):
         obs = self._env.reset()
         self.episode_count = 0
+        self.step_count = 0
         return \
             {   
                 "observation": self.get_low_dim_obs(obs),
