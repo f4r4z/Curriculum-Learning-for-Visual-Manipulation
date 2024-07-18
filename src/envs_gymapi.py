@@ -106,6 +106,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         truncated = self.step_count >= 250
         done = success or truncated
         info["agentview_image"] = obs["agentview_image"]
+        info["is_success"] = success
 
         # logging
         log_ranges = [(10000, 11000), (25000, 26000), (50000, 51000), (100000, 101000), (150000, 151000),(200000, 201000),(250000, 251000) , (300000, 301000), (350000 ,351000), (400000, 401000), (450000, 451000), (500000,501000)]
@@ -194,6 +195,7 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
             self.episode_count += 1
 
         info["agentview_image"] = obs["agentview_image"]
+        info["is_success"] = success
 
 
         # log observation
@@ -267,6 +269,7 @@ class AgentViewGymEnv(gym.Env):
         truncated = self.step_count >= 250
         done = success or truncated
         info["agentview_image"] = obs["agentview_image"]
+        info["is_success"] = success
         self.custom_attr["reward"] = reward
         self.custom_attr["total_reward"] = self.custom_attr["total_reward"] + reward
         return obs["agentview_image"], reward, done, truncated, info
@@ -365,11 +368,12 @@ class AgentViewGymGoalEnv(gym.Env):
     def step(self, action):
         obs, reward, done, info = self._env.step(action)
         success = self._env.check_success()
-        reward = 10.0 * success
+        reward = 100.0 * success
         self.step_count += 1
         truncated = self.step_count >= 250
         done = success or truncated
         info["agentview_image"] = obs["agentview_image"]
+        info["is_success"] = success
         self.custom_attr["reward"] = reward
         self.custom_attr["total_reward"] += self.custom_attr["total_reward"]
         return \

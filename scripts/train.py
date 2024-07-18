@@ -23,7 +23,7 @@ from stable_baselines3 import HerReplayBuffer
 from src.her_replay_buffer_modified import HerReplayBufferModified
 from src.envs_gymapi import LowDimensionalObsGymEnv, LowDimensionalObsGymGoalEnv, AgentViewGymEnv, AgentViewGymGoalEnv
 from src.networks import CustomCNN, CustomCombinedExtractor, CustomCombinedExtractor2, CustomCombinedPatchExtractor
-from src.callbacks import TensorboardCallback, RLeXploreWithOffPolicyRL, RLeXploreWithOnPolicyRL
+from src.callbacks import TensorboardCallback, RLeXploreWithOffPolicyRL, RLeXploreWithOnPolicyRL, VideoWriter
 
 from rllte.xplore.reward import RND, Disagreement, E3B, Fabric, ICM, NGU, PseudoCounts, RE3, RIDE
 
@@ -70,6 +70,8 @@ class Args:
     """entropy coefficient for the loss calculation"""
     truncate: bool = True
     """if toggled, algorithm with truncate after 250 steps"""
+    progress_bar: bool = True
+    """if toggled, progress bar will be shown"""
 
 def obs_to_video(images, filename):
     """
@@ -108,20 +110,20 @@ if __name__ == "__main__":
     if args.visual_observation:
         if args.her:
             envs = vec_env_class(
-                [lambda: Monitor(AgentViewGymGoalEnv(**env_args)) for _ in range(args.num_envs)]
+                [lambda: Monitor(AgentViewGymGoalEnv(**env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
             )
         else:
             envs = vec_env_class(
-                [lambda: Monitor(AgentViewGymEnv(**env_args)) for _ in range(args.num_envs)]
+                [lambda: Monitor(AgentViewGymEnv(**env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
             )
     else:
         if args.her:
             envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymGoalEnv(**env_args)) for _ in range(args.num_envs)]
+                [lambda: Monitor(LowDimensionalObsGymGoalEnv(**env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
             )
         else:
             envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(**env_args)) for _ in range(args.num_envs)]
+                [lambda: Monitor(LowDimensionalObsGymEnv(**env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
             )
 
     """ ## Speed test
@@ -233,6 +235,8 @@ if __name__ == "__main__":
     checkpoint_callback = CheckpointCallback(save_freq=log_interval*32, save_path=save_path, name_prefix="model")
     callbacks.append(checkpoint_callback)
 
+    # log videos
+    callbacks.append(VideoWriter(n_steps=2000 * args.num_envs))
 
     # exploration technique callbacks
     if args.exploration_alg is not None:
@@ -258,7 +262,7 @@ if __name__ == "__main__":
             callbacks.append(RLeXploreWithOffPolicyRL(irs))
     
     '''train'''
-    model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=callbacks, progress_bar=True)
+    model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=callbacks, progress_bar=False)
     model.save(save_path)
 
     del model

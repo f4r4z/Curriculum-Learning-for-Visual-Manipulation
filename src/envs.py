@@ -186,12 +186,15 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.step_count += 1
         truncated = self.step_count >= 250
         done = success or truncated
+        info["agentview_image"] = obs["agentview_image"]
+        info["is_success"] = success
+        import ipdb; ipdb.set_trace()
         return self.get_low_dim_obs(obs), reward, done, truncated, info
     
     def reset(self, seed=None):
         obs = self.env.reset()
         self.step_count = 0
-        return self.get_low_dim_obs(obs), {}
+        return self.get_low_dim_obs(obs), {"agentview_image": obs["agentview_image"], "is_success": False}
     
     def seed(self, seed=None):
         return self.env.seed(seed)
