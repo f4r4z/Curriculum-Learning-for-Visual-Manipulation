@@ -119,7 +119,8 @@ class RLeXploreWithOffPolicyRL(BaseCallback):
                                             'next_observations':next_obs.unsqueeze(0).float()}, 
                                             sync=False)
         # ===================== compute the intrinsic rewards ===================== #
-
+        self.logger.record('intrinsic_reward', intrinsic_rewards)
+        
         try:
             # add the intrinsic rewards to the original rewards
             self.locals['rewards'] += intrinsic_rewards.cpu().numpy().squeeze()
