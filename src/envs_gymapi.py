@@ -81,95 +81,44 @@ class MapObjects():
             goal_value = None
         
         return goal_value, goal_ranges
-
 class LowDimensionalObsGymEnv(gym.Env):
     """ Sparse reward environment with all the low-dimensional states
     """
-    """ Sparse reward environment with all the low-dimensional states with HER
-    """
     def __init__(self, **kwargs):
-        self._env = OffScreenRenderEnv(**kwargs)
-        self.obj_of_interest = self._env.obj_of_interest[0]  # hardcoded for now
-        self.instruction = self._env.language_instruction
-        obs = self._env.env._get_observations()
+        self.env = OffScreenRenderEnv(**kwargs)
+        obs = self.env.env._get_observations()
         low_dim_obs = self.get_low_dim_obs(obs)
-        achieved_goal = self.get_achieved_goal()
-        goal_shape = achieved_goal.shape
-
-        goal_value, self.goal_ranges = MapObjects(self.obj_of_interest, self.instruction).define_goal()
-        
-        print(f"desired goal value for task {self.instruction} with object {self.obj_of_interest} is {goal_value} with tolerance {max(self.goal_ranges) - min(self.goal_ranges)}")
-        self.desired_goal = np.full(goal_shape, goal_value)
-
-        # if "flat_stove" in self.obj_of_interest:
-        #     print("HER for flat stove")
-        #     self.desired_goal = np.full(goal_shape, -0.005)
-        # elif "microwave" in self.obj_of_interest or "white_cabinet" in self.obj_of_interest:
-        #     print("HER for microwave or white cabinet")
-        #     self.desired_goal = np.zeros_like(achieved_goal)  # this is hardcoded and only works for microwave task
-
         self.observation_space = Box(low=-np.inf, high=np.inf, shape=low_dim_obs.shape, dtype="float32")
         self.action_space = Box(low=-1, high=1, shape=(7,), dtype="float32")
         self.step_count = 0
-        self.episode_count = 0
-
-        # logging
-        self.images = []
+        
         self.step_count_tracker = 0
-
+        self.images = []
+    
     def get_low_dim_obs(self, obs):
         return np.concatenate([
             obs[k] for k in obs.keys() if not k.endswith("image")
         ], axis = -1)
-
-    def get_achieved_goal(self):
-        qposs = []
-        for joint in self._env.env.get_object(self.obj_of_interest).joints:
-            qpos_addr = self._env.env.sim.model.get_joint_qpos_addr(joint)
-            qpos = self._env.sim.data.qpos[qpos_addr]
-            qposs.append(qpos)
-        return np.array(qposs)
     
     def step(self, action):
-        obs, reward, done, info = self._env.step(action)
-        reward = self.compute_reward(self.get_achieved_goal(), self.desired_goal)
-        success = reward > 0.0
+        obs, reward, done, info = self.env.step(action)
+        success = self.env.check_success()
+        reward = 10.0 * success
         self.step_count += 1
         truncated = self.step_count >= 250
-        # truncated = False # added in order not to truncate
         done = success or truncated
-        
-        # always truncate first episode for learning starts so HER can sample
-        # if self.episode_count == 0 and self.step_count >= 250:
-        #     truncated = True
-        #     done = True
-        if done:
-            self.episode_count += 1
-
         info["agentview_image"] = obs["agentview_image"]
         info["is_success"] = success
 
         return self.get_low_dim_obs(obs), reward, done, truncated, info
     
     def reset(self, seed=None):
-        obs = self._env.reset()
-        self.episode_count = 0
+        obs = self.env.reset()
         self.step_count = 0
         return self.get_low_dim_obs(obs), {}
     
     def seed(self, seed=None):
-        return self._env.seed(seed)
-    
-    def compute_reward(
-        self, achieved_goal, desired_goal, _info = None
-    ) -> np.float32:
-        # batch instance
-        if achieved_goal.ndim > 1:
-            tolerance = max(self.goal_ranges) - min(self.goal_ranges)
-            return (np.linalg.norm(achieved_goal - desired_goal, axis=1) < tolerance) * 10.0
-        else:
-            tolerance = max(self.goal_ranges) - min(self.goal_ranges)
-            return (np.linalg.norm(achieved_goal - desired_goal, axis=0) < tolerance) * 10.0
+        return self.env.seed(seed)
     
 class LowDimensionalObsGymGoalEnv(gym.Env):
     """ Sparse reward environment with all the low-dimensional states with HER
