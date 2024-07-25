@@ -72,6 +72,8 @@ class Args:
     """if toggled, algorithm with truncate after 250 steps"""
     progress_bar: bool = True
     """if toggled, progress bar will be shown"""
+    device: str = ""
+    """device to use for training"""
 
 def obs_to_video(images, filename):
     """
@@ -150,7 +152,13 @@ if __name__ == "__main__":
         np.random.seed(args.seed)
 
     print("Start training")
-    run_name = os.path.join(task_name, args.alg, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    alg_str = args.alg
+    if args.her:
+        alg_str = f"her_{args.alg}"
+    if args.exploration_alg is not None:
+        alg_str = f"{args.exploration_alg}_{alg_str}"
+    alg_str = f"{alg_str}_seed_{args.seed}"
+    run_name = os.path.join(task_name, alg_str, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
     save_path = os.path.join(args.save_path, run_name)
     if not os.path.exists(save_path):
         os.makedirs(save_path)
@@ -224,7 +232,10 @@ if __name__ == "__main__":
         raise ValueError(f"Algorithm {args.alg} is not in supported list [ppo, sac]")
     
     # get device
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if not args.device:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    else:
+        device = torch.device(args.device)
 
     '''
     callback list
@@ -236,7 +247,7 @@ if __name__ == "__main__":
     callbacks.append(checkpoint_callback)
 
     # log videos
-    callbacks.append(VideoWriter(n_steps=2000 * args.num_envs))
+    callbacks.append(VideoWriter(n_steps=5000 * args.num_envs))
 
     # exploration technique callbacks
     if args.exploration_alg is not None:
