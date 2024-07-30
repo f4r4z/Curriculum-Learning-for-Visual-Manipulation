@@ -81,6 +81,7 @@ class MapObjects():
             goal_value = None
         
         return goal_value, goal_ranges
+    
 class LowDimensionalObsGymEnv(gym.Env):
     """ Sparse reward environment with all the low-dimensional states
     """
@@ -172,13 +173,13 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
     
     def step(self, action):
         obs, reward, done, info = self._env.step(action)
-        reward = self.compute_reward(self.get_achieved_goal(), self.desired_goal)
-        success = reward > 0.0
+        success = self.env.check_success()
+        reward = 10.0 * success
         self.step_count += 1
         truncated = self.step_count >= 250
         # truncated = False # added in order not to truncate
         done = success or truncated
-        
+
         # always truncate first episode for learning starts so HER can sample
         # if self.episode_count == 0 and self.step_count >= 250:
         #     truncated = True
