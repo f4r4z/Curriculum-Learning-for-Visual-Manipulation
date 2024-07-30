@@ -7,7 +7,7 @@ do
     python scripts/train.py \
         --bddl_file_name libero_90/KITCHEN_SCENE3_turn_on_the_stove.bddl \
         --alg ppo\
-        --save_path ~/../../var/local/faraz/models/0730_rnd_ppo \
+        --save_path ~/../../var/local/faraz/models/0730_rnd_ppo_turn_on_the_stove_$seed \
         --exploration_alg rnd \
         --learning_rate 0.0003 \
         --total_timesteps 1000000 \
