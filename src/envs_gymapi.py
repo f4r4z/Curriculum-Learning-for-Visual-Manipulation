@@ -173,7 +173,7 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
     
     def step(self, action):
         obs, reward, done, info = self._env.step(action)
-        success = self.env.check_success()
+        success = self._env.check_success()
         reward = 10.0 * success
         self.step_count += 1
         truncated = self.step_count >= 250
