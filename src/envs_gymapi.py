@@ -7,6 +7,7 @@ from gymnasium.spaces import Box, Dict
 import torch
 from stable_baselines3.common.vec_env import VecEnv
 from libero.libero.envs import OffScreenRenderEnv, SubprocVectorEnv
+from libero.libero.envs.objects import OBJECTS_DICT
 from libero.libero.envs.objects.articulated_objects import Microwave, SlideCabinet, Window, Faucet, BasinFaucet, ShortCabinet, ShortFridge, WoodenCabinet, WhiteCabinet, FlatStove
 
 from src.rnd import RNDNetworkLowDim
@@ -103,8 +104,39 @@ class LowDimensionalObsGymEnv(gym.Env):
     
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
+
+        # sparse completion reward
         success = self.env.check_success()
-        reward = 10.0 * success
+
+        reward = 0.0
+        if success:
+            reward = 10.0 * success
+        else:
+            if "ketchup_1" in self.env.obj_of_interest:
+                body_main = "ketchup_1_main"
+                geom_names = [
+                    "ketchup_1_main", 
+                ]
+            else:
+                body_main = "wooden_cabinet_1_cabinet_bottom"
+                geom_names = [
+                    "wooden_cabinet_bottom_handle", 
+                ]
+            # reaching
+            object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)] # self.env.env.get_object(self.env.obj_of_interest[0]).root_body] # hardcoded for now, there should be a way to get it systematically
+            gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
+
+            dist = np.linalg.norm(gripper_site_pos - object_pos)
+            reaching_reward = 1 - np.tanh(10.0 * dist)
+            reward += reaching_reward
+
+            # grasping
+            geom_names = [
+                "ketchup_1_main", 
+            ]
+            if self.env.env._check_grasp(gripper=self.env.robots[0].gripper, object_geoms=geom_names):
+                reward += 0.25
+        print(reward)
         self.step_count += 1
         truncated = self.step_count >= 250
         done = success or truncated

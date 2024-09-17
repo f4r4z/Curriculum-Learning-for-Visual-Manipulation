@@ -7,7 +7,7 @@ do
     python scripts/train.py \
         --bddl_file_name libero_90/KITCHEN_SCENE7_open_the_microwave.bddl \
         --alg ppo\
-        --save_path ~/../../var/local/faraz/models/0730_rnd_ppo_open_the_microwave_$seed \
+        --save_path ~/../../var/local/faraz/models/0730_rnd_ppo_open_the_microwave_seed13 \
         --exploration_alg rnd \
         --learning_rate 0.0003 \
         --total_timesteps 1000000 \
