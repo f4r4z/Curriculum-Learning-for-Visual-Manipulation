@@ -136,7 +136,6 @@ class LowDimensionalObsGymEnv(gym.Env):
             ]
             if self.env.env._check_grasp(gripper=self.env.robots[0].gripper, object_geoms=geom_names):
                 reward += 0.25
-        print(reward)
         self.step_count += 1
         truncated = self.step_count >= 250
         done = success or truncated
