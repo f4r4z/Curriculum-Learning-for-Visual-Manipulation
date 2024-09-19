@@ -96,6 +96,8 @@ class LowDimensionalObsGymEnv(gym.Env):
         
         self.step_count_tracker = 0
         self.images = []
+
+        self.og_height = object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id("ketchup_1_main")][2]
     
     def get_low_dim_obs(self, obs):
         return np.concatenate([
@@ -139,8 +141,14 @@ class LowDimensionalObsGymEnv(gym.Env):
                 grasp = 1
                 reward += 0.25
 
+            # lift
+            height = object_pos[2] - self.og_height - 0.5091798430329575
+            reward += height
+
+
         print("reaching", reaching_reward)
         print("grasp", grasp)
+        print("height", height)
 
         self.step_count += 1
         truncated = self.step_count >= 250
