@@ -109,6 +109,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         success = self.env.check_success()
 
         reward = 0.0
+        grasp = 0
         if success:
             reward = 10.0 * success
         else:
@@ -135,7 +136,12 @@ class LowDimensionalObsGymEnv(gym.Env):
                 "ketchup_1_main", 
             ]
             if self.env.env._check_grasp(gripper=self.env.robots[0].gripper, object_geoms=geom_names):
+                grasp = 1
                 reward += 0.25
+
+        print("reaching", reaching_reward)
+        print("grasp", grasp)
+
         self.step_count += 1
         truncated = self.step_count >= 250
         done = success or truncated
