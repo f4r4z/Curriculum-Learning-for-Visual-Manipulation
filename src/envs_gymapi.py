@@ -112,9 +112,9 @@ class LowDimensionalObsGymEnv(gym.Env):
         
         # define which rewards to use (temporary)
         reaching = True
-        grasp = True
+        grasp = False
         height = False
-        open_ = True
+        open_ = False
 
         reward = 0.0
         if success:
@@ -126,7 +126,6 @@ class LowDimensionalObsGymEnv(gym.Env):
             # reaching
             if reaching:
                 reaching_reward = self.reaching_reward(body_main)
-                print("reaching", reaching_reward)
                 reward += reaching_reward
 
             # grasp
