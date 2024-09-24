@@ -97,7 +97,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.step_count_tracker = 0
         self.images = []
 
-        self.og_height = object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id("ketchup_1_main")][2]
+        # self.og_height = object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id("ketchup_1_main")][2]
     
     def get_low_dim_obs(self, obs):
         return np.concatenate([
@@ -109,46 +109,42 @@ class LowDimensionalObsGymEnv(gym.Env):
 
         # sparse completion reward
         success = self.env.check_success()
+        
+        # define which rewards to use (temporary)
+        reaching = True
+        grasp = True
+        height = False
+        open_ = True
 
         reward = 0.0
-        grasp = 0
         if success:
             reward = 10.0 * success
         else:
-            if "ketchup_1" in self.env.obj_of_interest:
-                body_main = "ketchup_1_main"
-                geom_names = [
-                    "ketchup_1_main", 
-                ]
-            else:
-                body_main = "wooden_cabinet_1_cabinet_bottom"
-                geom_names = [
-                    "wooden_cabinet_bottom_handle", 
-                ]
+            # get body and geom names
+            body_main, geom_names = self.get_bodies_and_geoms()
+
             # reaching
-            object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)] # self.env.env.get_object(self.env.obj_of_interest[0]).root_body] # hardcoded for now, there should be a way to get it systematically
-            gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
+            if reaching:
+                reaching_reward = self.reaching_reward(body_main)
+                print("reaching", reaching_reward)
+                reward += reaching_reward
 
-            dist = np.linalg.norm(gripper_site_pos - object_pos)
-            reaching_reward = 1 - np.tanh(10.0 * dist)
-            reward += reaching_reward
-
-            # grasping
-            geom_names = [
-                "ketchup_1_main", 
-            ]
-            if self.env.env._check_grasp(gripper=self.env.robots[0].gripper, object_geoms=geom_names):
-                grasp = 1
-                reward += 0.25
+            # grasp
+            if grasp:
+                grasp_reward = self.grasp_reward(geom_names)
+                print("grasp", grasp_reward)
+                reward += grasp_reward
 
             # lift
-            height = object_pos[2] - self.og_height - 0.5091798430329575
-            reward += height
+            if height:
+                height_reward = self.height_reward(body_main)
+                reward += height_reward
 
-
-        print("reaching", reaching_reward)
-        print("grasp", grasp)
-        print("height", height)
+            # open
+            if open_:
+                open_reward = self.open_reward()
+                print("open", open_reward)
+                reward += open_reward
 
         self.step_count += 1
         truncated = self.step_count >= 250
@@ -165,6 +161,53 @@ class LowDimensionalObsGymEnv(gym.Env):
     
     def seed(self, seed=None):
         return self.env.seed(seed)
+
+    def get_bodies_and_geoms(self):
+        if "ketchup_1" in self.env.obj_of_interest:
+                body_main = "ketchup_1_main"
+                geom_names = [
+                    "ketchup_1_main", 
+                ]
+        else:
+            body_main = "wooden_cabinet_1_cabinet_bottom"
+            geom_names = [
+                "wooden_cabinet_bottom_handle", 
+            ]
+
+        return body_main, geom_names
+
+    def reaching_reward(self, body_main):
+        object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)]
+        gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
+
+        dist = np.linalg.norm(gripper_site_pos - object_pos)
+        reaching_reward = 1 - np.tanh(10.0 * dist)
+        
+        return reaching_reward
+
+    def grasp_reward(self, geom_names):
+        if self.env.env._check_grasp(gripper=self.env.robots[0].gripper, object_geoms=geom_names):
+            return 0.25
+        else:
+            return 0.0
+
+    def height_reward(self, body_main):
+        # TODO: needs work
+        height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2] - self.og_height - 0.5091798430329575
+        return height
+
+    def open_reward(self):
+        qposs = []
+        for joint in self.env.env.get_object(self.env.obj_of_interest[0]).joints:
+            qpos_addr = self.env.env.sim.model.get_joint_qpos_addr(joint)
+            qpos = self.env.sim.data.qpos[qpos_addr]
+            qposs.append(qpos)
+        achieved_goal = np.array(qposs)
+        goal_value, self.goal_ranges = MapObjects(self.env.obj_of_interest[0], self.env.language_instruction).define_goal()
+        desired_goal = np.full(achieved_goal.shape, goal_value)
+
+        return np.mean(desired_goal - achieved_goal * 20.0)
+
     
 class LowDimensionalObsGymGoalEnv(gym.Env):
     """ Sparse reward environment with all the low-dimensional states with HER
