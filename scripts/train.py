@@ -19,6 +19,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3 import PPO, SAC
 from stable_baselines3 import HerReplayBuffer
+from stable_baselines3.common.logger import configure
 
 from src.her_replay_buffer_modified import HerReplayBufferModified
 from src.envs_gymapi import LowDimensionalObsGymEnv, LowDimensionalObsGymGoalEnv, AgentViewGymEnv, AgentViewGymGoalEnv
@@ -38,6 +39,8 @@ class Args:
     """file path of the model output file"""
     load_path: str = None # "models/checkpoints/"
     """directory path of the models checkpoints"""
+    model_path: str = None
+    """path to existing model if loading a model"""
     wandb_project: str = "cl_manipulation"
     """wandb project name"""
     wandb_entity: str = "<YOUR_WANDB_ENTITY>"
@@ -182,8 +185,9 @@ if __name__ == "__main__":
         policy_kwargs = dict(net_arch=[128, 128])
         policy_class = "MultiInputPolicy" if args.her else "MlpPolicy"
         
-
+    algorithm = None
     if args.alg == "ppo":
+        algorithm = PPO
         model = PPO(
             policy_class,
             envs,
@@ -197,6 +201,7 @@ if __name__ == "__main__":
         )
         log_interval = 1
     elif args.alg == "sac":
+        algorithm = SAC
         if args.her:
             model = SAC(
                 policy_class,
@@ -230,6 +235,12 @@ if __name__ == "__main__":
         log_interval = 2
     else:
         raise ValueError(f"Algorithm {args.alg} is not in supported list [ppo, sac]")
+
+    if args.model_path:
+        print("loading model from ", args.model_path)
+        model = algorithm.load(f"{args.model_path}", env=envs)
+        new_logger = configure(save_path, ["tensorboard"])
+        model.set_logger(new_logger)
     
     # get device
     if not args.device:
