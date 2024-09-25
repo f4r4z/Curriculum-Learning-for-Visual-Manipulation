@@ -126,6 +126,7 @@ class LowDimensionalObsGymEnv(gym.Env):
             # reaching
             if reaching:
                 reaching_reward = self.reaching_reward(body_main)
+                print("reach", reaching_reward)
                 reward += reaching_reward
 
             # grasp
@@ -137,6 +138,7 @@ class LowDimensionalObsGymEnv(gym.Env):
             # lift
             if height:
                 height_reward = self.height_reward(body_main)
+                print("height", height_reward)
                 reward += height_reward
 
             # open
