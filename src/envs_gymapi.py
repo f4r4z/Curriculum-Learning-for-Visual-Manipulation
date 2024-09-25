@@ -112,9 +112,9 @@ class LowDimensionalObsGymEnv(gym.Env):
         
         # define which rewards to use (temporary)
         reaching = True
-        grasp = False
+        grasp = True
         height = False
-        open_ = False
+        open_ = True
 
         reward = 0.0
         if success:
@@ -186,7 +186,7 @@ class LowDimensionalObsGymEnv(gym.Env):
 
     def grasp_reward(self, geom_names):
         if self.env.env._check_grasp(gripper=self.env.robots[0].gripper, object_geoms=geom_names):
-            return 0.25
+            return 0.50
         else:
             return 0.0
 
@@ -205,7 +205,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         goal_value, self.goal_ranges = MapObjects(self.env.obj_of_interest[0], self.env.language_instruction).define_goal()
         desired_goal = np.full(achieved_goal.shape, goal_value)
 
-        return np.mean(desired_goal - achieved_goal * 20.0)
+        return np.mean((desired_goal - achieved_goal) * 50.0)
 
     
 class LowDimensionalObsGymGoalEnv(gym.Env):
