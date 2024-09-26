@@ -97,6 +97,8 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.step_count_tracker = 0
         self.images = []
 
+        # reward initials
+        self.initial_joint_position = self.current_joint_position()
         # self.og_height = object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id("ketchup_1_main")][2]
     
     def get_low_dim_obs(self, obs):
@@ -111,10 +113,10 @@ class LowDimensionalObsGymEnv(gym.Env):
         success = self.env.check_success()
         
         # define which rewards to use (temporary)
-        reaching = False
+        reaching = True
         grasp = True
         height = False
-        open_ = False
+        open_ = True
 
         reward = 0.0
         if success:
@@ -146,6 +148,8 @@ class LowDimensionalObsGymEnv(gym.Env):
                 open_reward = self.open_reward()
                 print("open", open_reward)
                 reward += open_reward
+        
+        print("reward: ", reward)
 
         self.step_count += 1
         truncated = self.step_count >= 250
@@ -188,7 +192,7 @@ class LowDimensionalObsGymEnv(gym.Env):
 
     def grasp_reward(self, geom_names):
         if self.env.env._check_grasp(gripper=self.env.robots[0].gripper, object_geoms=geom_names):
-            return 0.50
+            return 1.0
         else:
             return 0.0
 
@@ -197,17 +201,17 @@ class LowDimensionalObsGymEnv(gym.Env):
         height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2] - self.og_height - 0.5091798430329575
         return height
 
-    def open_reward(self):
+    def current_joint_position(self):
         qposs = []
         for joint in self.env.env.get_object(self.env.obj_of_interest[0]).joints:
             qpos_addr = self.env.env.sim.model.get_joint_qpos_addr(joint)
             qpos = self.env.sim.data.qpos[qpos_addr]
             qposs.append(qpos)
-        achieved_goal = np.array(qposs)
-        goal_value, self.goal_ranges = MapObjects(self.env.obj_of_interest[0], self.env.language_instruction).define_goal()
-        desired_goal = np.full(achieved_goal.shape, goal_value)
+        return np.array(qposs)
 
-        return np.mean((desired_goal - achieved_goal) * 20.0)
+    def open_reward(self):
+        joint_displacement = np.abs(self.current_joint_position() - self.initial_joint_position)
+        return np.mean(joint_displacement * 10.0)
 
     
 class LowDimensionalObsGymGoalEnv(gym.Env):
