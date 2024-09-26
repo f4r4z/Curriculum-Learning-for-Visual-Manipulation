@@ -114,6 +114,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         
         # define which rewards to use (temporary)
         reaching = True
+        contact = True
         grasp = True
         height = False
         open_ = True
@@ -130,6 +131,12 @@ class LowDimensionalObsGymEnv(gym.Env):
                 reaching_reward = self.reaching_reward(body_main)
                 print("reach", reaching_reward)
                 reward += reaching_reward
+
+            # contact
+            if contact:
+                contact_reward = self.contact_reward(geom_names)
+                print("contact", contact_reward)
+                reward += contact_reward
 
             # grasp
             if grasp:
@@ -189,6 +196,18 @@ class LowDimensionalObsGymEnv(gym.Env):
         reaching_reward = 1 - np.tanh(10.0 * dist)
         
         return reaching_reward
+
+    def contact_reward(self, geom_names):
+        gripper_geoms = [self.env.robots[0].gripper.important_geoms["left_fingerpad"],
+                     self.env.robots[0].gripper.important_geoms["right_fingerpad"]]
+
+        # Check for contact between gripper and object
+        if self.env.env.check_contact(gripper_geoms, geom_names):
+            reward = 0.5  # Reward for touching the object
+        else:
+            reward = 0.0  # No reward if not touching
+
+        return reward
 
     def grasp_reward(self, geom_names):
         if self.env.env._check_grasp(gripper=self.env.robots[0].gripper, object_geoms=geom_names):
