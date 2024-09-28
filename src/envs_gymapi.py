@@ -207,8 +207,8 @@ class LowDimensionalObsGymEnv(gym.Env):
         #     geom_size = self.env.sim.model.geom_size[i]
         #     print(f"Geom Position: {geom_pos}, Size: {geom_size}")
 
-        gripper_geoms = [self.env.robots[0].gripper.important_geoms["gripper0_finger1_pad_collision"],
-                     self.env.robots[0].gripper.important_geoms["gripper0_finger2_pad_collision"]]
+        gripper_geoms = ["gripper0_finger1_pad_collision",
+            "gripper0_finger2_pad_collision"]
 
         # Check for contact between gripper and object
         if self.env.env.check_contact(gripper_geoms, geom_names):
