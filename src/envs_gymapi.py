@@ -113,11 +113,11 @@ class LowDimensionalObsGymEnv(gym.Env):
         success = self.env.check_success()
         
         # define which rewards to use (temporary)
-        reaching = True
+        reaching = False
         contact = True
         grasp = True
         height = False
-        open_ = True
+        open_ = False
 
         reward = 0.0
         if success:
@@ -183,7 +183,9 @@ class LowDimensionalObsGymEnv(gym.Env):
         else:
             body_main = "wooden_cabinet_1_cabinet_bottom"
             geom_names = [
-                "wooden_cabinet_bottom_handle", 
+                "wooden_cabinet_1_g40",
+                "wooden_cabinet_1_g41",
+                "wooden_cabinet_1_g42"
             ]
 
         return body_main, geom_names
@@ -198,8 +200,15 @@ class LowDimensionalObsGymEnv(gym.Env):
         return reaching_reward
 
     def contact_reward(self, geom_names):
-        gripper_geoms = [self.env.robots[0].gripper.important_geoms["left_fingerpad"],
-                     self.env.robots[0].gripper.important_geoms["right_fingerpad"]]
+        # for i in range(self.env.sim.model.ngeom):
+        #     geom_name = self.env.sim.model.geom_id2name(i)
+        #     print(f"Geom ID {i}: {geom_name}")
+        #     geom_pos = self.env.sim.model.geom_pos[i]
+        #     geom_size = self.env.sim.model.geom_size[i]
+        #     print(f"Geom Position: {geom_pos}, Size: {geom_size}")
+
+        gripper_geoms = [self.env.robots[0].gripper.important_geoms["gripper0_finger1_pad_collision"],
+                     self.env.robots[0].gripper.important_geoms["gripper0_finger2_pad_collision"]]
 
         # Check for contact between gripper and object
         if self.env.env.check_contact(gripper_geoms, geom_names):
