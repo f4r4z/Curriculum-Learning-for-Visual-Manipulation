@@ -125,7 +125,7 @@ if __name__ == "__main__":
 
         if dones[0]:
             count = 0
-            success += 1 if rewards[0] = 10.0 else 0
+            success += 1 if info[0]["is_success"] else 0
             total_episodes += 1
             print(total_episodes)
             envs.reset()
