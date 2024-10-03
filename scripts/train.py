@@ -35,7 +35,7 @@ class Args:
     """random seed for reproducibility"""
     video_path: str = "videos/output.mp4"
     """file path of the video output file"""
-    save_path: str = "logs"
+    save_path: str = "event_logs"
     """file path of the model output file"""
     load_path: str = None # "models/checkpoints/"
     """directory path of the models checkpoints"""
@@ -199,6 +199,7 @@ if __name__ == "__main__":
             tensorboard_log=save_path,
             n_steps=args.n_steps,
             ent_coef=args.ent_coef,
+            clip_range=args.clip_range,
             seed=args.seed
         )
         log_interval = 1
