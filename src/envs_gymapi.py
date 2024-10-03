@@ -113,11 +113,11 @@ class LowDimensionalObsGymEnv(gym.Env):
         success = self.env.check_success()
         
         # define which rewards to use (temporary)
-        reaching = True
+        reaching = False
         contact = True
-        grasp = True
+        grasp = False
         height = False
-        open_ = True
+        open_ = False
 
         reward = 0.0
         if success:

@@ -69,8 +69,10 @@ class Args:
     """number of steps to run for each environment per update"""
     num_envs: int = 1
     """number of LIBERO environments"""
-    ent_coef: float = 0.01
+    ent_coef: float = 0.0
     """entropy coefficient for the loss calculation"""
+    clip_range: float = 0.2
+    """Clipping parameter, it can be a function of the current progress remaining (from 1 to 0)."""
     truncate: bool = True
     """if toggled, algorithm with truncate after 250 steps"""
     progress_bar: bool = True
