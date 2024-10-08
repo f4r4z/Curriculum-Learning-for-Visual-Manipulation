@@ -113,7 +113,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         success = self.env.check_success()
         
         # define which rewards to use (temporary)
-        reaching = False
+        reaching = True
         contact = True
         grasp = False
         height = False
@@ -137,12 +137,18 @@ class LowDimensionalObsGymEnv(gym.Env):
                 contact_reward = self.contact_reward(geom_names)
                 print("contact", contact_reward)
                 reward += contact_reward
+                # experimental
+                if contact_reward:
+                    success = True
 
             # grasp
             if grasp:
                 grasp_reward = self.grasp_reward(geom_names)
                 print("grasp", grasp_reward)
                 reward += grasp_reward
+                # experimental
+                if grasp_reward:
+                    success = True
 
             # lift
             if height:
@@ -161,6 +167,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.step_count += 1
         truncated = self.step_count >= 250
         done = success or truncated
+        print("done", done)
         info["agentview_image"] = obs["agentview_image"]
         info["is_success"] = success
 
@@ -239,7 +246,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         goal_value, goal_ranges = MapObjects(self.env.obj_of_interest[0], self.env.language_instruction).define_goal()
         joint_displacement = np.linalg.norm(self.current_joint_position() - np.mean(goal_ranges))
         open_reward = 1 - np.tanh(10.0 * joint_displacement)
-        return open_reward
+        return open_reward * 10.0
 
     
 class LowDimensionalObsGymGoalEnv(gym.Env):

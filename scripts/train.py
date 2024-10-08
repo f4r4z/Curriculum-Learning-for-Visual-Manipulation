@@ -199,7 +199,7 @@ if __name__ == "__main__":
             tensorboard_log=save_path,
             n_steps=args.n_steps,
             ent_coef=args.ent_coef,
-            clip_range=args.clip_range,
+            # clip_range=args.clip_range,
             seed=args.seed
         )
         log_interval = 1
@@ -242,6 +242,10 @@ if __name__ == "__main__":
     if args.model_path:
         print("loading model from ", args.model_path)
         model = algorithm.load(f"{args.model_path}", env=envs)
+        model.learning_rate = args.learning_rate
+        model.ent_coef = args.ent_coef
+        # model.clip_range = args.clip_range
+        model.n_steps = args.n_steps
         new_logger = configure(save_path, ["tensorboard"])
         model.set_logger(new_logger)
     
