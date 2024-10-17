@@ -17,6 +17,8 @@ from stable_baselines3 import PPO, SAC
 
 from src.envs_gymapi import LowDimensionalObsGymEnv, AgentViewGymEnv, AgentViewGymGoalEnv, LowDimensionalObsGymGoalEnv
 
+import src.patch
+
 @dataclass
 class Args:
     # User specific arguments

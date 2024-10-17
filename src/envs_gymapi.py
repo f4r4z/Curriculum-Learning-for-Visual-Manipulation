@@ -113,15 +113,28 @@ class LowDimensionalObsGymEnv(gym.Env):
         success = self.env.check_success()
         
         # define which rewards to use (temporary)
-        reaching = True
-        contact = True
+        reaching = False
+        contact = False
         grasp = False
         height = False
         open_ = False
 
-        reward = 0.0
+        body_main, geom_names = self.get_bodies_and_geoms()
+        goal_state = self.env.env.parsed_problem["goal_state"]
+        for state in goal_state:
+            if "reach" in state:
+                print(f"{state} reward: ", reward)
+                shaping_reward = self.reaching_reward(body_main)
+                reward += shaping_reward
+            if "open" in state:
+                print(f"{state} reward: ", reward)
+                shaping_reawrd = self.open_reward()
+                reward += shaping_reward
+
+        # reward = 0.0
         if success:
-            reward = 10.0 * success
+            reward = 100.0 * success
+        """
         else:
             # get body and geom names
             body_main, geom_names = self.get_bodies_and_geoms()
@@ -161,8 +174,7 @@ class LowDimensionalObsGymEnv(gym.Env):
                 open_reward = self.open_reward()
                 print("open", open_reward)
                 reward += open_reward
-        
-        print("reward: ", reward)
+        """
 
         self.step_count += 1
         truncated = self.step_count >= 250
@@ -201,6 +213,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)]
         gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
         dist = np.linalg.norm(gripper_site_pos - object_pos)
+        print("dist", dist)
         reaching_reward = 1 - np.tanh(10.0 * dist)
         return reaching_reward
 
@@ -217,7 +230,7 @@ class LowDimensionalObsGymEnv(gym.Env):
 
         # Check for contact between gripper and object
         if self.env.env.check_contact(gripper_geoms, geom_names):
-            reward = 1.0  # Reward for touching the object
+            reward = 10.0  # Reward for touching the object
         else:
             reward = 0.0  # No reward if not touching
 
@@ -225,7 +238,7 @@ class LowDimensionalObsGymEnv(gym.Env):
 
     def grasp_reward(self, geom_names):
         if self.env.env._check_grasp(gripper=self.env.robots[0].gripper, object_geoms=geom_names):
-            return 2.0
+            return 50.0
         else:
             return 0.0
 
@@ -243,6 +256,10 @@ class LowDimensionalObsGymEnv(gym.Env):
         return np.array(qposs)
 
     def open_reward(self):
+        displacement = np.linalg.norm(self.current_joint_position() - self.initial_joint_position)
+        reward = displacement * 10
+        return reward
+        
         goal_value, goal_ranges = MapObjects(self.env.obj_of_interest[0], self.env.language_instruction).define_goal()
         joint_displacement = np.linalg.norm(self.current_joint_position() - np.mean(goal_ranges))
         open_reward = 1 - np.tanh(10.0 * joint_displacement)
