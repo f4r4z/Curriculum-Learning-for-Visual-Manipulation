@@ -17,6 +17,9 @@ current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
 import imageio
 from IPython.display import HTML
+
+import src.patch
+
 def obs_to_video(images, filename):
     """
     converts a list of images to video and writes the file
@@ -98,8 +101,12 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.images = []
 
         # reward initials
-        self.initial_joint_position = self.current_joint_position()
-        # self.og_height = object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id("ketchup_1_main")][2]
+        self.body_main, self.geom_names = self.get_bodies_and_geoms()
+        try:
+            self.initial_joint_position = self.current_joint_position()
+        except:
+            print("Failed to get initial joint position")
+        self.initial_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(self.body_main)][2]
     
     def get_low_dim_obs(self, obs):
         return np.concatenate([
@@ -119,16 +126,19 @@ class LowDimensionalObsGymEnv(gym.Env):
         height = False
         open_ = False
 
-        body_main, geom_names = self.get_bodies_and_geoms()
         goal_state = self.env.env.parsed_problem["goal_state"]
         for state in goal_state:
             if "reach" in state:
                 print(f"{state} reward: ", reward)
-                shaping_reward = self.reaching_reward(body_main)
+                shaping_reward = self.reaching_reward(self.body_main)
                 reward += shaping_reward
             if "open" in state:
                 print(f"{state} reward: ", reward)
-                shaping_reawrd = self.open_reward()
+                shaping_reward = self.open_reward()
+                reward += shaping_reward
+            if "up" in state:
+                print(f"{state} reward: ", reward)
+                shaping_reward = self.lift_reward(self.body_main)
                 reward += shaping_reward
 
         # reward = 0.0
@@ -175,7 +185,7 @@ class LowDimensionalObsGymEnv(gym.Env):
                 print("open", open_reward)
                 reward += open_reward
         """
-
+        print("reward", reward)
         self.step_count += 1
         truncated = self.step_count >= 250
         done = success or truncated
@@ -195,10 +205,10 @@ class LowDimensionalObsGymEnv(gym.Env):
 
     def get_bodies_and_geoms(self):
         if "ketchup_1" in self.env.obj_of_interest:
-                body_main = "ketchup_1_main"
-                geom_names = [
-                    "ketchup_1_main", 
-                ]
+            body_main = "ketchup_1_main"
+            geom_names = [
+                "ketchup_1_main", 
+            ]
         else:
             body_main = "wooden_cabinet_1_cabinet_bottom"
             geom_names = [
@@ -213,7 +223,6 @@ class LowDimensionalObsGymEnv(gym.Env):
         object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)]
         gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
         dist = np.linalg.norm(gripper_site_pos - object_pos)
-        print("dist", dist)
         reaching_reward = 1 - np.tanh(10.0 * dist)
         return reaching_reward
 
@@ -242,9 +251,11 @@ class LowDimensionalObsGymEnv(gym.Env):
         else:
             return 0.0
 
-    def height_reward(self, body_main):
+    def lift_reward(self, body_main):
         # TODO: needs work
-        height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2] - self.og_height - 0.5091798430329575
+        print(self.initial_height)
+        height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2] - self.initial_height
+        print(height)
         return height
 
     def current_joint_position(self):

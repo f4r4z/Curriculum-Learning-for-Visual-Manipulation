@@ -47,12 +47,14 @@ def is_in_contact(self, other):
     # Check for contact between gripper and object
     return self.env.check_contact(gripper_geoms, geom_names)
 
-def reach(self, body_main="wooden_cabinet_1_cabinet_bottom"):
-    object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)]
-    gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
-    dist = np.linalg.norm(gripper_site_pos - object_pos)
-    reaching_reward = 1 - np.tanh(10.0 * dist)
-    return dist < 0.8
+def reach(self, body_main="ketchup_1_main"):
+    # object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)]
+    # gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
+
+    # dist = np.linalg.norm(gripper_site_pos - object_pos)
+    # reaching_reward = 1 - np.tanh(10.0 * dist)
+    # return dist < 0.8
+    return False
 
 class Contact(UnaryAtomic):
     def __call__(self, arg):
