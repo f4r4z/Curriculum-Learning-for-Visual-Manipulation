@@ -252,10 +252,9 @@ class LowDimensionalObsGymEnv(gym.Env):
             return 0.0
 
     def lift_reward(self, body_main):
-        # TODO: needs work
-        print(self.initial_height)
-        height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2] - self.initial_height
-        print(height)
+        current_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
+        height =  current_height - self.initial_height
+        self.initial_height = current_height
         return height
 
     def current_joint_position(self):

@@ -47,6 +47,14 @@ def is_in_contact(self, other):
     # Check for contact between gripper and object
     return self.env.check_contact(gripper_geoms, geom_names)
 
+def check_grasp(self, other):
+    gripper_geoms = ["gripper0_finger1_pad_collision",
+    "gripper0_finger2_pad_collision"]
+    geom_names = [
+        "ketchup_1_main", 
+    ]
+    return self.env._check_grasp(gripper=self.env.robots[0].gripper, object_geoms=geom_names)
+
 def reach(self, body_main="ketchup_1_main"):
     # object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)]
     # gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
@@ -60,14 +68,20 @@ class Contact(UnaryAtomic):
     def __call__(self, arg):
         return arg.is_in_contact(arg)
 
+class Grasp(UnaryAtomic):
+    def __call__(self, arg):
+        return arg.check_grasp(arg)
+
 class Reach(UnaryAtomic):
     def __call__(self, arg):
         return arg.reach()
 
 VALIDATE_PREDICATE_FN_DICT["contact"] = Contact()
+VALIDATE_PREDICATE_FN_DICT["grasp"] = Grasp()
 VALIDATE_PREDICATE_FN_DICT["reach"] = Reach()
 
 BaseObjectState.is_in_contact = is_in_contact
+BaseObjectState.check_grasp = check_grasp
 BaseObjectState.reach = reach
 
 # BDDLBaseDomain.reward = reward

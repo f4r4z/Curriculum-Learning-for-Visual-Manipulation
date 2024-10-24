@@ -104,7 +104,7 @@ if __name__ == "__main__":
     args = tyro.cli(Args)
 
     if args.custom_bddl_path is not None:
-        task_name = os.path.basename(args.custom_bddl_pat)
+        task_name = os.path.basename(args.custom_bddl_path)
         env_args = {
             "bddl_file_name": args.custom_bddl_path,
             "camera_heights": 128,
