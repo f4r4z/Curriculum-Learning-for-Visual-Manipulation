@@ -1,6 +1,7 @@
 from libero.libero.envs.predicates import *
 from libero.libero.envs.object_states import BaseObjectState, ObjectState
 from libero.libero.envs.bddl_base_domain import BDDLBaseDomain
+from libero.libero.envs.objects import articulated_objects
 import numpy as np
 
 
@@ -85,3 +86,37 @@ BaseObjectState.check_grasp = check_grasp
 BaseObjectState.reach = reach
 
 # BDDLBaseDomain.reward = reward
+
+
+
+# Patches for Cabinet partial open
+def wooden_cabinet_is_partial_open(self, qpos, open_amount):
+    "Checks whether the cabinet is open by the given open_amount in range [0, 1]"
+    # check articulated_objects.WoodenCabinet for the ranges
+    # max open range seems to be -0.16, but fully_openn is -0.14 so there is some leeway (same with fully_closed=0)
+    fully_open = max(self.object_properties["articulation"]["default_open_ranges"])
+    fully_closed = min(self.object_properties["articulation"]["default_close_ranges"])
+    threshold = open_amount * fully_open + (1-open_amount) * fully_closed
+    return qpos < threshold
+
+articulated_objects.WoodenCabinet.is_partial_open = wooden_cabinet_is_partial_open
+
+def is_partial_open(self, open_amount):
+    # Checks whether any joint is open by open_amounts
+    for joint in self.env.object_sites_dict[self.object_name].joints:
+        qpos_addr = self.env.sim.model.get_joint_qpos_addr(joint)
+        qpos = self.env.sim.data.qpos[qpos_addr]
+        if self.env.get_object(self.parent_name).is_partial_open(qpos, open_amount):
+            return True
+    return False
+
+class PartialOpen(MultiarayAtomic):
+    def __call__(self, *args):
+        # print("PartialOpen", *args)
+        # print("types", [type(arg) for arg in args])
+        assert len(args) >= 2
+        open_amount = float(args[1])
+        return args[0].is_partial_open(open_amount)
+    
+VALIDATE_PREDICATE_FN_DICT["partialopen"] = PartialOpen()
+BaseObjectState.is_partial_open = is_partial_open
