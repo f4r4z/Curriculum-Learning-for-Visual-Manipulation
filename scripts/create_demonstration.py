@@ -63,7 +63,8 @@ def collect_human_trajectory(
     def completion_listener_on_release(key):
         try:
             nonlocal did_trigger_complete
-            if key == Key.enter and task_completion_hold_count == 0:
+            # if key == Key.enter and task_completion_hold_count == 0:
+            if key == Key.enter:
                 did_trigger_complete = True
         except Exception:
             pass
@@ -100,10 +101,17 @@ def collect_human_trajectory(
             break
         # Run environment step
 
-        env.step(action)
+        obs, _, _, _ = env.step(action)
         env.render()
+
+        # print(obs.keys())
+        grip_pos = obs['robot0_gripper_qpos'][0]
+        print("closed" if grip_pos < 0.01 else "open" if grip_pos > 0.03 else "-")
+        # print(obs['robot0_gripper_qvel'])
+
         # Also break if we complete the task
-        if task_completion_hold_count == 0 and did_trigger_complete:
+        # if task_completion_hold_count == 0 and did_trigger_complete:
+        if did_trigger_complete:
             break
 
         # state machine to check for having a success for 10 consecutive timesteps
@@ -127,7 +135,7 @@ def collect_human_trajectory(
 
 
 def gather_demonstrations_as_hdf5(
-    directory, out_dir, env_info, args, remove_directory=[]
+    directory, out_dir, problem_info, env_info, args, remove_directory=[]
 ):
     """
     Gathers the demonstrations saved in @directory into a
@@ -383,6 +391,6 @@ if __name__ == "__main__":
         if saving:
             print(remove_directory)
             gather_demonstrations_as_hdf5(
-                tmp_directory, new_dir, env_info, args, remove_directory
+                tmp_directory, new_dir, problem_info, env_info, args, remove_directory
             )
             i += 1

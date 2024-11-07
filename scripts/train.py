@@ -55,6 +55,8 @@ class Args:
     """file name of the BDDL file"""
     visual_observation: bool = False
     """if toggled, the environment will return visual observation otherwise it would not"""
+    setup_demo_path: str = None
+    """If passed in, runs the actions in the given demonstration before every episode to setup the scene"""
 
     # Algorithm specific arguments
     alg: str = "ppo"
@@ -140,7 +142,7 @@ if __name__ == "__main__":
             )
         else:
             envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(**env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
+                [lambda: Monitor(LowDimensionalObsGymEnv(setup_demo=args.setup_demo_path, **env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
             )
 
     """ ## Speed test

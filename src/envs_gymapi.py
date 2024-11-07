@@ -12,6 +12,8 @@ from libero.libero.envs.objects.articulated_objects import Microwave, SlideCabin
 
 from src.rnd import RNDNetworkLowDim
 import datetime
+import os
+import h5py
 
 current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
@@ -89,7 +91,7 @@ class MapObjects():
 class LowDimensionalObsGymEnv(gym.Env):
     """ Sparse reward environment with all the low-dimensional states
     """
-    def __init__(self, **kwargs):
+    def __init__(self, setup_demo=None, **kwargs):
         self.env = OffScreenRenderEnv(**kwargs)
         obs = self.env.env._get_observations()
         low_dim_obs = self.get_low_dim_obs(obs)
@@ -107,6 +109,15 @@ class LowDimensionalObsGymEnv(gym.Env):
         except:
             print("Failed to get initial joint position")
         self.initial_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(self.body_main)][2]
+
+        # setup actions from demo
+        if setup_demo is None:
+            self.setup_actions = np.array([])
+        else:
+            hdf5_path = os.path.join(setup_demo, "demo.hdf5")
+            f = h5py.File(hdf5_path, "r")
+            self.setup_actions = f['data/demo_1/actions'][:]
+
     
     def get_low_dim_obs(self, obs):
         return np.concatenate([
@@ -115,6 +126,9 @@ class LowDimensionalObsGymEnv(gym.Env):
     
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
+
+        grip_pos = obs['robot0_gripper_qpos'][0]
+        print("gripper is", "closed" if grip_pos < 0.01 else "open" if grip_pos > 0.03 else "-")
 
         # sparse completion reward
         success = self.env.check_success()
@@ -197,6 +211,11 @@ class LowDimensionalObsGymEnv(gym.Env):
     
     def reset(self, seed=None):
         obs = self.env.reset()
+        
+        # run setup actions
+        for action in self.setup_actions:
+            obs, _, _, _ = self.env.step(action)
+
         self.step_count = 0
         return self.get_low_dim_obs(obs), {}
     

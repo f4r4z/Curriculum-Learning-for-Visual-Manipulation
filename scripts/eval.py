@@ -24,7 +24,7 @@ class Args:
     # User specific arguments
     seed: int = None
     """random seed for reproducibility"""
-    video_path: str = "videos/output.mp4"
+    video_path: str = "video/output.mp4"
     """file path of the video output file"""
     load_path: str = "logs"
     """file path of the model file"""
@@ -32,8 +32,12 @@ class Args:
     """number of episodes to generate evaluation"""
 
     # Environment specific arguments
+    custom_bddl_path: str = None
+    """if passed in, the custom path will be used for bddl file as opposed to libero default files"""
     bddl_file_name: str = "libero_90/KITCHEN_SCENE6_close_the_microwave.bddl"
     """file name of the BDDL file"""
+    setup_demo_path: str = None
+    """If passed in, runs the actions in the given demonstration before every episode to setup the scene"""
 
     # Algorithm specific arguments
     alg: str = "ppo"
@@ -68,13 +72,21 @@ if __name__ == "__main__":
     args = tyro.cli(Args)
     args.num_envs = 1
 
-    bddl_file_base = get_libero_path("bddl_files")
-    task_name = args.bddl_file_name
-    env_args = {
-        "bddl_file_name": os.path.join(bddl_file_base, task_name),
-        "camera_heights": 128,
-        "camera_widths": 128,
-    }
+    if args.custom_bddl_path is not None:
+        task_name = os.path.basename(args.custom_bddl_path)
+        env_args = {
+            "bddl_file_name": args.custom_bddl_path,
+            "camera_heights": 128,
+            "camera_widths": 128,
+        }
+    else:
+        bddl_file_base = get_libero_path("bddl_files")
+        task_name = args.bddl_file_name
+        env_args = {
+            "bddl_file_name": os.path.join(bddl_file_base, task_name),
+            "camera_heights": 128,
+            "camera_widths": 128,
+        }
 
     print("Setting up environment")
     vec_env_class = DummyVecEnv
@@ -94,7 +106,7 @@ if __name__ == "__main__":
             )
         else:
             envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(**env_args)) for _ in range(args.num_envs)]
+                [lambda: Monitor(LowDimensionalObsGymEnv(setup_demo=args.setup_demo_path, **env_args)) for _ in range(args.num_envs)]
             )
 
     # Seeding everything
@@ -136,7 +148,7 @@ if __name__ == "__main__":
             break
     
         count += 1
-        
+    
     obs_to_video(images, f"{args.video_path}")
     print("# of tasks successful", success, "out of", total_episodes)
     envs.close()
