@@ -229,7 +229,7 @@ class LowDimensionalObsGymEnv(gym.Env):
                 "ketchup_1_main", 
             ]
         else:
-            body_main = "wooden_cabinet_1_cabinet_bottom"
+            body_main = "wooden_cabinet_1_cabinet_top"
             geom_names = [
                 "wooden_cabinet_1_g40",
                 "wooden_cabinet_1_g41",
@@ -239,7 +239,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         return body_main, geom_names
 
     def reaching_reward(self, body_main):
-        object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)]
+        object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)] + np.array([0, 0.08, 0.19])
         gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
         dist = np.linalg.norm(gripper_site_pos - object_pos)
         reaching_reward = 1 - np.tanh(10.0 * dist)
