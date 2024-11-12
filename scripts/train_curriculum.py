@@ -299,9 +299,8 @@ if __name__ == "__main__":
         model.ent_coef = args.ent_coef
         # model.clip_range = args.clip_range
         model.n_steps = args.n_steps
-    
-    new_logger = configure(save_path, ["tensorboard"])
-    model.set_logger(new_logger)
+        new_logger = configure(save_path, ["tensorboard"])
+        model.set_logger(new_logger)
     
     # get device
     if not args.device:
@@ -310,7 +309,7 @@ if __name__ == "__main__":
         device = torch.device(args.device)
 
     for i, (subtask_name, bddl) in enumerate(bddls):
-        model.logger.log(f"Subtask {i}: {subtask_name}")
+        print(f"Subtask {i}: {subtask_name}")
 
         envs = create_envs(bddl)
         if args.seed is not None:
