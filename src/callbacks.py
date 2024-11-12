@@ -1,6 +1,6 @@
 from collections import deque
 
-from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.logger import Video
 import numpy as np
@@ -184,3 +184,34 @@ class RLeXploreWithOffPolicyRL(BaseCallback):
 
     def _on_rollout_end(self) -> None:
         pass
+
+
+class StopTrainingOnSuccessRateThreshold(BaseCallback):
+    """
+    Stop the training once a threshold in success rate has been reached
+
+    It must be used with the ``EvalCallback``.
+
+    :param reward_threshold:  Minimum expected reward per episode
+        to stop training.
+    :param verbose: Verbosity level: 0 for no output, 1 for indicating when training ended because episodic reward
+        threshold reached
+    """
+
+    parent: EvalCallback
+
+    def __init__(self, threshold: float, verbose: int = 0):
+        super().__init__(verbose=verbose)
+        self.threshold = threshold
+
+    def _on_step(self) -> bool:
+        assert self.parent is not None, "``StopTrainingOnSuccessRateThreshold`` callback must be used with an ``EvalCallback``"
+        success_rate = np.mean(self.parent._is_success_buffer)
+        continue_training = bool(success_rate < self.threshold)
+        if self.verbose >= 1 and not continue_training:
+            print(
+                f"Stopping training because the success rate {success_rate:.2f} "
+                f" is above the threshold {self.threshold}"
+            )
+        return continue_training
+    
