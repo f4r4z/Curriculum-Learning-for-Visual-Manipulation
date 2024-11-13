@@ -109,7 +109,7 @@ def partial_open_the_cabinet():
 
 )
 	"""
-	return [bddl.format(open_amount) for open_amount in np.arange(0, 1.0, 0.1)]
+	return [bddl.format(open_amount) for open_amount in np.arange(0.1, 1.0, 0.1)]
 
 
 def open_the_cabinet():

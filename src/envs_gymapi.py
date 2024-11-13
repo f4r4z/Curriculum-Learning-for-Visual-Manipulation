@@ -146,10 +146,10 @@ class LowDimensionalObsGymEnv(gym.Env):
                 shaping_reward = self.reaching_reward(self.body_main)
                 print(f"{state} reward: ", shaping_reward)
                 reward += shaping_reward
-            if "open" in state:
-                shaping_reward = self.open_reward()
-                print(f"{state} reward: ", shaping_reward)
-                reward += shaping_reward
+            # if "open" in state:
+            #     shaping_reward = self.open_reward()
+            #     print(f"{state} reward: ", shaping_reward)
+            #     reward += shaping_reward
             if "up" in state:
                 shaping_reward = self.lift_reward(self.body_main)
                 print(f"{state} reward: ", shaping_reward)

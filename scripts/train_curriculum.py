@@ -309,7 +309,7 @@ if __name__ == "__main__":
         device = torch.device(args.device)
 
     for i, (subtask_name, bddl) in enumerate(bddls):
-        print(f"Subtask {i}: {subtask_name}")
+        print(f"Starting subtask {i} ({subtask_name}) at step {model.num_timesteps}")
 
         envs = create_envs(bddl)
         if args.seed is not None:
@@ -333,7 +333,7 @@ if __name__ == "__main__":
         # Stop training when the model reaches the reward threshold
         if i < len(bddls)-1:
             callback_on_best = StopTrainingOnSuccessRateThreshold(threshold=args.success_rate_threshold, verbose=1)
-            eval_callback = EvalCallback(envs, callback_on_new_best=callback_on_best, verbose=1)
+            eval_callback = EvalCallback(envs, callback_after_eval=callback_on_best, eval_freq=args.n_steps, verbose=1)
         else:
             eval_callback = EvalCallback(envs, verbose=1)
         callbacks.append(eval_callback)
@@ -362,7 +362,7 @@ if __name__ == "__main__":
                 callbacks.append(RLeXploreWithOffPolicyRL(irs))
         
         '''train'''
-        model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=callbacks, progress_bar=False)
+        model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=callbacks, reset_num_timesteps=False, progress_bar=False)
         model.save(save_path)
 
     del model
