@@ -88,7 +88,9 @@ class Args:
     device: str = ""
     """device to use for training"""
 
-    success_rate_threshold: float = 0.8
+    n_eval_episodes: int = 10
+    """number of episodes to run for evaluation and success rate checking"""
+    success_rate_threshold: float = 0.7
     """success rate to reach before moving on to the next subtask of the curriculum"""
 
 def obs_to_video(images, filename):
@@ -333,7 +335,7 @@ if __name__ == "__main__":
         # Stop training when the model reaches the reward threshold
         if i < len(bddls)-1:
             callback_on_best = StopTrainingOnSuccessRateThreshold(threshold=args.success_rate_threshold, verbose=1)
-            eval_callback = EvalCallback(envs, callback_after_eval=callback_on_best, eval_freq=args.n_steps, verbose=1)
+            eval_callback = EvalCallback(envs, callback_after_eval=callback_on_best, n_eval_episodes=args.n_eval_episodes, eval_freq=args.n_steps, verbose=1)
         else:
             eval_callback = EvalCallback(envs, verbose=1)
         callbacks.append(eval_callback)
