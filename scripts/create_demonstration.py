@@ -104,10 +104,9 @@ def collect_human_trajectory(
         obs, _, _, _ = env.step(action)
         env.render()
 
-        # print(obs.keys())
-        grip_pos = obs['robot0_gripper_qpos'][0]
-        print("closed" if grip_pos < 0.01 else "open" if grip_pos > 0.03 else "-")
-        # print(obs['robot0_gripper_qvel'])
+        # whether gripper is closed
+        # grip_pos = obs['robot0_gripper_qpos'][0]
+        # print("closed" if grip_pos < 0.01 else "open" if grip_pos > 0.03 else "-")
 
         # Also break if we complete the task
         # if task_completion_hold_count == 0 and did_trigger_complete:
