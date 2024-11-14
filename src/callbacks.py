@@ -192,26 +192,31 @@ class StopTrainingOnSuccessRateThreshold(BaseCallback):
 
     It must be used with the ``EvalCallback``.
 
-    :param reward_threshold:  Minimum expected reward per episode
-        to stop training.
+    :param threshold:  Minimum expected success rate to stop training.
+    :param n_times:  The threshold must be met this number of consecutive times to stop training
     :param verbose: Verbosity level: 0 for no output, 1 for indicating when training ended because episodic reward
         threshold reached
     """
 
     parent: EvalCallback
 
-    def __init__(self, threshold: float, verbose: int = 0):
+    def __init__(self, threshold: float, n_times: int = 1, verbose: int = 0):
         super().__init__(verbose=verbose)
         self.threshold = threshold
+        self.n_times = n_times
+        self.met_threshold_count = 0
 
     def _on_step(self) -> bool:
         assert self.parent is not None, "``StopTrainingOnSuccessRateThreshold`` callback must be used with an ``EvalCallback``"
         success_rate = np.mean(self.parent._is_success_buffer)
-        continue_training = bool(success_rate < self.threshold)
+        met_threshold = bool(success_rate > self.threshold)
+        if met_threshold:
+            self.met_threshold_count += 1
+            print(f"Success rate {success_rate} is above threshold {self.threshold}. Count is now {self.met_threshold_count}")
+        else:
+            self.met_threshold_count = 0
+        continue_training = self.met_threshold_count < self.n_times
         if self.verbose >= 1 and not continue_training:
-            print(
-                f"Stopping training because the success rate {success_rate:.2f} "
-                f" is above the threshold {self.threshold}"
-            )
+            print(f"Stopping training because the success rate was above the threshold {self.threshold} for {self.n_times} times")
         return continue_training
     

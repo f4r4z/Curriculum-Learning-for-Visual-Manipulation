@@ -2,6 +2,7 @@
 logs/
 runs/
 videos/
+video/
 notes/
 **/__pycache__/
 demonstration_data/

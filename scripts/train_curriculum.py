@@ -77,6 +77,8 @@ class Args:
     """number of steps to run for each environment per update"""
     num_envs: int = 1
     """number of LIBERO environments"""
+    multiprocessing_start_method: str = None
+    """The start method for starting processes if num_envs > 1. Can be 'fork', 'spawn', or 'forkserver'. 'forkserver' is default"""
     ent_coef: float = 0.0
     """entropy coefficient for the loss calculation"""
     clip_range: float = 0.2
@@ -89,7 +91,7 @@ class Args:
     """device to use for training"""
 
     n_eval_episodes: int = 10
-    """number of episodes to run for evaluation and success rate checking"""
+    """number of episodes to run for evaluation and success rate checking. Set to 0 to not eval and always train to total_timesteps"""
     success_rate_threshold: float = 0.7
     """success rate to reach before moving on to the next subtask of the curriculum"""
 
@@ -151,27 +153,22 @@ def create_envs(bddl_str: str, tmp_dir = "."):
 
     if not args.truncate:
         env_args["horizon"] = args.total_timesteps
-
-    print("Setting up environment")
-    vec_env_class = SubprocVecEnv if args.num_envs > 1 else DummyVecEnv
+    
     if args.visual_observation:
         if args.her:
-            envs = vec_env_class(
-                [lambda: Monitor(AgentViewGymGoalEnv(**env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
-            )
+            env_fn = lambda: Monitor(AgentViewGymGoalEnv(**env_args), info_keywords=["is_success"])
         else:
-            envs = vec_env_class(
-                [lambda: Monitor(AgentViewGymEnv(**env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
-            )
+            env_fn = lambda: Monitor(AgentViewGymEnv(**env_args), info_keywords=["is_success"])
     else:
         if args.her:
-            envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymGoalEnv(**env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
-            )
+            env_fn = lambda: Monitor(LowDimensionalObsGymGoalEnv(**env_args), info_keywords=["is_success"])
         else:
-            envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(setup_demo=args.setup_demo_path, **env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
-            )
+            env_fn = lambda: Monitor(LowDimensionalObsGymEnv(setup_demo=args.setup_demo_path, **env_args), info_keywords=["is_success"])
+    
+    if args.num_envs > 1:
+        envs = SubprocVecEnv([env_fn for _ in range(args.num_envs)], start_method=args.multiprocessing_start_method)
+    else:
+        envs = DummyVecEnv([env_fn])
     
     os.remove(bddl_path)
 
@@ -198,20 +195,8 @@ def create_envs(bddl_str: str, tmp_dir = "."):
 if __name__ == "__main__":
     args = tyro.cli(Args)
 
+    # create run name and save path
     task_name = os.path.splitext(os.path.basename(args.curriculum_file))[0]
-    bddls = load_bddls(args.curriculum_file)
-    assert len(bddls) > 0
-
-    # Create temporary env using first bddls because model requires an env to initialize
-    envs = create_envs(bddls[0][1])
-
-    # Seeding everything
-    if args.seed is not None:
-        envs.seed(args.seed)
-        torch.manual_seed(args.seed)
-        np.random.seed(args.seed)
-
-    print("Start training")
     alg_str = args.alg
     if args.her:
         alg_str = f"her_{args.alg}"
@@ -222,6 +207,7 @@ if __name__ == "__main__":
     save_path = os.path.join(args.save_path, run_name)
     if not os.path.exists(save_path):
         os.makedirs(save_path)
+
     if args.wandb:
         wandb.init(
             project=args.wandb_project,
@@ -231,7 +217,20 @@ if __name__ == "__main__":
             sync_tensorboard=True,
             name=run_name
         )
-    
+
+    bddls = load_bddls(args.curriculum_file)
+    assert len(bddls) > 0
+
+    print("Setting up model")
+
+    # Create temporary env using first bddls because model requires an env to initialize
+    envs = create_envs(bddls[0][1], tmp_dir=os.path.join(save_path, "tmp"))
+
+    # Seeding everything
+    if args.seed is not None:
+        torch.manual_seed(args.seed)
+        np.random.seed(args.seed)
+
     if args.visual_observation:
         policy_kwargs = dict(
             features_extractor_class=CustomCombinedPatchExtractor if args.her else CustomCNN,
@@ -310,6 +309,7 @@ if __name__ == "__main__":
     else:
         device = torch.device(args.device)
 
+    print("Start training")
     for i, (subtask_name, bddl) in enumerate(bddls):
         print(f"Starting subtask {i} ({subtask_name}) at step {model.num_timesteps}")
 
@@ -333,11 +333,12 @@ if __name__ == "__main__":
 
         # eval callback
         # Stop training when the model reaches the reward threshold
+        eval_envs = create_envs(bddl)
         if i < len(bddls)-1:
-            callback_on_best = StopTrainingOnSuccessRateThreshold(threshold=args.success_rate_threshold, verbose=1)
-            eval_callback = EvalCallback(envs, callback_after_eval=callback_on_best, n_eval_episodes=args.n_eval_episodes, eval_freq=args.n_steps, verbose=1)
+            callback_on_best = StopTrainingOnSuccessRateThreshold(threshold=args.success_rate_threshold, n_times=3, verbose=1)
+            eval_callback = EvalCallback(eval_envs, callback_after_eval=callback_on_best, n_eval_episodes=args.n_eval_episodes, eval_freq=args.n_steps, verbose=1)
         else:
-            eval_callback = EvalCallback(envs, verbose=1)
+            eval_callback = EvalCallback(eval_envs, n_eval_episodes=args.n_eval_episodes, eval_freq=args.n_steps, verbose=1)
         callbacks.append(eval_callback)
 
         # exploration technique callbacks
@@ -365,6 +366,9 @@ if __name__ == "__main__":
         
         '''train'''
         model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=callbacks, reset_num_timesteps=False, progress_bar=False)
-        model.save(save_path)
+        model.save(os.path.join(save_path, subtask_name))
+
+        envs.close()
+        eval_envs.close()
 
     del model

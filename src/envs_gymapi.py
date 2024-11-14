@@ -127,8 +127,8 @@ class LowDimensionalObsGymEnv(gym.Env):
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
 
-        grip_pos = obs['robot0_gripper_qpos'][0]
-        print("gripper is", "closed" if grip_pos < 0.01 else "open" if grip_pos > 0.03 else "-")
+        # grip_pos = obs['robot0_gripper_qpos'][0]
+        # print("gripper is", "closed" if grip_pos < 0.01 else "open" if grip_pos > 0.03 else "-")
 
         # sparse completion reward
         success = self.env.check_success()
@@ -144,15 +144,15 @@ class LowDimensionalObsGymEnv(gym.Env):
         for state in goal_state:
             if "reach" in state:
                 shaping_reward = self.reaching_reward(self.body_main)
-                print(f"{state} reward: ", shaping_reward)
+                # print(f"{state} reward: ", shaping_reward)
                 reward += shaping_reward
-            # if "open" in state:
-            #     shaping_reward = self.open_reward()
-            #     print(f"{state} reward: ", shaping_reward)
-            #     reward += shaping_reward
+            if "denseopen" in state:
+                shaping_reward = self.open_reward()
+                # print(f"{state} reward: ", shaping_reward)
+                reward += shaping_reward
             if "up" in state:
                 shaping_reward = self.lift_reward(self.body_main)
-                print(f"{state} reward: ", shaping_reward)
+                # print(f"{state} reward: ", shaping_reward)
                 reward += shaping_reward
 
         # reward = 0.0
@@ -199,11 +199,13 @@ class LowDimensionalObsGymEnv(gym.Env):
                 print("open", open_reward)
                 reward += open_reward
         """
-        print("reward", reward)
+        # print("reward", reward)
         self.step_count += 1
         truncated = self.step_count >= 250
         done = success or truncated
-        print("done", done)
+        # print("done", done)
+        if done:
+            print("done. success:", success)
         info["agentview_image"] = obs["agentview_image"]
         info["is_success"] = success
 
