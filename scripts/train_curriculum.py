@@ -37,15 +37,15 @@ import inspect
 @dataclass
 class Args:
     # User specific arguments
-    seed: int = None
+    seed: int | None = None
     """random seed for reproducibility"""
     video_path: str = "videos/output.mp4"
     """file path of the video output file"""
     save_path: str = "event_logs"
     """file path of the model output file"""
-    load_path: str = None # "models/checkpoints/"
+    load_path: str | None = None # "models/checkpoints/"
     """directory path of the models checkpoints"""
-    model_path: str = None
+    model_path: str | None = None
     """path to existing model if loading a model"""
     wandb_project: str = "cl_manipulation"
     """wandb project name"""
@@ -55,11 +55,11 @@ class Args:
     """if toggled, model will log to wandb otherwise it would not"""
 
     # Environment specific arguments
-    curriculum_file: str = None
+    curriculum_file: str | None = None
     """The path to a python file containing functions that generate BDDL files"""
     visual_observation: bool = False
     """if toggled, the environment will return visual observation otherwise it would not"""
-    setup_demo_path: str = None
+    setup_demo_path: str | None = None
     """If passed in, runs the actions in the given demonstration before every episode to setup the scene"""
 
     # Algorithm specific arguments
@@ -67,7 +67,7 @@ class Args:
     """algorithm to use for training: ppo, sac"""
     her: bool = False
     """if toggled, SAC will use HER otherwise it would not"""
-    exploration_alg: str = None
+    exploration_alg: str | None = None
     """algorithm for exploration techniques: rnd, e3b, disagreement, re3, ride, icm"""
     total_timesteps: int = 250000
     """total timesteps of the experiments"""
@@ -77,7 +77,7 @@ class Args:
     """number of steps to run for each environment per update"""
     num_envs: int = 1
     """number of LIBERO environments"""
-    multiprocessing_start_method: str = None
+    multiprocessing_start_method: str | None = None
     """The start method for starting processes if num_envs > 1. Can be 'fork', 'spawn', or 'forkserver'. 'forkserver' is default"""
     ent_coef: float = 0.0
     """entropy coefficient for the loss calculation"""
@@ -138,7 +138,7 @@ def load_bddls(curriculum_file: str):
                     bddls.append((f"{func.__name__}_{i}", s))
     return bddls
 
-def create_envs(bddl_str: str, tmp_dir = "."):
+def create_envs(bddl_str: str, tmp_dir = ".", num_envs_override: int = None):
     bddl_path = os.path.join(tmp_dir, f"tmp_bddl_{START_TIME_STR}.bddl")
     if not os.path.exists(tmp_dir):
         os.makedirs(tmp_dir)
@@ -165,8 +165,9 @@ def create_envs(bddl_str: str, tmp_dir = "."):
         else:
             env_fn = lambda: Monitor(LowDimensionalObsGymEnv(setup_demo=args.setup_demo_path, **env_args), info_keywords=["is_success"])
     
-    if args.num_envs > 1:
-        envs = SubprocVecEnv([env_fn for _ in range(args.num_envs)], start_method=args.multiprocessing_start_method)
+    num_envs = args.num_envs if num_envs_override is None else num_envs_override
+    if num_envs > 1:
+        envs = SubprocVecEnv([env_fn for _ in range(num_envs)], start_method=args.multiprocessing_start_method)
     else:
         envs = DummyVecEnv([env_fn])
     
@@ -333,7 +334,7 @@ if __name__ == "__main__":
 
         # eval callback
         # Stop training when the model reaches the reward threshold
-        eval_envs = create_envs(bddl)
+        eval_envs = create_envs(bddl, num_envs_override=1)
         if i < len(bddls)-1:
             callback_on_best = StopTrainingOnSuccessRateThreshold(threshold=args.success_rate_threshold, n_times=3, verbose=1)
             eval_callback = EvalCallback(eval_envs, callback_after_eval=callback_on_best, n_eval_episodes=args.n_eval_episodes, eval_freq=args.n_steps, verbose=1)
