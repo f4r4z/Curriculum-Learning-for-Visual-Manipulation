@@ -28,7 +28,7 @@ from stable_baselines3.common.logger import configure
 from src.her_replay_buffer_modified import HerReplayBufferModified
 from src.envs_gymapi import LowDimensionalObsGymEnv, LowDimensionalObsGymGoalEnv, AgentViewGymEnv, AgentViewGymGoalEnv
 from src.networks import CustomCNN, CustomCombinedExtractor, CustomCombinedExtractor2, CustomCombinedPatchExtractor
-from src.callbacks import TensorboardCallback, RLeXploreWithOffPolicyRL, RLeXploreWithOnPolicyRL, VideoWriter, StopTrainingOnSuccessRateThreshold
+from src.callbacks import TensorboardCallback, RLeXploreWithOffPolicyRL, RLeXploreWithOnPolicyRL, VideoWriter, StopTrainingOnSuccessRateThreshold, StopTrainingOnSuccessRateReached
 
 from rllte.xplore.reward import RND, Disagreement, E3B, Fabric, ICM, NGU, PseudoCounts, RE3, RIDE
 
@@ -334,13 +334,15 @@ if __name__ == "__main__":
 
         # eval callback
         # Stop training when the model reaches the reward threshold
-        eval_envs = create_envs(bddl, num_envs_override=1)
-        if i < len(bddls)-1:
-            callback_on_best = StopTrainingOnSuccessRateThreshold(threshold=args.success_rate_threshold, n_times=3, verbose=1)
-            eval_callback = EvalCallback(eval_envs, callback_after_eval=callback_on_best, n_eval_episodes=args.n_eval_episodes, eval_freq=args.n_steps, verbose=1)
-        else:
-            eval_callback = EvalCallback(eval_envs, n_eval_episodes=args.n_eval_episodes, eval_freq=args.n_steps, verbose=1)
-        callbacks.append(eval_callback)
+        callbacks.append(StopTrainingOnSuccessRateReached(threshold=args.success_rate_threshold))
+
+        # eval_envs = create_envs(bddl, num_envs_override=1)
+        # if i < len(bddls)-1:
+        #     callback_on_best = StopTrainingOnSuccessRateThreshold(threshold=args.success_rate_threshold, n_times=3, verbose=1)
+        #     eval_callback = EvalCallback(eval_envs, callback_after_eval=callback_on_best, n_eval_episodes=args.n_eval_episodes, eval_freq=args.n_steps, verbose=1)
+        # else:
+        #     eval_callback = EvalCallback(eval_envs, n_eval_episodes=args.n_eval_episodes, eval_freq=args.n_steps, verbose=1)
+        # callbacks.append(eval_callback)
 
         # exploration technique callbacks
         if args.exploration_alg is not None:
@@ -366,10 +368,12 @@ if __name__ == "__main__":
                 callbacks.append(RLeXploreWithOffPolicyRL(irs))
         
         '''train'''
+        # while True:
         model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=callbacks, reset_num_timesteps=False, progress_bar=False)
+        # print("success buffer", len(model.ep_success_buffer))
         model.save(os.path.join(save_path, subtask_name))
 
         envs.close()
-        eval_envs.close()
+        # eval_envs.close()
 
     del model
