@@ -14,7 +14,7 @@ from IPython.display import HTML
 import wandb
 import torch
 import numpy as np
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from libero.libero import get_libero_path
 from libero.libero.envs import OffScreenRenderEnv
@@ -37,15 +37,15 @@ import inspect
 @dataclass
 class Args:
     # User specific arguments
-    seed: int | None = None
+    seed: Optional[int] = None
     """random seed for reproducibility"""
     video_path: str = "videos/output.mp4"
     """file path of the video output file"""
     save_path: str = "event_logs"
     """file path of the model output file"""
-    load_path: str | None = None # "models/checkpoints/"
+    load_path: Optional[str] = None # "models/checkpoints/"
     """directory path of the models checkpoints"""
-    model_path: str | None = None
+    model_path: Optional[str] = None
     """path to existing model if loading a model"""
     wandb_project: str = "cl_manipulation"
     """wandb project name"""
@@ -55,11 +55,11 @@ class Args:
     """if toggled, model will log to wandb otherwise it would not"""
 
     # Environment specific arguments
-    curriculum_file: str | None = None
+    curriculum_file: Optional[str] = None
     """The path to a python file containing functions that generate BDDL files"""
     visual_observation: bool = False
     """if toggled, the environment will return visual observation otherwise it would not"""
-    setup_demo_path: str | None = None
+    setup_demo_path: Optional[str] = None
     """If passed in, runs the actions in the given demonstration before every episode to setup the scene"""
 
     # Algorithm specific arguments
@@ -67,7 +67,7 @@ class Args:
     """algorithm to use for training: ppo, sac"""
     her: bool = False
     """if toggled, SAC will use HER otherwise it would not"""
-    exploration_alg: str | None = None
+    exploration_alg: Optional[str] = None
     """algorithm for exploration techniques: rnd, e3b, disagreement, re3, ride, icm"""
     total_timesteps: int = 250000
     """total timesteps of the experiments"""
@@ -77,7 +77,7 @@ class Args:
     """number of steps to run for each environment per update"""
     num_envs: int = 1
     """number of LIBERO environments"""
-    multiprocessing_start_method: str | None = None
+    multiprocessing_start_method: Optional[str] = None
     """The start method for starting processes if num_envs > 1. Can be 'fork', 'spawn', or 'forkserver'. 'forkserver' is default"""
     ent_coef: float = 0.0
     """entropy coefficient for the loss calculation"""
