@@ -1,5 +1,4 @@
 import numpy as np
-from numpy import array
 
 def reach_the_cabinet():
 	return """
