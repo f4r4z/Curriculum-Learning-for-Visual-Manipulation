@@ -301,8 +301,9 @@ if __name__ == "__main__":
         model.ent_coef = args.ent_coef
         # model.clip_range = args.clip_range
         model.n_steps = args.n_steps
-        new_logger = configure(os.path.join(save_path, "tensorboard"), ["stdout", "tensorboard"])
-        model.set_logger(new_logger)
+        model.tensorboard_log = os.path.join(save_path, "tensorboard")
+        # new_logger = configure(os.path.join(save_path, "tensorboard"), ["stdout", "tensorboard"])
+        # model.set_logger(new_logger)
     
     # get device
     if not args.device:
@@ -388,8 +389,8 @@ if __name__ == "__main__":
             progress_bar=False
         )
 
-        wandb.save(os.path.join(save_path, "tensorboard", subtask_name), base_path=save_path, policy='now')
-        model.save(os.path.join(save_path, "models", subtask_name))
+        wandb.save(os.path.join(save_path, "tensorboard"), base_path=save_path, policy='now')
+        model.save(os.path.join(save_path, "models", f"{i}_{subtask_name}"))
 
         envs.close()
         # eval_envs.close()
