@@ -334,7 +334,8 @@ if __name__ == "__main__":
 
         # eval callback
         # Stop training when the model reaches the reward threshold
-        callbacks.append(StopTrainingOnSuccessRateReached(threshold=args.success_rate_threshold))
+        if i < len(bddls)-1:
+            callbacks.append(StopTrainingOnSuccessRateReached(threshold=args.success_rate_threshold))
 
         # eval_envs = create_envs(bddl, num_envs_override=1)
         # if i < len(bddls)-1:
