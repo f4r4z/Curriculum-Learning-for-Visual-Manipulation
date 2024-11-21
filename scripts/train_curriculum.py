@@ -251,7 +251,7 @@ if __name__ == "__main__":
             verbose=1,
             policy_kwargs=policy_kwargs,
             learning_rate=args.learning_rate,
-            tensorboard_log=save_path,
+            tensorboard_log=os.path.join(save_path, "tensorboard"),
             n_steps=args.n_steps,
             ent_coef=args.ent_coef,
             # clip_range=args.clip_range,
@@ -266,7 +266,7 @@ if __name__ == "__main__":
                 envs,
                 verbose=1,
                 policy_kwargs=policy_kwargs,
-                tensorboard_log=save_path,
+                tensorboard_log=os.path.join(save_path, "tensorboard"),
                 seed=args.seed,
                 learning_rate=args.learning_rate,
                 learning_starts=1000*args.num_envs,
@@ -282,7 +282,7 @@ if __name__ == "__main__":
                 envs,
                 verbose=1,
                 policy_kwargs=policy_kwargs,
-                tensorboard_log=save_path,
+                tensorboard_log=os.path.join(save_path, "tensorboard"),
                 seed=args.seed,
                 learning_rate=args.learning_rate,
                 learning_starts=1000*args.num_envs,
@@ -301,7 +301,7 @@ if __name__ == "__main__":
         model.ent_coef = args.ent_coef
         # model.clip_range = args.clip_range
         model.n_steps = args.n_steps
-        new_logger = configure(save_path, ["tensorboard"])
+        new_logger = configure(os.path.join(save_path, "tensorboard"), ["tensorboard"])
         model.set_logger(new_logger)
     
     # get device
@@ -326,7 +326,11 @@ if __name__ == "__main__":
         callbacks = []
 
         # checkpoint callback
-        checkpoint_callback = CheckpointCallback(save_freq=log_interval*32, save_path=save_path, name_prefix="model")
+        checkpoint_callback = CheckpointCallback(
+            save_freq=log_interval*32,
+            save_path=os.path.join(save_path, "checkpoints"),
+            name_prefix="model"
+        )
         callbacks.append(checkpoint_callback)
 
         # log videos
@@ -384,8 +388,8 @@ if __name__ == "__main__":
             progress_bar=False
         )
 
-        model.logger.close()
-        model.save(os.path.join(save_path, subtask_name))
+        wandb.save(os.path.join(save_path, "tensorboard", subtask_name), base_path=save_path, policy='now')
+        model.save(os.path.join(save_path, "models", subtask_name))
 
         envs.close()
         # eval_envs.close()
