@@ -384,7 +384,7 @@ if __name__ == "__main__":
             progress_bar=False
         )
 
-        # print("success buffer", len(model.ep_success_buffer))
+        model.logger.close()
         model.save(os.path.join(save_path, subtask_name))
 
         envs.close()
