@@ -296,12 +296,23 @@ if __name__ == "__main__":
 
     if args.model_path:
         print("loading model from ", args.model_path)
-        model = algorithm.load(f"{args.model_path}", env=envs)
-        model.learning_rate = args.learning_rate
-        model.ent_coef = args.ent_coef
-        # model.clip_range = args.clip_range
-        model.n_steps = args.n_steps
-        model.tensorboard_log = os.path.join(save_path, "tensorboard")
+        model = algorithm.load(
+            f"{args.model_path}",
+            env=envs,
+            policy=policy_class,
+            verbose=1,
+            policy_kwargs=policy_kwargs,
+            learning_rate=args.learning_rate,
+            tensorboard_log=os.path.join(save_path, "tensorboard"),
+            n_steps=args.n_steps,
+            ent_coef=args.ent_coef,
+            seed=args.seed,
+        )
+        # model.learning_rate = args.learning_rate
+        # model.ent_coef = args.ent_coef
+        # # model.clip_range = args.clip_range
+        # model.n_steps = args.n_steps
+        # model.tensorboard_log = os.path.join(save_path, "tensorboard")
         # new_logger = configure(os.path.join(save_path, "tensorboard"), ["stdout", "tensorboard"])
         # model.set_logger(new_logger)
     
@@ -389,7 +400,7 @@ if __name__ == "__main__":
             progress_bar=False
         )
 
-        wandb.save(os.path.join(save_path, "tensorboard"), base_path=save_path, policy='now')
+        wandb.save(os.path.join(save_path, "tensorboard", f"{i}_{subtask_name}"), base_path=os.path.join(save_path, "tensorboard"), policy='now')
         model.save(os.path.join(save_path, "models", f"{i}_{subtask_name}"))
 
         envs.close()
