@@ -301,7 +301,7 @@ if __name__ == "__main__":
         model.ent_coef = args.ent_coef
         # model.clip_range = args.clip_range
         model.n_steps = args.n_steps
-        new_logger = configure(os.path.join(save_path, "tensorboard"), ["tensorboard"])
+        new_logger = configure(os.path.join(save_path, "tensorboard"), ["stdout", "tensorboard"])
         model.set_logger(new_logger)
     
     # get device
