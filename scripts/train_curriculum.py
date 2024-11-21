@@ -370,7 +370,14 @@ if __name__ == "__main__":
         
         '''train'''
         # while True:
-        model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=callbacks, reset_num_timesteps=False, progress_bar=False)
+        model.learn(
+            total_timesteps=args.total_timesteps,
+            tb_log_name=f"{i}_{subtask_name}",
+            log_interval=log_interval,
+            callback=callbacks,
+            reset_num_timesteps=False,
+            progress_bar=False
+        )
         # print("success buffer", len(model.ep_success_buffer))
         model.save(os.path.join(save_path, subtask_name))
 
