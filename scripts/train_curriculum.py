@@ -400,7 +400,7 @@ if __name__ == "__main__":
             progress_bar=False
         )
 
-        wandb.save(os.path.join(save_path, "tensorboard", f"{i}_{subtask_name}"), base_path=os.path.join(save_path, "tensorboard"), policy='now')
+        wandb.save(os.path.join(save_path, "tensorboard", "*", "*"), base_path=os.path.join(save_path, "tensorboard"), policy='now')
         model.save(os.path.join(save_path, "models", f"{i}_{subtask_name}"))
 
         envs.close()
