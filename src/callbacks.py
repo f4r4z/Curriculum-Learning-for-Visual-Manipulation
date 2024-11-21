@@ -190,7 +190,7 @@ class StopTrainingOnSuccessRateReached(BaseCallback):
     """
     A custom callback for stopping training when a training success rate is reached
     """
-    def __init__(self, threshold: float, alpha: float = 0.1):
+    def __init__(self, threshold: float, alpha: float = 0.2):
         super().__init__()
         self.threshold = threshold
         self.alpha = alpha
