@@ -335,7 +335,8 @@ if __name__ == "__main__":
         # eval callback
         # Stop training when the model reaches the reward threshold
         if i < len(bddls)-1:
-            callbacks.append(StopTrainingOnSuccessRateReached(threshold=args.success_rate_threshold))
+            callbacks.append(StopTrainingOnSuccessRateThreshold(threshold=args.success_rate_threshold, min_count=args.n_steps))
+            # callbacks.append(StopTrainingOnSuccessRateReached(threshold=args.success_rate_threshold))
 
         # eval_envs = create_envs(bddl, num_envs_override=1)
         # if i < len(bddls)-1:
@@ -378,12 +379,6 @@ if __name__ == "__main__":
             reset_num_timesteps=False,
             progress_bar=False
         )
-
-        # dump logs because if we stop early it won't show the final results
-        if type(model) is PPO:
-            model._dump_logs(-1)
-        elif type(model) is SAC:
-            model._dump_logs()
 
         # print("success buffer", len(model.ep_success_buffer))
         model.save(os.path.join(save_path, subtask_name))

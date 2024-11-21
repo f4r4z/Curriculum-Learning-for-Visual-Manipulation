@@ -224,33 +224,32 @@ class StopTrainingOnSuccessRateThreshold(BaseCallback):
     """
     Stop the training once a threshold in success rate has been reached
 
-    It must be used with the ``EvalCallback``.
-
     :param threshold:  Minimum expected success rate to stop training.
     :param n_times:  The threshold must be met this number of consecutive times to stop training
     :param verbose: Verbosity level: 0 for no output, 1 for indicating when training ended because episodic reward
         threshold reached
     """
 
-    parent: EvalCallback
-
-    def __init__(self, threshold: float, n_times: int = 1, verbose: int = 0):
+    def __init__(self, threshold: float, min_count: int = 1, verbose: int = 0):
         super().__init__(verbose=verbose)
         self.threshold = threshold
-        self.n_times = n_times
+        self.min_count = min_count
         self.met_threshold_count = 0
+        self.should_end = False
 
     def _on_step(self) -> bool:
-        assert self.parent is not None, "``StopTrainingOnSuccessRateThreshold`` callback must be used with an ``EvalCallback``"
-        success_rate = np.mean(self.parent._is_success_buffer)
-        met_threshold = bool(success_rate > self.threshold)
-        if met_threshold:
-            self.met_threshold_count += 1
-            print(f"Success rate {success_rate} is above threshold {self.threshold}. Count is now {self.met_threshold_count}")
-        else:
-            self.met_threshold_count = 0
-        continue_training = self.met_threshold_count < self.n_times
-        if self.verbose >= 1 and not continue_training:
-            print(f"Stopping training because the success rate was above the threshold {self.threshold} for {self.n_times} times")
-        return continue_training
+        return self.should_end
+
+    def _on_rollout_end(self) -> bool:
+        if self.should_end:
+            return
+
+        success_buffer = self.model.ep_success_buffer
+        if len(success_buffer) < 1 or len(success_buffer) < self.min_count:
+            return
+        
+        success_rate = float(np.mean(success_buffer))
+        if success_rate > self.threshold:
+            self.should_end = True
+            print(f"Success rate reached {success_rate}, which is greater than threshold {self.threshold}. Stopping training on next step.")
     
