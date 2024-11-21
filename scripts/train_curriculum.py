@@ -370,7 +370,11 @@ if __name__ == "__main__":
                 callbacks.append(RLeXploreWithOffPolicyRL(irs))
         
         '''train'''
-        # while True:
+        
+        # reset these buffers so the training stats for the previous subtask doesn't leak into this subtask
+        model.ep_info_buffer = None
+        model.ep_success_buffer = None
+
         model.learn(
             total_timesteps=args.total_timesteps,
             tb_log_name=f"{i}_{subtask_name}",
