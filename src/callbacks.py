@@ -206,11 +206,7 @@ class StopTrainingOnSuccessRateReached(BaseCallback):
             self.success_rate = self.alpha * info['is_success'] + (1-self.alpha) * self.success_rate
             print("Success rate:", self.success_rate)
         
-        reached_threshold = self.success_rate >= self.threshold
-        if reached_threshold and hasattr(self.model, '_dump_logs'):
-            self.model._dump_logs()
-        
-        return not reached_threshold
+        return self.success_rate < self.threshold
             # print(f"{i} is done: {info['is_success']}")
         # print(self.locals.keys())
         # print("step", infos[0]['is_success'])

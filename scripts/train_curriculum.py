@@ -378,6 +378,13 @@ if __name__ == "__main__":
             reset_num_timesteps=False,
             progress_bar=False
         )
+
+        # dump logs because if we stop early it won't show the final results
+        if type(model) is PPO:
+            model._dump_logs(-1)
+        elif type(model) is SAC:
+            model._dump_logs()
+
         # print("success buffer", len(model.ep_success_buffer))
         model.save(os.path.join(save_path, subtask_name))
 
