@@ -1,9 +1,11 @@
 from libero.libero.envs.predicates import *
-from libero.libero.envs.object_states import BaseObjectState, ObjectState
+from libero.libero.envs.object_states import BaseObjectState, SiteObjectState, ObjectState
 from libero.libero.envs.bddl_base_domain import BDDLBaseDomain
 from libero.libero.envs.objects import articulated_objects
 import numpy as np
+from libero.libero.envs.objects import SiteObject
 
+from robosuite.utils.binding_utils import MjSim
 
 def reward(self, action=None):
     """
@@ -56,15 +58,24 @@ def check_grasp(self, other):
     ]
     return self.env._check_grasp(gripper=self.env.robots[0].gripper, object_geoms=geom_names)
 
-def reach(self):
-    if "ketchup_1" in self.env.obj_of_interest:
-        body_main = "ketchup_1_main"
-    else:
-        body_main = "wooden_cabinet_1_cabinet_top" # it seems like it doesn't matter if this is top, middle, or bottom. object_pos is always the same
+def reach(self: BaseObjectState):
+    # if "ketchup_1" in self.env.obj_of_interest:
+    #     body_main = "ketchup_1_main"
+    # else:
+    #     body_main = "wooden_cabinet_1_cabinet_top" # it seems like initial object_pos does not change depending on this name, but it does follow the specific drawer
 
-    object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)] + np.array([0, 0.08, 0.19])
-    gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
+    sim: MjSim = self.env.sim
+    gripper_site_pos = sim.data.get_site_xpos("gripper0_grip_site")
 
+    # check whether the gripper is in the site
+    if isinstance(self, SiteObjectState):
+        object_pos = sim.data.get_site_xpos(self.object_name)
+        object_mat = sim.data.get_site_xmat(self.object_name)
+        object: SiteObject = self.env.get_object(self.object_name)
+        return object.in_box(object_pos, object_mat, gripper_site_pos)
+    
+    # if not a site, just use distance. There should be an in_box for regular objects, but for now we just have this
+    object_pos = self.get_geom_state()['pos']
     dist = np.linalg.norm(gripper_site_pos - object_pos)
     return dist < 0.025
     # return False

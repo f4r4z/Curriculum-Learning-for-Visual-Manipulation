@@ -29,6 +29,15 @@ def reach_the_cabinet():
 			(bottom_region
 					(:target wooden_cabinet_1)
 			)
+			(top_handle
+				(:target wooden_cabinet_1)
+			)
+			(middle_handle
+				(:target wooden_cabinet_1)
+			)
+			(bottom_handle
+				(:target wooden_cabinet_1)
+			)
 		)
 
 	(:fixtures
@@ -48,7 +57,7 @@ def reach_the_cabinet():
 	)
 
 	(:goal
-		(Reach wooden_cabinet_1_top_region)
+		(Reach wooden_cabinet_1_top_handle)
 	)
 
 )

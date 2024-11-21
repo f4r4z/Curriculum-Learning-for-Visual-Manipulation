@@ -209,6 +209,10 @@ if __name__ == "__main__":
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
+    tensorboard_path = os.path.join(save_path, "tensorboard")
+    models_path = os.path.join(save_path, "models")
+    checkpoints_path = os.path.join(save_path, "checkpoints")
+
     if args.wandb:
         wandb.init(
             project=args.wandb_project,
@@ -251,7 +255,7 @@ if __name__ == "__main__":
             verbose=1,
             policy_kwargs=policy_kwargs,
             learning_rate=args.learning_rate,
-            tensorboard_log=os.path.join(save_path, "tensorboard"),
+            tensorboard_log=tensorboard_path,
             n_steps=args.n_steps,
             ent_coef=args.ent_coef,
             # clip_range=args.clip_range,
@@ -266,7 +270,7 @@ if __name__ == "__main__":
                 envs,
                 verbose=1,
                 policy_kwargs=policy_kwargs,
-                tensorboard_log=os.path.join(save_path, "tensorboard"),
+                tensorboard_log=tensorboard_path,
                 seed=args.seed,
                 learning_rate=args.learning_rate,
                 learning_starts=1000*args.num_envs,
@@ -282,7 +286,7 @@ if __name__ == "__main__":
                 envs,
                 verbose=1,
                 policy_kwargs=policy_kwargs,
-                tensorboard_log=os.path.join(save_path, "tensorboard"),
+                tensorboard_log=tensorboard_path,
                 seed=args.seed,
                 learning_rate=args.learning_rate,
                 learning_starts=1000*args.num_envs,
@@ -303,7 +307,7 @@ if __name__ == "__main__":
             verbose=1,
             policy_kwargs=policy_kwargs,
             learning_rate=args.learning_rate,
-            tensorboard_log=os.path.join(save_path, "tensorboard"),
+            tensorboard_log=tensorboard_path,
             n_steps=args.n_steps,
             ent_coef=args.ent_coef,
             seed=args.seed,
@@ -340,7 +344,7 @@ if __name__ == "__main__":
         # checkpoint callback
         checkpoint_callback = CheckpointCallback(
             save_freq=log_interval*32,
-            save_path=os.path.join(save_path, "checkpoints"),
+            save_path=checkpoints_path,
             name_prefix="model"
         )
         callbacks.append(checkpoint_callback)
@@ -400,8 +404,9 @@ if __name__ == "__main__":
             progress_bar=False
         )
 
-        wandb.save(os.path.join(save_path, "tensorboard", "*", "*"), base_path=os.path.join(save_path, "tensorboard"), policy='now')
-        model.save(os.path.join(save_path, "models", f"{i}_{subtask_name}"))
+        wandb.save(os.path.join(tensorboard_path, "*", "*"), base_path=tensorboard_path, policy='now')
+        model.save(os.path.join(models_path, f"{i}_{subtask_name}"))
+        wandb.save(os.path.join(models_path, f"{i}_{subtask_name}", base_path=save_path, policy='now'))
 
         envs.close()
         # eval_envs.close()

@@ -10,6 +10,8 @@ from libero.libero.envs import OffScreenRenderEnv, SubprocVectorEnv
 from libero.libero.envs.objects import OBJECTS_DICT
 from libero.libero.envs.objects.articulated_objects import Microwave, SlideCabinet, Window, Faucet, BasinFaucet, ShortCabinet, ShortFridge, WoodenCabinet, WhiteCabinet, FlatStove
 
+from robosuite.utils.binding_utils import MjSim
+
 from src.rnd import RNDNetworkLowDim
 import datetime
 import os
@@ -143,7 +145,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         goal_state = self.env.env.parsed_problem["goal_state"]
         for state in goal_state:
             if "reach" in state:
-                shaping_reward = self.reaching_reward(self.body_main)
+                shaping_reward = self.reaching_reward(state[1])
                 # print(f"{state} reward: ", shaping_reward)
                 reward += shaping_reward
             if "denseopen" in state:
@@ -240,9 +242,16 @@ class LowDimensionalObsGymEnv(gym.Env):
 
         return body_main, geom_names
 
-    def reaching_reward(self, body_main):
-        object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)] + np.array([0, 0.08, 0.19])
-        gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
+    def reaching_reward(self, object_name):
+        sim: MjSim = self.env.sim
+        if object_name in sim.model.body_names:
+            object_pos = sim.data.get_body_xpos(object_name)
+        elif object_name in sim.model.site_names:
+            object_pos = sim.data.get_site_xpos(object_name)
+        elif object_name in sim.model.geom_names:
+            object_pos = sim.data.get_geom_xpos(object_name)
+
+        gripper_site_pos = sim.data.get_site_xpos("gripper0_grip_site")
         dist = np.linalg.norm(gripper_site_pos - object_pos)
         reaching_reward = 1 - np.tanh(10.0 * dist)
         return reaching_reward

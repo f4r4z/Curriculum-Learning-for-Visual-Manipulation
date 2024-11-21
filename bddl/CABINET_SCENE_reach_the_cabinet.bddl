@@ -19,6 +19,15 @@
       (top_region
           (:target wooden_cabinet_1)
       )
+      (top_handle
+          (:target wooden_cabinet_1)
+      )
+      (middle_handle
+          (:target wooden_cabinet_1)
+      )
+      (bottom_handle
+          (:target wooden_cabinet_1)
+      )
       (middle_region
           (:target wooden_cabinet_1)
       )
@@ -44,7 +53,7 @@
   )
 
   (:goal
-    (Reach wooden_cabinet_1_top_region)
+    (Reach wooden_cabinet_1_bottom_handle)
   )
 
 )
