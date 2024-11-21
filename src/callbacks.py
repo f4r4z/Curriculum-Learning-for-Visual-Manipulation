@@ -238,7 +238,7 @@ class StopTrainingOnSuccessRateThreshold(BaseCallback):
         self.should_end = False
 
     def _on_step(self) -> bool:
-        return self.should_end
+        return not self.should_end
 
     def _on_rollout_end(self) -> bool:
         if self.should_end:
