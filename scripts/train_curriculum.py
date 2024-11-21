@@ -406,7 +406,7 @@ if __name__ == "__main__":
 
         wandb.save(os.path.join(tensorboard_path, "*", "*"), base_path=tensorboard_path, policy='now')
         model.save(os.path.join(models_path, f"{i}_{subtask_name}"))
-        wandb.save(os.path.join(models_path, f"{i}_{subtask_name}", base_path=save_path, policy='now'))
+        wandb.save(os.path.join(models_path, "*"), base_path=save_path, policy='now')
 
         envs.close()
         # eval_envs.close()
