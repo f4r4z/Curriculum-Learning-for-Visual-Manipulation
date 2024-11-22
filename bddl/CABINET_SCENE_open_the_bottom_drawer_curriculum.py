@@ -4,7 +4,7 @@ def reach_the_cabinet():
 	return """
 (define (problem LIBERO_Kitchen_Tabletop_Manipulation)
 	(:domain robosuite)
-	(:language reach the middle handle of the cabinet)
+	(:language reach the bottom handle of the cabinet)
 		(:regions
 			(wooden_cabinet_init_region
 					(:target kitchen_table)
@@ -57,7 +57,7 @@ def reach_the_cabinet():
 	)
 
 	(:goal
-		(Reach wooden_cabinet_1_middle_handle)
+		(Reach wooden_cabinet_1_bottom_handle)
 	)
 
 )
@@ -68,7 +68,7 @@ def partial_open_the_cabinet():
 	bddl = """
 (define (problem LIBERO_Kitchen_Tabletop_Manipulation)
 	(:domain robosuite)
-	(:language partially open the middle drawer of the cabinet)
+	(:language partially open the bottom drawer of the cabinet)
 		(:regions
 			(wooden_cabinet_init_region
 					(:target kitchen_table)
@@ -112,7 +112,7 @@ def partial_open_the_cabinet():
 	)
 
 	(:goal
-		(PartialOpen wooden_cabinet_1_middle_region {})
+		(PartialOpen wooden_cabinet_1_bottom_region {})
 	)
 
 )
@@ -124,7 +124,7 @@ def open_the_cabinet():
 	return """
 (define (problem LIBERO_Kitchen_Tabletop_Manipulation)
 	(:domain robosuite)
-	(:language open the middle drawer of the cabinet)
+	(:language open the bottom drawer of the cabinet)
 		(:regions
 			(wooden_cabinet_init_region
 					(:target kitchen_table)
@@ -168,7 +168,7 @@ def open_the_cabinet():
 	)
 
 	(:goal
-		(Open wooden_cabinet_1_middle_region)
+		(Open wooden_cabinet_1_bottom_region)
 	)
 
 )
