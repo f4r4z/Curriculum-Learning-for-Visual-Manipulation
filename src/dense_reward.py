@@ -98,7 +98,8 @@ class DenseReward:
             self.initial_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
         current_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
         height =  current_height - self.initial_height
-        return height * 10.0
+        grasp = self.object_states[0].check_grasp()
+        return height * 10.0 + grasp
 
     def on(self):
         '''

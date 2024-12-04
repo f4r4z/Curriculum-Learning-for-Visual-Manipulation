@@ -44,7 +44,7 @@ def check_gripper_contact(self):
     else:
         return self.env.check_contact(gripper_geoms, target_object_geoms)
 
-def check_grasp(self, other):
+def check_grasp(self):
     target_object_geoms = self.env.get_object(self.object_name).contact_geoms # .contact_geoms is not really necessary, but added for readibility
     gripper_geoms = self.env.robots[0].gripper # or gripper_geoms = ["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"]
     if self.object_state_type == "site":
@@ -68,7 +68,7 @@ class Contact(UnaryAtomic):
 
 class Grasp(UnaryAtomic):
     def __call__(self, arg):
-        return arg.check_grasp(arg)
+        return arg.check_grasp()
 
 class Reach(UnaryAtomic):
     def __call__(self, arg):
