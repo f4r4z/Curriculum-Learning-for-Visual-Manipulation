@@ -88,7 +88,7 @@
   )
 
   (:goal
-    (And (In ketchup_1 basket_1_contain_region))
+    (And (Up ketchup_1))
   )
 
 )

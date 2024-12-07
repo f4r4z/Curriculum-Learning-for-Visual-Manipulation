@@ -38,7 +38,9 @@ class DenseReward:
             else:
                 self.object_geoms.append(self.env.get_object(obj.object_name).contact_geoms)
                 self.object_bodies.append(goal_state[index+1] + "_main")
-
+        
+        # for up reward
+        self.prior_object_height = 0
         '''
         # information to print out
         print(goal_state)
@@ -57,7 +59,7 @@ class DenseReward:
             return self.open()
         if self.predicate_fn_name == "up":
             print("up")
-            return self.up(self.object_bodies[0], step_count)
+            return self.up(self.object_bodies[0])
         if self.predicate_fn_name == "on":
             print("on")
             return self.on()
@@ -91,6 +93,16 @@ class DenseReward:
         return open_reward * 10.0
         """
 
+    def up(self, body_main):
+        grasp = self.object_states[0].check_grasp()
+        object_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
+        reward = grasp * object_height if object_height > self.prior_object_height else 0
+        self.prior_object_height = object_height
+
+        return reward
+
+    '''
+    # og
     def up(self, body_main, step_count):
         if len(self.object_states) > 1:
             raise Exception("up only accepts 1 object")
@@ -99,7 +111,49 @@ class DenseReward:
         current_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
         height =  current_height - self.initial_height
         grasp = self.object_states[0].check_grasp()
+        gripper_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2]
+        reward = grasp * gripper_height if gripper_height > self.prior_gripper_height else 0
+        self.prior_gripper_height = gripper_height
+
+        return reward
         return height * 10.0 + grasp
+
+    # 1, reward only if object goes higher
+    def up(self, body_main, step_count):
+        grasp = self.object_states[0].check_grasp()
+        gripper_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2]
+        reward = grasp * gripper_height if gripper_height > self.prior_gripper_height else 0
+        self.prior_gripper_height = gripper_height
+
+        return reward
+
+    # 2, velocity
+    def up(self, body_main, step_count):
+        # Check if the gripper is grasping the object
+        grasp = self.object_states[0].check_grasp()
+
+        # Get the current vertical velocity of the object (z-axis)
+        object_body_id = self.env.sim.model.body_name2id(body_main)
+        vertical_velocity = self.env.sim.data.cvel[object_body_id][2]  # z-axis velocity
+
+        # Reward for vertical lifting
+        return grasp * max(0, vertical_velocity)
+
+    # 3, target height
+    def up(self, body_main, step_count, target_height=1.0):
+        # Current height of the object
+        current_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
+
+        # Grasp reward
+        grasp = self.object_states[0].check_grasp()
+
+        # Target height distance reward (penalizes horizontal movement)
+        height_difference = target_height - current_height
+        distance_reward = -abs(height_difference)
+
+        # Combined reward: grasp + height + distance-to-target
+        return grasp + (distance_reward*5.0)
+    '''
 
     def on(self):
         '''
