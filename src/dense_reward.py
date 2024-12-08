@@ -95,7 +95,7 @@ class DenseReward:
 
     def up(self, body_main):
         grasp = self.object_states[0].check_grasp()
-        object_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
+        object_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2]
         reward = grasp * object_height if object_height > self.prior_object_height else 0
         self.prior_object_height = object_height
 
@@ -118,7 +118,7 @@ class DenseReward:
         return reward
         return height * 10.0 + grasp
 
-    # 1, reward only if object goes higher
+    # 1, reward only if gripper goes higher
     def up(self, body_main, step_count):
         grasp = self.object_states[0].check_grasp()
         gripper_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2]
@@ -153,6 +153,15 @@ class DenseReward:
 
         # Combined reward: grasp + height + distance-to-target
         return grasp + (distance_reward*5.0)
+
+    # 4, reward only if object goes higher
+    def up(self, body_main):
+        grasp = self.object_states[0].check_grasp()
+        object_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
+        reward = grasp * object_height if object_height > self.prior_object_height else 0
+        self.prior_object_height = object_height
+
+        return reward
     '''
 
     def on(self):
