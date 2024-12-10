@@ -1,5 +1,6 @@
 from src.extract_xml import locate_libero_xml, find_geoms_for_site, find_body_main
 from src.patch import get_list_of_geom_names_for_site, split_object_name
+import robosuite.utils.transform_utils as T
 import numpy as np
 
 def get_body_for_site(object_name, parent_name):
@@ -59,7 +60,7 @@ class DenseReward:
             return self.open()
         if self.predicate_fn_name == "up":
             print("up")
-            return self.up(self.object_bodies[0])
+            return self.lift(self.object_bodies[0])
         if self.predicate_fn_name == "on":
             print("on")
             return self.on()
@@ -95,11 +96,31 @@ class DenseReward:
 
     def up(self, body_main):
         grasp = self.object_states[0].check_grasp()
-        object_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2]
-        reward = grasp * object_height if object_height > self.prior_object_height else 0
-        self.prior_object_height = object_height
+        gripper_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2] # gripper height
+        object_body_id = self.env.sim.model.body_name2id(body_main)
+        object_height = self.env.sim.data.body_xpos[object_body_id][2] # object height
 
-        return reward
+        return grasp * object_height
+
+    def lift(self, body_main):
+        obj_quat = T.convert_quat(self.env.sim.data.body_xquat[self.env.sim.model.body_name2id(body_main)], to="xyzw")
+        # check if the object is tilted more than 30 degrees
+        mat = T.quat2mat(obj_quat)
+        z_unit = [0, 0, 1]
+        z_rotated = np.matmul(mat, z_unit)
+        cos_z = np.dot(z_unit, z_rotated)
+        cos_30 = np.cos(np.pi / 6)
+        direction_coef = 1 if cos_z >= cos_30 else 0
+
+        object_body_id = self.env.sim.model.body_name2id(body_main)
+        object_height = self.env.sim.data.body_xpos[object_body_id][2] # object height
+
+        reward = 10.0 * direction_coef + object_height
+        grasp = self.object_states[0].check_grasp()
+
+        return grasp * reward
+
+
 
     '''
     # og
@@ -162,6 +183,16 @@ class DenseReward:
         self.prior_object_height = object_height
 
         return reward
+
+    # 5, proximity height between gripper and object plus object height * grasp
+    def up(self, body_main):
+        grasp = self.object_states[0].check_grasp()
+        gripper_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2] # gripper height
+        object_body_id = self.env.sim.model.body_name2id(body_main)
+        object_height = self.env.sim.data.body_xpos[object_body_id][2] # object height
+        height_proximity = 1 - np.tanh(np.linalg.norm(gripper_height - object_height))
+
+        return grasp * (object_height + height_proximity)
     '''
 
     def on(self):
