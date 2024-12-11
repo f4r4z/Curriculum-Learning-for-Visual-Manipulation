@@ -115,7 +115,8 @@ class DenseReward:
         object_body_id = self.env.sim.model.body_name2id(body_main)
         object_height = self.env.sim.data.body_xpos[object_body_id][2] # object height
 
-        reward = 10.0 * direction_coef + object_height
+        reward = (10.0 * direction_coef + object_height) if object_height > self.prior_object_height else 0
+        self.prior_object_height = object_height
         grasp = self.object_states[0].check_grasp()
 
         return grasp * reward
