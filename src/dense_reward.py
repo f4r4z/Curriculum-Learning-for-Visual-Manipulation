@@ -94,7 +94,7 @@ class DenseReward:
         return open_reward * 10.0
         """
 
-    def up(self, body_main, step_count):
+    def up(self, body_main):
         grasp = self.object_states[0].check_grasp()
         gripper_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2]
         reward = grasp * gripper_height if gripper_height > self.prior_object_height else 0
