@@ -60,7 +60,7 @@ class DenseReward:
             return self.open()
         if self.predicate_fn_name == "up":
             print("up")
-            return self.lift(self.object_bodies[0])
+            return self.up(self.object_bodies[0])
         if self.predicate_fn_name == "on":
             print("on")
             return self.on()
@@ -94,13 +94,13 @@ class DenseReward:
         return open_reward * 10.0
         """
 
-    def up(self, body_main):
+    def up(self, body_main, step_count):
         grasp = self.object_states[0].check_grasp()
-        gripper_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2] # gripper height
-        object_body_id = self.env.sim.model.body_name2id(body_main)
-        object_height = self.env.sim.data.body_xpos[object_body_id][2] # object height
+        gripper_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2]
+        reward = grasp * gripper_height if gripper_height > self.prior_object_height else 0
+        self.prior_object_height = gripper_height
 
-        return grasp * object_height
+        return reward
 
     def lift(self, body_main):
         obj_quat = T.convert_quat(self.env.sim.data.body_xquat[self.env.sim.model.body_name2id(body_main)], to="xyzw")
@@ -120,8 +120,6 @@ class DenseReward:
         grasp = self.object_states[0].check_grasp()
 
         return grasp * reward
-
-
 
     '''
     # og
