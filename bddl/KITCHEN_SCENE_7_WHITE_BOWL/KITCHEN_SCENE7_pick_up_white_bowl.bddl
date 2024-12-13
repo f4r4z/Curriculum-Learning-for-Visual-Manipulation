@@ -66,7 +66,7 @@
   )
 
   (:goal
-    (And (Up white_bowl_1))
+    (And (Lift white_bowl_1))
   )
 
 )
