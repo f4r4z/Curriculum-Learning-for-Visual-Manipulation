@@ -1,10 +1,10 @@
 import numpy as np
 
 def reach_the_cabinet():
-	return """
+	bddl = """
 (define (problem LIBERO_Kitchen_Tabletop_Manipulation)
 	(:domain robosuite)
-	(:language reach the top drawer of the cabinet)
+	(:language reach a distance to the top handle of the cabinet)
 		(:regions
 			(wooden_cabinet_init_region
 					(:target kitchen_table)
@@ -57,11 +57,12 @@ def reach_the_cabinet():
 	)
 
 	(:goal
-		(Reach wooden_cabinet_1_top_handle)
+		(Reach wooden_cabinet_1_top_handle {})
 	)
 
 )
 	"""
+	return [bddl.format(open_amount) for open_amount in np.arange(0.2, 0.0, -0.05)]
 
 
 def partial_open_the_cabinet():

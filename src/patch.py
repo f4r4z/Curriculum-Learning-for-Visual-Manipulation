@@ -70,7 +70,7 @@ def reach(self: BaseObjectState, goal_distance: float = None):
     object_pos = self.get_geom_state()['pos']
     # print("dist:", np.linalg.norm(gripper_site_pos - object_pos))
 
-    if goal_distance == None:
+    if goal_distance == None or goal_distance <= 1e-4:
         # if the object is a site, we can use its bounds to check whether we have reached it
         if isinstance(self, SiteObjectState):
             object_mat = sim.data.get_site_xmat(self.object_name)
@@ -82,8 +82,6 @@ def reach(self: BaseObjectState, goal_distance: float = None):
             return dist < 0.025
     else:
         dist = np.linalg.norm(gripper_site_pos - object_pos)
-        # if dist < goal_distance:
-        #     print("reached")
         return dist < goal_distance
 
 class Contact(UnaryAtomic):
