@@ -61,7 +61,7 @@ def reach_the_cabinet():
 	)
 
 )
-	""" # note: the wooden_cabinet_1_bottom_region argument for Reach doesn't do anything at the moment. It'll always go to the cabinet bottom handle
+	"""
 
 
 def partial_open_the_cabinet():

@@ -144,7 +144,7 @@ class LowDimensionalObsGymEnv(gym.Env):
 
         goal_state = self.env.env.parsed_problem["goal_state"]
         for state in goal_state:
-            if "reach" in state:
+            if "densereach" in state:
                 shaping_reward = self.reaching_reward(state[1])
                 # print(f"{state} reward: ", shaping_reward)
                 reward += shaping_reward

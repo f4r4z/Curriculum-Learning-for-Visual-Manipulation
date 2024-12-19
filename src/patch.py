@@ -58,7 +58,7 @@ def check_grasp(self, other):
     ]
     return self.env._check_grasp(gripper=self.env.robots[0].gripper, object_geoms=geom_names)
 
-def reach(self: BaseObjectState):
+def reach(self: BaseObjectState, goal_distance: float = None):
     # if "ketchup_1" in self.env.obj_of_interest:
     #     body_main = "ketchup_1_main"
     # else:
@@ -67,18 +67,24 @@ def reach(self: BaseObjectState):
     sim: MjSim = self.env.sim
     gripper_site_pos = sim.data.get_site_xpos("gripper0_grip_site")
 
-    # check whether the gripper is in the site
-    if isinstance(self, SiteObjectState):
-        object_pos = sim.data.get_site_xpos(self.object_name)
-        object_mat = sim.data.get_site_xmat(self.object_name)
-        object: SiteObject = self.env.get_object(self.object_name)
-        return object.in_box(object_pos, object_mat, gripper_site_pos)
-    
-    # if not a site, just use distance. There should be an in_box for regular objects, but for now we just have this
     object_pos = self.get_geom_state()['pos']
-    dist = np.linalg.norm(gripper_site_pos - object_pos)
-    return dist < 0.025
-    # return False
+    # print("dist:", np.linalg.norm(gripper_site_pos - object_pos))
+
+    if goal_distance == None:
+        # if the object is a site, we can use its bounds to check whether we have reached it
+        if isinstance(self, SiteObjectState):
+            object_mat = sim.data.get_site_xmat(self.object_name)
+            object: SiteObject = self.env.get_object(self.object_name)
+            return object.in_box(object_pos, object_mat, gripper_site_pos)
+        else:
+            # if not a site, just use distance. There should be an in_box for regular objects, but for now we just have this
+            dist = np.linalg.norm(gripper_site_pos - object_pos)
+            return dist < 0.025
+    else:
+        dist = np.linalg.norm(gripper_site_pos - object_pos)
+        # if dist < goal_distance:
+        #     print("reached")
+        return dist < goal_distance
 
 class Contact(UnaryAtomic):
     def __call__(self, arg):
@@ -88,9 +94,15 @@ class Grasp(UnaryAtomic):
     def __call__(self, arg):
         return arg.check_grasp(arg)
 
-class Reach(UnaryAtomic):
-    def __call__(self, arg):
-        return arg.reach()
+class Reach(MultiarayAtomic):
+    def __call__(self, *args):
+        assert len(args) >= 1
+        if len(args) == 1:
+            return args[0].reach()
+        else:
+            goal_distance = float(args[1])
+            return args[0].reach(goal_distance)
+
 
 VALIDATE_PREDICATE_FN_DICT["contact"] = Contact()
 VALIDATE_PREDICATE_FN_DICT["grasp"] = Grasp()
@@ -127,8 +139,6 @@ def is_partial_open(self, open_amount):
 
 class PartialOpen(MultiarayAtomic):
     def __call__(self, *args):
-        # print("PartialOpen", *args)
-        # print("types", [type(arg) for arg in args])
         assert len(args) >= 2
         open_amount = float(args[1])
         return args[0].is_partial_open(open_amount)

@@ -125,8 +125,10 @@ def load_bddls(curriculum_file: str):
     bddls: List[Tuple[str, str]] = []
     for k, func in namespace.items():
         if not inspect.isfunction(func) or inspect.isbuiltin(func): # ignore non-functions and builtins
+            print(f"skipping {k} because it is builtin or is not a function")
             continue
         if k.startswith("__") and k.endswith("__"): # ignore functions named __name__
+            print(f"skipping {k} because it is in the format __name__")
             continue
         if len(inspect.signature(func).parameters) == 0:
             bddl = func()
@@ -328,7 +330,7 @@ if __name__ == "__main__":
 
     print("Start training")
     for i, (subtask_name, bddl) in enumerate(bddls):
-        print(f"Starting subtask {i} ({subtask_name}) at step {model.num_timesteps}")
+        print(f"Starting subtask {i}/{len(bddls)} ({subtask_name}) at step {model.num_timesteps}")
 
         envs = create_envs(bddl)
         if args.seed is not None:
