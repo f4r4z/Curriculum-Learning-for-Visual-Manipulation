@@ -62,7 +62,7 @@ def reach_the_cabinet():
 
 )
 	"""
-	return [bddl.format(open_amount) for open_amount in np.arange(0.2, 0.0, -0.05)]
+	return [bddl.format(open_amount) for open_amount in np.arange(0.2, -0.05, -0.05)]
 
 
 def partial_open_the_cabinet():

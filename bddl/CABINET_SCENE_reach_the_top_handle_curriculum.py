@@ -62,7 +62,7 @@ def partial_reach_the_handle():
 
 )
 	"""
-	return [bddl.format(open_amount) for open_amount in np.arange(0.20, 0.05, -0.05)]
+	return [bddl.format(open_amount) for open_amount in np.arange(0.2, 0.0, -0.05)]
 
 
 def reach_the_handle():
