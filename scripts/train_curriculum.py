@@ -138,6 +138,9 @@ def load_bddls(curriculum_file: str):
                 for i, s in enumerate(bddl):
                     assert type(s) is str
                     bddls.append((f"{func.__name__}_{i}", s))
+    for k, bddl in bddls:
+        print(k)
+        print(bddl)
     return bddls
 
 def create_envs(bddl_str: str, tmp_dir = ".", num_envs_override: int = None):
@@ -406,9 +409,11 @@ if __name__ == "__main__":
             progress_bar=False
         )
 
-        wandb.save(os.path.join(tensorboard_path, "*", "*"), base_path=tensorboard_path, policy='now')
+        if args.wandb:
+            wandb.save(os.path.join(tensorboard_path, "*", "*"), base_path=tensorboard_path, policy='now')
         model.save(os.path.join(models_path, f"{i}_{subtask_name}"))
-        wandb.save(os.path.join(models_path, f"{i}_{subtask_name}.zip"), base_path=save_path, policy='now')
+        if args.wandb:
+            wandb.save(os.path.join(models_path, f"{i}_{subtask_name}.zip"), base_path=save_path, policy='now')
 
         envs.close()
         # eval_envs.close()
