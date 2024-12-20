@@ -138,9 +138,9 @@ def load_bddls(curriculum_file: str):
                 for i, s in enumerate(bddl):
                     assert type(s) is str
                     bddls.append((f"{func.__name__}_{i}", s))
-    for k, bddl in bddls:
-        print(k)
-        print(bddl)
+    # for k, bddl in bddls:
+    #     print(k)
+    #     print(bddl)
     return bddls
 
 def create_envs(bddl_str: str, tmp_dir = ".", num_envs_override: int = None):
