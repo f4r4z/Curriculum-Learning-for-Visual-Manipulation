@@ -72,7 +72,7 @@ class Grasp(UnaryAtomic):
 
 
 @register_predicate_fn
-class ReachWithin(MultiarayAtomic):
+class Reach(MultiarayAtomic):
     """
     Reach within a given distance away from the given object, or within the bounds of the object.
     If the given object is a site, the gripper going into the bounds of the site automatically counts as a success.

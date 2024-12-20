@@ -1,6 +1,6 @@
 (define (problem LIBERO_Kitchen_Tabletop_Manipulation)
   (:domain robosuite)
-  (:language open the top drawer of the cabinet)
+  (:language reach the top handle of the cabinet)
     (:regions
       (wooden_cabinet_init_region
           (:target kitchen_table)
@@ -53,7 +53,7 @@
   )
 
   (:goal
-    (Reach wooden_cabinet_1_top_handle 0.2)
+    (Reach wooden_cabinet_1_bottom_handle 0.2)
   )
 
 )

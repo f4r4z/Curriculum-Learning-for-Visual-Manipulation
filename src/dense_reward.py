@@ -27,7 +27,7 @@ class DenseReward:
         self.object_states = [self.env.object_states_dict[n] for n in self.object_names]
 
         # only for open
-        if self.predicate_fn_name == 'open' or self.predicate_fn_name == 'close':
+        if self.predicate_fn_name == 'denseopen' or self.predicate_fn_name == 'denseclose':
             self.initial_joint_position = self.current_joint_position()
 
         for index, obj in enumerate(self.object_states):
@@ -50,11 +50,11 @@ class DenseReward:
         '''
 
     def dense_reward(self, step_count=0):
-        if self.predicate_fn_name == "reach":
-            print("reach")
+        if self.predicate_fn_name == "densereach":
+            print("densereach")
             return self.reach(self.object_bodies[0])
-        if self.predicate_fn_name == "open":
-            print("open")
+        if self.predicate_fn_name == "denseopen":
+            print("denseopen")
             return self.open()
         if self.predicate_fn_name == "lift":
             print("lift")
