@@ -10,9 +10,8 @@ from libero.libero.envs import OffScreenRenderEnv, SubprocVectorEnv
 from libero.libero.envs.objects import OBJECTS_DICT
 from libero.libero.envs.objects.articulated_objects import Microwave, SlideCabinet, Window, Faucet, BasinFaucet, ShortCabinet, ShortFridge, WoodenCabinet, WhiteCabinet, FlatStove
 
-from robosuite.utils.binding_utils import MjSim
-
 from src.rnd import RNDNetworkLowDim
+from src.dense_reward import DenseReward
 import datetime
 import os
 import h5py
@@ -104,14 +103,13 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.step_count_tracker = 0
         self.images = []
 
-        # reward initials
-        self.body_main, self.geom_names = self.get_bodies_and_geoms()
-        try:
-            self.initial_joint_position = self.current_joint_position()
-        except:
-            print("Failed to get initial joint position")
-        self.initial_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(self.body_main)][2]
-
+        # for now, we will focus on objects with one goal state
+        self.shaping_reward = []
+        print("goal_states:")
+        for goal_state in self.env.env.parsed_problem['goal_state']:
+            print(goal_state)
+            self.shaping_reward.append(DenseReward(self.env.env, goal_state))
+        
         # setup actions from demo
         if setup_demo is None:
             self.setup_actions = np.array([])
@@ -135,73 +133,14 @@ class LowDimensionalObsGymEnv(gym.Env):
         # sparse completion reward
         success = self.env.check_success()
         
-        # define which rewards to use (temporary)
-        reaching = False
-        contact = False
-        grasp = False
-        height = False
-        open_ = False
-
-        goal_state = self.env.env.parsed_problem["goal_state"]
-        for state in goal_state:
-            if "densereach" in state:
-                shaping_reward = self.reaching_reward(state[1])
-                # print(f"{state} reward: ", shaping_reward)
-                reward += shaping_reward
-            if "denseopen" in state:
-                shaping_reward = self.open_reward()
-                # print(f"{state} reward: ", shaping_reward)
-                reward += shaping_reward
-            if "up" in state:
-                shaping_reward = self.lift_reward(self.body_main)
-                # print(f"{state} reward: ", shaping_reward)
-                reward += shaping_reward
-
-        # reward = 0.0
+        reward = 0.0
         if success:
-            reward = 100.0 * success
-        """
-        else:
-            # get body and geom names
-            body_main, geom_names = self.get_bodies_and_geoms()
+            reward = 10.0 * success
+        elif len(self.shaping_reward) > 0:
+            for dense_reward_object in self.shaping_reward:
+                reward += dense_reward_object.dense_reward(step_count=self.step_count)
 
-            # reaching
-            if reaching:
-                reaching_reward = self.reaching_reward(body_main)
-                print("reach", reaching_reward)
-                reward += reaching_reward
-
-            # contact
-            if contact:
-                contact_reward = self.contact_reward(geom_names)
-                print("contact", contact_reward)
-                reward += contact_reward
-                # experimental
-                if contact_reward:
-                    success = True
-
-            # grasp
-            if grasp:
-                grasp_reward = self.grasp_reward(geom_names)
-                print("grasp", grasp_reward)
-                reward += grasp_reward
-                # experimental
-                if grasp_reward:
-                    success = True
-
-            # lift
-            if height:
-                height_reward = self.height_reward(body_main)
-                print("height", height_reward)
-                reward += height_reward
-
-            # open
-            if open_:
-                open_reward = self.open_reward()
-                print("open", open_reward)
-                reward += open_reward
-        """
-        # print("reward", reward)
+        print("reward", reward)
         self.step_count += 1
         truncated = self.step_count >= 250
         done = success or truncated
@@ -233,59 +172,26 @@ class LowDimensionalObsGymEnv(gym.Env):
                 "ketchup_1_main", 
             ]
         else:
-            body_main = "wooden_cabinet_1_cabinet_top"
+            body_main = "wooden_cabinet_1_cabinet_bottom"
             geom_names = [
                 "wooden_cabinet_1_g40",
                 "wooden_cabinet_1_g41",
                 "wooden_cabinet_1_g42"
             ]
 
-        return body_main, geom_names
+        geom_names = []
+        for i in range(self.env.sim.model.ngeom):
+            geom_name = self.env.sim.model.geom_id2name(i)
+            # print(f"Geom ID {i}: {geom_name}")
+            geom_pos = self.env.sim.model.geom_pos[i]
+            geom_size = self.env.sim.model.geom_size[i]
+            # print(f"Geom Position: {geom_pos}, Size: {geom_size}")
+            for obj in self.env.obj_of_interest:
+                if geom_name and obj in geom_name:
+                    geom_names.append(geom_name)
+        body_mains = [obj + "_main" for obj in self.env.obj_of_interest]
 
-    def reaching_reward(self, object_name):
-        sim: MjSim = self.env.sim
-        if object_name in sim.model.body_names:
-            object_pos = sim.data.get_body_xpos(object_name)
-        elif object_name in sim.model.site_names:
-            object_pos = sim.data.get_site_xpos(object_name)
-        elif object_name in sim.model.geom_names:
-            object_pos = sim.data.get_geom_xpos(object_name)
-
-        gripper_site_pos = sim.data.get_site_xpos("gripper0_grip_site")
-        dist = np.linalg.norm(gripper_site_pos - object_pos)
-        reaching_reward = 1 - np.tanh(10.0 * dist)
-        return reaching_reward
-
-    def contact_reward(self, geom_names):
-        # for i in range(self.env.sim.model.ngeom):
-        #     geom_name = self.env.sim.model.geom_id2name(i)
-        #     print(f"Geom ID {i}: {geom_name}")
-        #     geom_pos = self.env.sim.model.geom_pos[i]
-        #     geom_size = self.env.sim.model.geom_size[i]
-        #     print(f"Geom Position: {geom_pos}, Size: {geom_size}")
-
-        gripper_geoms = ["gripper0_finger1_pad_collision",
-            "gripper0_finger2_pad_collision"]
-
-        # Check for contact between gripper and object
-        if self.env.env.check_contact(gripper_geoms, geom_names):
-            reward = 10.0  # Reward for touching the object
-        else:
-            reward = 0.0  # No reward if not touching
-
-        return reward
-
-    def grasp_reward(self, geom_names):
-        if self.env.env._check_grasp(gripper=self.env.robots[0].gripper, object_geoms=geom_names):
-            return 50.0
-        else:
-            return 0.0
-
-    def lift_reward(self, body_main):
-        current_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
-        height =  current_height - self.initial_height
-        self.initial_height = current_height
-        return height
+        return body_mains, geom_names
 
     def current_joint_position(self):
         qposs = []
@@ -294,16 +200,6 @@ class LowDimensionalObsGymEnv(gym.Env):
             qpos = self.env.sim.data.qpos[qpos_addr]
             qposs.append(qpos)
         return np.array(qposs)
-
-    def open_reward(self):
-        displacement = np.linalg.norm(self.current_joint_position() - self.initial_joint_position)
-        reward = displacement * 10
-        return reward
-        
-        goal_value, goal_ranges = MapObjects(self.env.obj_of_interest[0], self.env.language_instruction).define_goal()
-        joint_displacement = np.linalg.norm(self.current_joint_position() - np.mean(goal_ranges))
-        open_reward = 1 - np.tanh(10.0 * joint_displacement)
-        return open_reward * 10.0
 
     
 class LowDimensionalObsGymGoalEnv(gym.Env):

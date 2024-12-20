@@ -28,7 +28,7 @@ from stable_baselines3.common.logger import configure
 from src.her_replay_buffer_modified import HerReplayBufferModified
 from src.envs_gymapi import LowDimensionalObsGymEnv, LowDimensionalObsGymGoalEnv, AgentViewGymEnv, AgentViewGymGoalEnv
 from src.networks import CustomCNN, CustomCombinedExtractor, CustomCombinedExtractor2, CustomCombinedPatchExtractor
-from src.callbacks import TensorboardCallback, RLeXploreWithOffPolicyRL, RLeXploreWithOnPolicyRL, VideoWriter, StopTrainingOnSuccessRateThreshold, StopTrainingOnSuccessRateReached
+from src.callbacks import TensorboardCallback, RLeXploreWithOffPolicyRL, RLeXploreWithOnPolicyRL, VideoWriter, StopTrainingOnSuccessRateThreshold
 
 from rllte.xplore.reward import RND, Disagreement, E3B, Fabric, ICM, NGU, PseudoCounts, RE3, RIDE
 
@@ -361,7 +361,6 @@ if __name__ == "__main__":
         # Stop training when the model reaches the reward threshold
         if i < len(bddls)-1:
             callbacks.append(StopTrainingOnSuccessRateThreshold(threshold=args.success_rate_threshold, min_count=log_interval*args.num_envs))
-            # callbacks.append(StopTrainingOnSuccessRateReached(threshold=args.success_rate_threshold))
 
         # eval_envs = create_envs(bddl, num_envs_override=1)
         # if i < len(bddls)-1:

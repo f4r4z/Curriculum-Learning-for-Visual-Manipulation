@@ -44,7 +44,7 @@
   )
 
   (:goal
-    (Open wooden_cabinet_1_middle_region)
+    (PartialOpen wooden_cabinet_1_top_region 1.0)
   )
 
 )

@@ -55,6 +55,8 @@ class Args:
     """file name of the BDDL file"""
     visual_observation: bool = False
     """if toggled, the environment will return visual observation otherwise it would not"""
+    shaping_reward: bool = True
+    """if toggled, the environment will utilize dense shaping reward in training otherwise it would only use sparse goal"""
     setup_demo_path: str = None
     """If passed in, runs the actions in the given demonstration before every episode to setup the scene"""
 
@@ -120,7 +122,10 @@ if __name__ == "__main__":
             "camera_heights": 128,
             "camera_widths": 128,
         }
-
+    
+    # if args.shaping_reward:
+    #     env_args["shaping_reward"] = True
+    
     if not args.truncate:
         env_args["horizon"] = args.total_timesteps
 

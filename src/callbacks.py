@@ -1,6 +1,6 @@
 from collections import deque
 
-from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
+from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.logger import Video
 import numpy as np
@@ -184,40 +184,6 @@ class RLeXploreWithOffPolicyRL(BaseCallback):
 
     def _on_rollout_end(self) -> None:
         pass
-
-
-class StopTrainingOnSuccessRateReached(BaseCallback):
-    """
-    A custom callback for stopping training when a training success rate is reached
-    """
-    def __init__(self, threshold: float, alpha: float = 0.2):
-        super().__init__()
-        self.threshold = threshold
-        self.alpha = alpha
-        self.success_rate = 0
-        # self.last_time_trigger = 0
-
-    def _on_step(self) -> bool:
-        dones = self.locals['dones']
-        for i, done in enumerate(dones):
-            if not done:
-                continue
-            info = self.locals['infos'][i]
-            self.success_rate = self.alpha * info['is_success'] + (1-self.alpha) * self.success_rate
-            print("Success rate:", self.success_rate)
-        
-        return self.success_rate < self.threshold
-            # print(f"{i} is done: {info['is_success']}")
-        # print(self.locals.keys())
-        # print("step", infos[0]['is_success'])
-        # if (self.num_timesteps - self.last_time_trigger) >= self.n_steps:
-        #     self.last_time_trigger = self.num_timesteps
-        #     frames = th.tensor(np.stack(self.frame_buffer)).unsqueeze(0)
-
-        #     logger = self.locals.get("self").logger
-        #     logger.record("video/agent_view", Video(frames, fps=30), exclude="stdout")
-        return True
-
 
 
 class StopTrainingOnSuccessRateThreshold(BaseCallback):
