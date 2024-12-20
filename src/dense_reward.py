@@ -1,6 +1,7 @@
 from src.extract_xml import locate_libero_xml, find_geoms_for_site, find_body_main
 from src.patch import get_list_of_geom_names_for_site, split_object_name
 import robosuite.utils.transform_utils as T
+from libero.libero.envs.bddl_base_domain import BDDLBaseDomain
 import numpy as np
 
 def get_body_for_site(object_name, parent_name):
@@ -11,26 +12,23 @@ def get_body_for_site(object_name, parent_name):
 
 class DenseReward:
     # dense reward for a specific goal goal_state
-    def __init__(self, env, goal_state):
+    def __init__(self, env: BDDLBaseDomain, goal_state):
         self.env = env
         self.object_names = []
         self.object_states = []
         self.object_geoms = []
         self.object_bodies = []
-        if len(goal_state) == 3:
-            # Checking binary logical predicates
-            self.predicate_fn_name = goal_state[0]
-            self.object_names.extend([goal_state[1], goal_state[2]])
-            self.object_states.extend([self.env.object_states_dict[self.object_names[0]], self.env.object_states_dict[self.object_names[1]]])
-        elif len(goal_state) == 2:
-            # Checking unary logical predicates
-            self.predicate_fn_name = goal_state[0]
-            self.object_names.append(goal_state[1])
-            self.object_states.append(self.env.object_states_dict[self.object_names[0]])
 
-            # only for open
-            if self.predicate_fn_name == 'open' or self.predicate_fn_name == 'close':
-                self.initial_joint_position = self.current_joint_position()
+        assert len(goal_state) >= 1
+        self.predicate_fn_name = goal_state[0]
+
+        # Some arguments may not be object names (such as floats/ints), so filter those out
+        self.object_names = [n for n in goal_state[1:] if n in self.env.object_states_dict]
+        self.object_states = [self.env.object_states_dict[n] for n in self.object_names]
+
+        # only for open
+        if self.predicate_fn_name == 'open' or self.predicate_fn_name == 'close':
+            self.initial_joint_position = self.current_joint_position()
 
         for index, obj in enumerate(self.object_states):
             if obj.object_state_type == "site":
@@ -68,7 +66,7 @@ class DenseReward:
             print("in")
             return self.contain()
         
-        print("no dense reward")
+        # print("no dense reward")
         return 0.0
 
     def reach(self, body_main):

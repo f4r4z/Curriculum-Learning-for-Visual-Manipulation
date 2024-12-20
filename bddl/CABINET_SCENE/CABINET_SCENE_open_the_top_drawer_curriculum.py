@@ -57,7 +57,7 @@ def reach_the_cabinet():
 	)
 
 	(:goal
-		(Reach wooden_cabinet_1_top_handle {})
+		(ReachWithin wooden_cabinet_1_top_handle {})
 	)
 
 )

@@ -72,7 +72,11 @@ class Grasp(UnaryAtomic):
 
 
 @register_predicate_fn
-class Reach(MultiarayAtomic):
+class ReachWithin(MultiarayAtomic):
+    """
+    Reach within a given distance away from the given object, or within the bounds of the object.
+    If the given object is a site, the gripper going into the bounds of the site automatically counts as a success.
+    """
     def __call__(self, *args):
         assert len(args) >= 1
         if len(args) == 1:
@@ -88,6 +92,7 @@ class Reach(MultiarayAtomic):
 
         object_pos = object_state.get_geom_state()['pos']
         dist = np.linalg.norm(grip_site_pos - object_pos)
+        # print(dist)
 
         # Check whether object has been reached (without caring about goal_distance)
         if isinstance(object_state, SiteObjectState):
@@ -105,6 +110,10 @@ class Reach(MultiarayAtomic):
 
 @register_predicate_fn
 class PartialOpen(MultiarayAtomic):
+    """
+    Open an articulated object by a given fraction.
+    The bounds for fully open/closed is given by the object_properties of the articulated object
+    """
     def __call__(self, *args):
         assert len(args) >= 2
         open_amount = float(args[1])
@@ -155,6 +164,10 @@ class PartialOpen(MultiarayAtomic):
 
 @register_predicate_fn
 class PartialClose(MultiarayAtomic):
+    """
+    Close an articulated object by a given fraction.
+    The bounds for fully open/closed is given by the object_properties of the articulated object
+    """
     def __call__(self, *args):
         assert len(args) >= 2
         close_amount = float(args[1])

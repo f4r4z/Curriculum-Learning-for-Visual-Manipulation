@@ -105,9 +105,9 @@ class LowDimensionalObsGymEnv(gym.Env):
 
         # for now, we will focus on objects with one goal state
         self.shaping_reward = []
-        print("goal_states:")
+        # print("goal_states:")
         for goal_state in self.env.env.parsed_problem['goal_state']:
-            print(goal_state)
+            # print(goal_state)
             self.shaping_reward.append(DenseReward(self.env.env, goal_state))
         
         # setup actions from demo
@@ -140,7 +140,7 @@ class LowDimensionalObsGymEnv(gym.Env):
             for dense_reward_object in self.shaping_reward:
                 reward += dense_reward_object.dense_reward(step_count=self.step_count)
 
-        print("reward", reward)
+        # print("reward", reward)
         self.step_count += 1
         truncated = self.step_count >= 250
         done = success or truncated
