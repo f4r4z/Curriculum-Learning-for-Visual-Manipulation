@@ -62,6 +62,53 @@ def reach(self, body_main="ketchup_1_main"):
     # return dist < 0.8
     return False
 
+def check_contact_excluding_gripper(sim, object_name, gripper_geoms=["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"]):
+    '''
+    returns True if object_name is in contact with another object excluding the gripper
+    '''
+    # Iterate over all MuJoCo contacts
+    for i in range(sim.data.ncon):
+        # Get geom IDs of the two contacting geoms
+        contact = sim.data.contact[i]
+        geom1 = contact.geom1
+        geom2 = contact.geom2
+        # Get geom names
+        geom1_name = sim.model.geom_id2name(geom1)
+        geom2_name = sim.model.geom_id2name(geom2)
+
+        # Check if the object is involved in the contact
+        if (geom1_name is not None and object_name in geom1_name) or (geom2_name is not None and object_name in geom2_name):
+            # Ensure the other contact geom is not the gripper
+            other_geom = geom1_name if (geom2_name is not None and object_name in geom2_name) else geom2_name
+            if other_geom is None or "gripper" not in other_geom:                
+                return True
+    return False
+
+
+def lift(self):
+    '''
+    no contact with another object
+    higher than 1.5? 1.25? times (or absolute) the other interest object
+    '''
+    # get objects contacts and height
+    self.env.get_object(self.object_name).contact_geoms
+    this_object_height = self.env._obs_cache[self.object_name + "_pos"][2] # or self.env.sim.data.body_xpos[self.env.obj_body_id[self.object_name]][2]
+
+    # get other object name
+    for obj in self.env.obj_of_interest:
+        if self.object_name not in obj:
+            other_object_name = obj
+    
+    # get other object height
+    other_object_height = self.env._obs_cache[other_object_name + "_pos"][2] # or self.env.sim.data.body_xpos[self.env.obj_body_id[other_object_name]][2]
+
+    print("This object height", this_object_height, "Other object height", other_object_height, "in contact with another object", check_contact_excluding_gripper(self.env.sim, self.object_name))
+
+    if this_object_height > (other_object_height + 0.25) and not check_contact_excluding_gripper(self.env.sim, self.object_name):
+        return True
+
+    return False
+
 class Contact(UnaryAtomic):
     def __call__(self, arg):
         return arg.check_gripper_contact()
@@ -74,12 +121,18 @@ class Reach(UnaryAtomic):
     def __call__(self, arg):
         return arg.reach()
 
+class Lift(UnaryAtomic):
+    def __call__(self, arg):
+        return arg.lift()
+
 VALIDATE_PREDICATE_FN_DICT["contact"] = Contact()
 VALIDATE_PREDICATE_FN_DICT["grasp"] = Grasp()
 VALIDATE_PREDICATE_FN_DICT["reach"] = Reach()
+VALIDATE_PREDICATE_FN_DICT["lift"] = Lift()
 
 BaseObjectState.check_gripper_contact = check_gripper_contact
 BaseObjectState.check_grasp = check_grasp
 BaseObjectState.reach = reach
+BaseObjectState.lift = lift
 
 # BDDLBaseDomain.reward = reward
