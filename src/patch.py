@@ -102,9 +102,9 @@ def lift(self):
     # get other object height
     other_object_height = self.env._obs_cache[other_object_name + "_pos"][2] # or self.env.sim.data.body_xpos[self.env.obj_body_id[other_object_name]][2]
 
-    print("This object height", this_object_height, "Other object height", other_object_height, "in contact with another object", check_contact_excluding_gripper(self.env.sim, self.object_name))
+    # print("This object height", this_object_height, "Other object height", other_object_height, "in contact with another object", check_contact_excluding_gripper(self.env.sim, self.object_name))
 
-    if this_object_height > (other_object_height + 0.25) and not check_contact_excluding_gripper(self.env.sim, self.object_name):
+    if this_object_height > (other_object_height + 0.45) and not check_contact_excluding_gripper(self.env.sim, self.object_name):
         return True
 
     return False
