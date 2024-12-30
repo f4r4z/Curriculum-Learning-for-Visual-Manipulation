@@ -231,13 +231,17 @@ class DenseReward:
             self.env.obj_body_id[self.object_states[0].object_name]
         ]
 
-        total_size = np.abs(this_object_mat @ this_object.size)
-        ub = this_object_position + total_size
-        lb = this_object_position - total_size
-        lb[2] -= 0.01
+        # total_size = np.abs(this_object_mat @ this_object.size)
+        # ub = this_object_position + total_size
+        # lb = this_object_position - total_size
+        # lb[2] -= 0.01
 
-        reward = np.linalg.norm(other_object_position - lb + ub - other_object_position)
-        return reward
+        distance = np.linalg.norm(other_object_position - this_object_position)
+        reward = 1 - np.tanh(10 * distance)
+
+        grasp = self.object_states[0].check_grasp()
+
+        return grasp * reward
 
     def current_joint_position(self):
         qposs = []
