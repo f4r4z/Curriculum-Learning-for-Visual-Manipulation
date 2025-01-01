@@ -209,12 +209,19 @@ class DenseReward:
             self.env.obj_body_id[self.object_states[0].object_name]
         ]
 
-        xy_dist = np.linalg.norm(this_object_position[:2] - other_object_position[:2])
-        z_dist = np.linalg.norm(this_object_position[2] - other_object_position[2])
-        reach_xy = 1 - np.tanh(10.0 * xy_dist)
-        reach_z = 1 - np.tanh(10 * z_dist)
+        # xy_dist = np.linalg.norm(this_object_position[:2] - other_object_position[:2])
+        # z_dist = np.linalg.norm(this_object_position[2] - other_object_position[2])
+        # reach_xy = 1 - np.tanh(10.0 * xy_dist)
+        # reach_z = 1 - np.tanh(10 * z_dist)
 
-        return reach_xy + reach_z
+        # return reach_xy + reach_z
+
+        distance = np.linalg.norm(this_object_position - other_object_position)
+        reward = 1 - np.tanh(10.0 * distance)
+        grasp = self.object_states[0].check_grasp()
+
+        return grasp * reward
+
         
     def contain(self):
         '''
