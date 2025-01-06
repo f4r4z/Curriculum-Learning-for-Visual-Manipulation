@@ -64,9 +64,12 @@ class DenseReward:
         if self.predicate_fn_name == "on":
             print("on")
             return self.on()
+        if self.predicate_fn_name == "align":
+            print("in")
+            return self.align()
         if self.predicate_fn_name == "in":
             print("in")
-            return self.contain()
+            return self.on()
         
         print("no dense reward")
         return 0.0
@@ -223,12 +226,12 @@ class DenseReward:
         return grasp * reward
 
         
-    def contain(self):
+    def align(self):
         '''
-        other_object inside this_object
+        other_object align this_object (same xy coordinates)
         '''
         if len(self.object_states) < 2:
-            raise Exception("contain accepts 2 objects")
+            raise Exception("align accepts 2 objects")
         this_object = self.env.object_sites_dict[self.object_states[1].object_name]
         this_object_position = self.env.sim.data.get_site_xpos(self.object_states[1].object_name)
         this_object_mat = self.env.sim.data.get_site_xmat(self.object_states[1].object_name)
