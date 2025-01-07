@@ -17,6 +17,12 @@ def split_object_name(object_name, parent_name):
     else:
         raise ValueError(f"parent name '{parent_name}' is not in the expected format.")
 
+def get_body_for_site(object_name, parent_name):
+    target_object_name, target_site_name = split_object_name(object_name, parent_name)
+    path = locate_libero_xml(target_object_name)
+    body_main = find_body_main(path, target_site_name)
+    return parent_name + '_' + body_main
+
 def get_list_of_geom_names_for_site(object_name, parent_name, env):
     list_of_geom_names = []
     target_object_name, target_site_name = split_object_name(object_name, parent_name)
@@ -128,9 +134,9 @@ class Lift(UnaryAtomic):
     def __call__(self, arg):
         return arg.lift()
 
-class Align(UnaryAtomic):
-    def __call__(self, arg):
-        return arg.reach()
+class Align(BinaryAtomic):
+    def __call__(self, arg1, arg2):
+        return arg2.align()
 
 
 VALIDATE_PREDICATE_FN_DICT["contact"] = Contact()
@@ -143,5 +149,6 @@ BaseObjectState.check_gripper_contact = check_gripper_contact
 BaseObjectState.check_grasp = check_grasp
 BaseObjectState.reach = reach
 BaseObjectState.lift = lift
+BaseObjectState.align = align
 
 # BDDLBaseDomain.reward = reward

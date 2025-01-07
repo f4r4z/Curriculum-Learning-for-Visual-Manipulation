@@ -1,13 +1,7 @@
 from src.extract_xml import locate_libero_xml, find_geoms_for_site, find_body_main
-from src.patch import get_list_of_geom_names_for_site, split_object_name
+from src.patch import get_list_of_geom_names_for_site, split_object_name, get_body_for_site
 import robosuite.utils.transform_utils as T
 import numpy as np
-
-def get_body_for_site(object_name, parent_name):
-    target_object_name, target_site_name = split_object_name(object_name, parent_name)
-    path = locate_libero_xml(target_object_name)
-    body_main = find_body_main(path, target_site_name)
-    return parent_name + '_' + body_main
 
 class DenseReward:
     # dense reward for a specific goal goal_state
@@ -65,7 +59,7 @@ class DenseReward:
             print("on")
             return self.on()
         if self.predicate_fn_name == "align":
-            print("in")
+            print("align")
             return self.align()
         if self.predicate_fn_name == "in":
             print("in")
