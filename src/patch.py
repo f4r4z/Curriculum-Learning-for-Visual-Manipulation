@@ -62,6 +62,9 @@ def reach(self, body_main="ketchup_1_main"):
     # return dist < 0.8
     return False
 
+def align(self):
+    return False
+
 def check_contact_excluding_gripper(sim, object_name, gripper_geoms=["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"]):
     '''
     returns True if object_name is in contact with another object excluding the gripper
@@ -125,10 +128,16 @@ class Lift(UnaryAtomic):
     def __call__(self, arg):
         return arg.lift()
 
+class Align(UnaryAtomic):
+    def __call__(self, arg):
+        return arg.reach()
+
+
 VALIDATE_PREDICATE_FN_DICT["contact"] = Contact()
 VALIDATE_PREDICATE_FN_DICT["grasp"] = Grasp()
 VALIDATE_PREDICATE_FN_DICT["reach"] = Reach()
 VALIDATE_PREDICATE_FN_DICT["lift"] = Lift()
+VALIDATE_PREDICATE_FN_DICT["align"] = Align()
 
 BaseObjectState.check_gripper_contact = check_gripper_contact
 BaseObjectState.check_grasp = check_grasp
