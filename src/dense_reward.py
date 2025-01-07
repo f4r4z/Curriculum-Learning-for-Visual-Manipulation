@@ -198,9 +198,13 @@ class DenseReward:
         if len(self.object_states) < 2:
             raise Exception("on accepts 2 objects")
         this_object = self.env.get_object(self.object_states[1].object_name)
-        this_object_position = self.env.sim.data.body_xpos[
-            self.env.obj_body_id[self.object_states[1].object_name]
-        ]
+        try:
+            this_object_position = self.env.sim.data.body_xpos[
+                self.env.obj_body_id[self.object_states[1].object_name]
+            ]
+        except:
+            this_object_position = self.env.sim.data.get_site_xpos(self.object_states[1].object_name)
+            
         other_object = self.env.get_object(self.object_states[0].object_name)
         other_object_position = self.env.sim.data.body_xpos[
             self.env.obj_body_id[self.object_states[0].object_name]
@@ -217,7 +221,7 @@ class DenseReward:
         reward = 1 - np.tanh(10.0 * distance)
         grasp = self.object_states[0].check_grasp()
 
-        return grasp * reward
+        return (grasp * reward) / 10.0
 
         
     def align(self):
