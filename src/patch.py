@@ -101,7 +101,11 @@ def lift(self):
     '''
     # get objects contacts and height
     self.env.get_object(self.object_name).contact_geoms
-    this_object_height = self.env._obs_cache[self.object_name + "_pos"][2] # or self.env.sim.data.body_xpos[self.env.obj_body_id[self.object_name]][2]
+
+    try:
+        this_object_height = self.env._obs_cache[self.object_name + "_pos"][2] # or self.env.sim.data.body_xpos[self.env.obj_body_id[self.object_name]][2]
+    except KeyError:
+        self.env.sim.data.body_xpos[self.env.obj_body_id[self.object_name]][2]
 
     # get other object name
     for obj in self.env.obj_of_interest:
@@ -109,7 +113,10 @@ def lift(self):
             other_object_name = obj
     
     # get other object height
-    other_object_height = self.env._obs_cache[other_object_name + "_pos"][2] # or self.env.sim.data.body_xpos[self.env.obj_body_id[other_object_name]][2]
+    try:
+        other_object_height = self.env._obs_cache[other_object_name + "_pos"][2] # or self.env.sim.data.body_xpos[self.env.obj_body_id[other_object_name]][2]
+    except KeyError:
+        other_object_height = self.env.sim.data.body_xpos[self.env.obj_body_id[other_object_name]][2]
 
     # print("This object height", this_object_height, "Other object height", other_object_height, "in contact with another object", check_contact_excluding_gripper(self.env.sim, self.object_name))
 
