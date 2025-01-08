@@ -66,7 +66,7 @@ class DenseReward:
             return self.align()
         if self.predicate_fn_name == "in":
             print("in")
-            return self.on()
+            return self.inside()
         if self.predicate_fn_name == "contact" or self.predicate_fn_name == "grasp":
             penalty = (0.5 * self.orientation_penalty(self.object_bodies[0])) + (0.5 * self.displacement_penalty(self.object_bodies[0]))
             return -1 * penalty
@@ -246,6 +246,31 @@ class DenseReward:
         grasp = self.object_states[0].check_grasp()
 
         return grasp * reward
+
+    def inside(self):
+        '''
+        other_object in this_object
+        '''
+        this_object = self.env.get_object(self.object_states[1].object_name)
+        try:
+            this_object_position = self.env.sim.data.body_xpos[
+                self.env.obj_body_id[self.object_states[1].object_name]
+            ]
+        except:
+            this_object_position = self.env.sim.data.get_site_xpos(self.object_states[1].object_name)
+
+        other_object = self.env.get_object(self.object_states[0].object_name)
+        other_object_position = self.env.sim.data.body_xpos[
+            self.env.obj_body_id[self.object_states[0].object_name]
+        ]
+
+        gripper_height = this_object_position[2]
+        target_height = other_object_position[2]
+        lowering_reward = 1 - np.tanh(10.0 * abs(gripper_height - target_height))
+
+        align_distance = 1- np.tanh(10.0 * np.linalg.norm(this_object_position[:2] - other_object_position[:2]))
+
+        return (align_distance + lowering_reward) / 10.0
 
         
     def align(self):
