@@ -36,6 +36,8 @@ class DenseReward:
         
         # for up reward
         self.prior_object_height = 0
+        self.prior_orientation = self.env.sim.data.body_xquat[self.env.sim.model.body_name2id(self.object_bodies[0])]
+        self.prior_position = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(self.object_bodies[0])]
         '''
         # information to print out
         print(goal_state)
@@ -48,7 +50,8 @@ class DenseReward:
     def dense_reward(self, step_count=0):
         if self.predicate_fn_name == "reach":
             print("reach")
-            return self.reach(self.object_bodies[0])
+            penalty = (0.5 * self.orientation_penalty(self.object_bodies[0])) + (0.5 * self.displacement_penalty(self.object_bodies[0]))
+            return self.reach(self.object_bodies[0]) - penalty
         if self.predicate_fn_name == "open":
             print("open")
             return self.open()
@@ -64,9 +67,30 @@ class DenseReward:
         if self.predicate_fn_name == "in":
             print("in")
             return self.on()
+        if self.predicate_fn_name == "contact" or self.predicate_fn_name == "grasp":
+            penalty = (0.5 * self.orientation_penalty(self.object_bodies[0])) + (0.5 * self.displacement_penalty(self.object_bodies[0]))
+            return -1 * penalty
         
         print("no dense reward")
         return 0.0
+
+    def orientation_penalty(self, body_main):
+        current_orientation = self.env.sim.data.body_xquat[self.env.sim.model.body_name2id(body_main)]
+        orientation_diff = np.linalg.norm(current_orientation - self.prior_orientation)
+        orientation_penalty = np.tanh(orientation_diff)
+        self.prior_orientation = current_orientation
+
+        return orientation_penalty
+
+    def displacement_penalty(self, body_main):
+        current_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)]
+        displacement = np.linalg.norm(current_pos - self.prior_position)
+        position_penalty = np.tanh(displacement)
+        self.prior_position = current_pos
+
+        return position_penalty
+
+
 
     def reach(self, body_main):
         if len(self.object_states) > 1:
