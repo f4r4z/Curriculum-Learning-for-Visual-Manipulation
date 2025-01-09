@@ -285,8 +285,9 @@ class DenseReward:
         gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
         dist = np.linalg.norm(gripper_site_pos - this_object_position)
         reaching_reward = 1 - np.tanh(10.0 * dist)
+        grasp = self.object_states[0].check_grasp()
 
-        return reaching_reward
+        return grasp * reaching_reward
 
         
     def align(self):
