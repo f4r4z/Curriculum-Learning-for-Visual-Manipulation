@@ -253,6 +253,27 @@ class DenseReward:
         '''
         other_object in this_object
         '''
+        # this_object = self.env.get_object(self.object_states[1].object_name)
+        # try:
+        #     this_object_position = self.env.sim.data.body_xpos[
+        #         self.env.obj_body_id[self.object_states[1].object_name]
+        #     ]
+        # except:
+        #     this_object_position = self.env.sim.data.get_site_xpos(self.object_states[1].object_name)
+
+        # other_object = self.env.get_object(self.object_states[0].object_name)
+        # other_object_position = self.env.sim.data.body_xpos[
+        #     self.env.obj_body_id[self.object_states[0].object_name]
+        # ]
+
+        # gripper_height = this_object_position[2]
+        # target_height = other_object_position[2]
+        # lowering_reward = 1 - np.tanh(10.0 * abs(gripper_height - target_height))
+
+        # align_distance = 1- np.tanh(10.0 * np.linalg.norm(this_object_position[:2] - other_object_position[:2]))
+
+        # return (align_distance + lowering_reward) / 10.0
+
         this_object = self.env.get_object(self.object_states[1].object_name)
         try:
             this_object_position = self.env.sim.data.body_xpos[
@@ -261,18 +282,11 @@ class DenseReward:
         except:
             this_object_position = self.env.sim.data.get_site_xpos(self.object_states[1].object_name)
 
-        other_object = self.env.get_object(self.object_states[0].object_name)
-        other_object_position = self.env.sim.data.body_xpos[
-            self.env.obj_body_id[self.object_states[0].object_name]
-        ]
+        gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
+        dist = np.linalg.norm(gripper_site_pos - this_object_position)
+        reaching_reward = 1 - np.tanh(10.0 * dist)
 
-        gripper_height = this_object_position[2]
-        target_height = other_object_position[2]
-        lowering_reward = 1 - np.tanh(10.0 * abs(gripper_height - target_height))
-
-        align_distance = 1- np.tanh(10.0 * np.linalg.norm(this_object_position[:2] - other_object_position[:2]))
-
-        return (align_distance + lowering_reward) / 10.0
+        return reaching_reward
 
         
     def align(self):
