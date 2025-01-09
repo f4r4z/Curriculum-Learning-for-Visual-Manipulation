@@ -50,8 +50,8 @@ class DenseReward:
     def dense_reward(self, step_count=0):
         if self.predicate_fn_name == "reach":
             print("reach")
-            penalty = (0.5 * self.orientation_penalty(self.object_bodies[0])) + (0.5 * self.displacement_penalty(self.object_bodies[0]))
-            return self.reach(self.object_bodies[0]) - penalty
+            # penalty = (0.5 * self.orientation_penalty(self.object_bodies[0])) + (0.5 * self.displacement_penalty(self.object_bodies[0]))
+            return self.reach(self.object_bodies[0]) # - penalty
         if self.predicate_fn_name == "open":
             print("open")
             return self.open()
@@ -91,7 +91,6 @@ class DenseReward:
         return position_penalty
 
 
-
     def reach(self, body_main):
         if len(self.object_states) > 1:
             raise Exception("reach only accepts 1 object")
@@ -99,6 +98,9 @@ class DenseReward:
         gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
         dist = np.linalg.norm(gripper_site_pos - object_pos)
         reaching_reward = 1 - np.tanh(10.0 * dist)
+        
+        if self.object_states[0].check_gripper_contact():
+            return -1.0
         return reaching_reward
 
     def open(self):
