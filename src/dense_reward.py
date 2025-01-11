@@ -291,9 +291,15 @@ class DenseReward:
         '''
         if len(self.object_states) < 2:
             raise Exception("align accepts 2 objects")
-        this_object = self.env.object_sites_dict[self.object_states[1].object_name]
-        this_object_position = self.env.sim.data.get_site_xpos(self.object_states[1].object_name)
-        this_object_mat = self.env.sim.data.get_site_xmat(self.object_states[1].object_name)
+        # this_object = self.env.object_sites_dict[self.object_states[1].object_name]
+        try:
+            this_object_position = self.env.sim.data.body_xpos[
+                self.env.obj_body_id[self.object_states[1].object_name]
+            ]
+        except:
+            this_object_position = self.env.sim.data.get_site_xpos(self.object_states[1].object_name)
+
+        # this_object_mat = self.env.sim.data.get_site_xmat(self.object_states[1].object_name)
 
         other_object = self.env.get_object(self.object_states[0].object_name)
         other_object_position = self.env.sim.data.body_xpos[
