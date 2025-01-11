@@ -67,9 +67,6 @@ class DenseReward:
         if self.predicate_fn_name == "in":
             print("in")
             return self.inside()
-        if self.predicate_fn_name == "contact" or self.predicate_fn_name == "grasp":
-            penalty = (0.5 * self.orientation_penalty(self.object_bodies[0])) + (0.5 * self.displacement_penalty(self.object_bodies[0]))
-            return -1 * penalty
         
         print("no dense reward")
         return 0.0
@@ -98,9 +95,7 @@ class DenseReward:
         gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
         dist = np.linalg.norm(gripper_site_pos - object_pos)
         reaching_reward = 1 - np.tanh(10.0 * dist)
-        
-        if self.object_states[0].check_gripper_contact():
-            return -1.0
+
         return reaching_reward
 
     def open(self):
