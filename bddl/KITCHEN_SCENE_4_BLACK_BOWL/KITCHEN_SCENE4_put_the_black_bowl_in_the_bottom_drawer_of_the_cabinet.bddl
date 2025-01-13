@@ -88,7 +88,7 @@
   )
 
   (:goal
-    (And (Close white_cabinet_1_bottom_region) (In akita_black_bowl_1 white_cabinet_1_bottom_region))
+    (And (In akita_black_bowl_1 white_cabinet_1_bottom_region))
   )
 
 )
