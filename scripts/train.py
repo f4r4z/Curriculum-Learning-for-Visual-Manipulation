@@ -276,7 +276,7 @@ if __name__ == "__main__":
     callbacks = []
 
     # checkpoint callback
-    checkpoint_callback = CheckpointCallback(save_freq=log_interval*64, save_path=save_path, name_prefix="model")
+    checkpoint_callback = CheckpointCallback(save_freq=log_interval*1024, save_path=save_path, name_prefix="model")
     callbacks.append(checkpoint_callback)
 
     # log videos
