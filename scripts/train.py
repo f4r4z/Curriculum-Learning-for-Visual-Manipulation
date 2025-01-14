@@ -145,7 +145,7 @@ if __name__ == "__main__":
             )
         else:
             envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(**env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
+                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, **env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
             )
 
     """ ## Speed test
