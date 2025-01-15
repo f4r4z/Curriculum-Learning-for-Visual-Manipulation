@@ -125,7 +125,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         
         reward = 0.0
         if success:
-            reward = 10.0 * success
+            reward = 30.0 * success
         elif len(self.shaping_reward) > 0:
             for dense_reward_object in self.shaping_reward:
                 reward += dense_reward_object.dense_reward(step_count=self.step_count)

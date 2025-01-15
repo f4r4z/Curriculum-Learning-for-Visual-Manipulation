@@ -36,6 +36,8 @@ class Args:
     """if passed in, the custom path will be used for bddl file as opposed to libero default files"""
     bddl_file_name: str = "libero_90/KITCHEN_SCENE6_close_the_microwave.bddl"
     """file name of the BDDL file"""
+    shaping_reward: bool = True
+    """if toggled, the environment will utilize dense shaping reward in training otherwise it would only use sparse goal"""
 
     # Algorithm specific arguments
     alg: str = "ppo"
@@ -104,7 +106,7 @@ if __name__ == "__main__":
             )
         else:
             envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(**env_args)) for _ in range(args.num_envs)]
+                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, **env_args)) for _ in range(args.num_envs)]
             )
 
     # Seeding everything
