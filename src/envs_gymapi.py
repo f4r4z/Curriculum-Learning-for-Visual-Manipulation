@@ -90,7 +90,7 @@ class MapObjects():
 class LowDimensionalObsGymEnv(gym.Env):
     """ Sparse reward environment with all the low-dimensional states
     """
-    def __init__(self, shaping_reward, **kwargs):
+    def __init__(self, is_shaping_reward, sparse_reward, **kwargs):
         self.env = OffScreenRenderEnv(**kwargs)
         obs = self.env.env._get_observations()
         low_dim_obs = self.get_low_dim_obs(obs)
@@ -102,7 +102,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.images = []
 
         # for now, we will focus on objects with one goal state
-        if shaping_reward:
+        if is_shaping_reward:
             self.shaping_reward = []
             print("goal_states:")
             for goal_state in self.env.env.parsed_problem['goal_state']:
@@ -125,7 +125,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         
         reward = 0.0
         if success:
-            reward = 30.0 * success
+            reward = 10.0 * success
         elif len(self.shaping_reward) > 0:
             for dense_reward_object in self.shaping_reward:
                 reward += dense_reward_object.dense_reward(step_count=self.step_count)
