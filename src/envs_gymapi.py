@@ -100,6 +100,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         
         self.step_count_tracker = 0
         self.images = []
+        self.sparse_reward = sparse_reward
 
         # for now, we will focus on objects with one goal state
         if is_shaping_reward:
@@ -125,7 +126,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         
         reward = 0.0
         if success:
-            reward = 10.0 * success
+            reward = self.sparse_reward * success
         elif len(self.shaping_reward) > 0:
             for dense_reward_object in self.shaping_reward:
                 reward += dense_reward_object.dense_reward(step_count=self.step_count)

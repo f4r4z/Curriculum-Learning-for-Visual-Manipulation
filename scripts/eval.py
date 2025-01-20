@@ -38,7 +38,7 @@ class Args:
     """file name of the BDDL file"""
     shaping_reward: bool = True
     """if toggled, the environment will utilize dense shaping reward in training otherwise it would only use sparse goal"""
-    sparse_reward: int = 10.0
+    sparse_reward: float = 10.0
     """total sparse reward for success"""
 
     # Algorithm specific arguments
