@@ -59,14 +59,19 @@ def check_grasp(self):
     else:
         return self.env._check_grasp(gripper=gripper_geoms, object_geoms=target_object_geoms)
 
-def reach(self, body_main="ketchup_1_main"):
-    # object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)]
-    # gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
+def reach(self):
+    if self.object_state_type == "site":
+        body_main = get_body_for_site(self.object_name, self.parent_name)
+    else:
+        body_main = self.object_name + "_main"
+    object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)]
+    gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
+    dist = np.linalg.norm(gripper_site_pos - object_pos)
 
-    # dist = np.linalg.norm(gripper_site_pos - object_pos)
-    # reaching_reward = 1 - np.tanh(10.0 * dist)
-    # return dist < 0.8
-    return False
+    if dist < 0.05:
+        return True
+    else:
+        return False
 
 def align(self):
     return False

@@ -38,6 +38,8 @@ class Args:
     """file name of the BDDL file"""
     shaping_reward: bool = True
     """if toggled, the environment will utilize dense shaping reward in training otherwise it would only use sparse goal"""
+    sparse_reward: int = 10.0
+    """total sparse reward for success"""
 
     # Algorithm specific arguments
     alg: str = "ppo"
@@ -106,7 +108,7 @@ if __name__ == "__main__":
             )
         else:
             envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, **env_args)) for _ in range(args.num_envs)]
+                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, **env_args)) for _ in range(args.num_envs)]
             )
 
     # Seeding everything

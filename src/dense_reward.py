@@ -94,7 +94,7 @@ class DenseReward:
         object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)]
         gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
         dist = np.linalg.norm(gripper_site_pos - object_pos)
-        reaching_reward = 1 - np.tanh(10.0 * dist)
+        reaching_reward = (1 - np.tanh(10.0 * dist)) / 10.0
 
         return reaching_reward
 
