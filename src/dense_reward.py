@@ -57,7 +57,7 @@ class DenseReward:
             return self.open()
         if self.predicate_fn_name == "lift":
             print("lift")
-            return self.lift(self.object_bodies[0])
+            return self.lift(self.object_bodies[0], step_count)
         if self.predicate_fn_name == "on":
             print("on")
             return self.on()
@@ -112,11 +112,13 @@ class DenseReward:
         return open_reward * 10.0
         """
 
-    def lift(self, body_main):
+    def lift(self, body_main, step_count):
         grasp = self.object_states[0].check_grasp()
         # gripper_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2]
         object_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
-        reward = (grasp * object_height / 10.0) if object_height > self.prior_object_height else 0
+        if step_count == 0:
+            self.prior_object_height = object_height
+        reward = (object_height - self.prior_object_height) * (grasp) if object_height > self.prior_object_height else grasp * 0.01
         self.prior_object_height = object_height
 
         return reward
