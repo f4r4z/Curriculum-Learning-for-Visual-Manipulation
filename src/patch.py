@@ -73,8 +73,27 @@ def reach(self):
     else:
         return False
 
-def align(self):
-    return False
+def align(self, arg1):
+    """
+    other object align with this object
+    """
+    if self.object_state_type == "site":
+        this_object_position = self.env.sim.data.get_site_xpos(self.object_name)
+    else:
+        this_object_position = self.env.sim.data.body_xpos[
+            self.env.obj_body_id[self.object_name]
+        ]
+    
+    other_object_position = self.env.sim.data.body_xpos[
+       self.env.obj_body_id[arg1.object_name]
+    ]
+
+    distance = np.linalg.norm(other_object_position[:2] - this_object_position[:2])
+    
+    if dist < 0.05:
+        return True
+    else:
+        return False
 
 def check_contact_excluding_gripper(sim, object_name, gripper_geoms=["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"]):
     '''
@@ -148,7 +167,7 @@ class Lift(UnaryAtomic):
 
 class Align(BinaryAtomic):
     def __call__(self, arg1, arg2):
-        return arg2.align()
+        return arg2.align(arg1)
 
 
 VALIDATE_PREDICATE_FN_DICT["contact"] = Contact()

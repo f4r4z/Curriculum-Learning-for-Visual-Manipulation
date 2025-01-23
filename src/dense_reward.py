@@ -315,7 +315,7 @@ class DenseReward:
         # lb[2] -= 0.01
 
         distance = np.linalg.norm(other_object_position[:2] - this_object_position[:2])
-        reward = 1 - np.tanh(10 * distance)
+        reward = (1 - np.tanh(10 * distance)) / 10.0
 
         grasp = self.object_states[0].check_grasp()
 
