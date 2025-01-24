@@ -114,12 +114,13 @@ class DenseReward:
 
     def lift(self, body_main, step_count):
         grasp = self.object_states[0].check_grasp()
-        # gripper_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2]
-        object_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
+        gripper_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2]
+        # object_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
         if step_count == 0:
-            self.prior_object_height = object_height
-        reward = (object_height - self.prior_object_height) * (grasp) if object_height > self.prior_object_height else grasp * 0.01
-        self.prior_object_height = object_height
+            self.prior_object_height = gripper_height
+        reward = (gripper_height - self.prior_object_height) * 10.0 * (grasp) if gripper_height > self.prior_object_height else grasp * 0.01
+        print("height", gripper_height)
+        self.prior_object_height = gripper_height
 
         return reward
 
