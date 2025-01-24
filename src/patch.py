@@ -88,7 +88,7 @@ def align(self, arg1):
        self.env.obj_body_id[arg1.object_name]
     ]
 
-    distance = np.linalg.norm(other_object_position[:2] - this_object_position[:2])
+    dist = np.linalg.norm(other_object_position[:2] - this_object_position[:2])
     
     if dist < 0.05:
         return True
