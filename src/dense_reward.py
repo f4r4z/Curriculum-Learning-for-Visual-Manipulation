@@ -252,7 +252,7 @@ class DenseReward:
         reach_z = (1 - np.tanh(10 * z_dist)) / 10.0
         grasp = self.object_states[0].check_grasp()
 
-        return grasp * reach_z
+        return grasp * reach_z * xy_dist
 
     def inside(self):
         '''
