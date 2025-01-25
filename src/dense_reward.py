@@ -2,6 +2,7 @@ from src.extract_xml import locate_libero_xml, find_geoms_for_site, find_body_ma
 from src.patch import get_list_of_geom_names_for_site, split_object_name, get_body_for_site
 import robosuite.utils.transform_utils as T
 import numpy as np
+from libero.libero.envs.base_object import OBJECTS_DICT
 
 class DenseReward:
     # dense reward for a specific goal goal_state
@@ -242,11 +243,16 @@ class DenseReward:
 
         # return reach_xy + reach_z
 
-        distance = np.linalg.norm(this_object_position - other_object_position)
-        reward = 1 - np.tanh(10.0 * distance)
+        # distance = np.linalg.norm(this_object_position - other_object_position)
+        # reward = 1 - np.tanh(10.0 * distance)
+        xy_dist = np.linalg.norm(this_object_position[:2] - other_object_position[:2])
+        xy_dist = 1.0 if xy_dist < 0.5 else 0.0
+
+        z_dist = np.linalg.norm(this_object_position[2] - other_object_position[2])
+        reach_z = (1 - np.tanh(10 * z_dist)) / 10.0
         grasp = self.object_states[0].check_grasp()
 
-        return grasp * reward
+        return grasp * reach_z
 
     def inside(self):
         '''
