@@ -40,10 +40,14 @@ def get_list_of_geom_names_for_site(object_name, parent_name, env):
     return list_of_geom_names
 
 def check_gripper_contact(self):
+    gripper_geoms = ["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"]
+    # if specific geoms mentioned
+    if self.env.reward_geoms:
+        return self.env._check_grasp(gripper=gripper_geoms, object_geoms=self.env.reward_geoms)
+
     # object could be an object (articulated, hop) or a site
     # sites do not have a way to dynamically get geoms/check contact
     target_object_geoms = self.env.get_object(self.object_name).contact_geoms
-    gripper_geoms = ["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"]
     if self.object_state_type == "site":
         list_of_geom_names = get_list_of_geom_names_for_site(self.object_name, self.parent_name, self.env)
         return self.env.check_contact(gripper_geoms, list_of_geom_names)
@@ -51,8 +55,13 @@ def check_gripper_contact(self):
         return self.env.check_contact(gripper_geoms, target_object_geoms)
 
 def check_grasp(self):
-    target_object_geoms = self.env.get_object(self.object_name).contact_geoms # .contact_geoms is not really necessary, but added for readibility
     gripper_geoms = ["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"] # or gripper_geoms = self.env.robots[0].gripper
+    
+    # if specific geoms mentioned
+    if self.env.reward_geoms:
+        return self.env._check_grasp(gripper=gripper_geoms, object_geoms=self.env.reward_geoms)
+
+    target_object_geoms = self.env.get_object(self.object_name).contact_geoms # .contact_geoms is not really necessary, but added for readibility
     if self.object_state_type == "site":
         list_of_geom_names = get_list_of_geom_names_for_site(self.object_name, self.parent_name, self.env)
         return self.env._check_grasp(gripper=gripper_geoms, object_geoms=list_of_geom_names)
@@ -65,6 +74,16 @@ def reach(self):
     else:
         body_main = self.object_name + "_main"
     object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)]
+
+    # reach average of specific geoms
+    if self.env.reward_geoms:
+        # calculate the average of geoms position
+        geom_pos = 0.0
+        for geom in self.env.reward_geoms:
+            geom_id = self.env.sim.model.geom_name2id(geom)
+            geom_pos += self.env.sim.data.geom_xpos[geom_id]
+        object_pos = geom_pos / len(self.env.reward_geoms)
+
     gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
     dist = np.linalg.norm(gripper_site_pos - object_pos)
 

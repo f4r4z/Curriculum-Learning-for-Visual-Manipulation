@@ -9,6 +9,7 @@ import imageio
 from IPython.display import HTML
 import torch
 import numpy as np
+import typing
 
 from libero.libero import get_libero_path
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -40,6 +41,8 @@ class Args:
     """if toggled, the environment will utilize dense shaping reward in training otherwise it would only use sparse goal"""
     sparse_reward: float = 10.0
     """total sparse reward for success"""
+    reward_geoms: typing.List[str] = []
+    """if geoms are passed, those specific geoms will be rewarded, for single object predicates only [format example: ketchup_1_g1 ketchup_1_g2]"""
 
     # Algorithm specific arguments
     alg: str = "ppo"
@@ -108,7 +111,7 @@ if __name__ == "__main__":
             )
         else:
             envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, **env_args)) for _ in range(args.num_envs)]
+                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, args.reward_geoms, **env_args)) for _ in range(args.num_envs)]
             )
 
     # Seeding everything

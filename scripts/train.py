@@ -4,13 +4,14 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import tyro
 import imageio
 from IPython.display import HTML
 import wandb
 import torch
 import numpy as np
+import typing
 
 from libero.libero import get_libero_path
 from libero.libero.envs import OffScreenRenderEnv
@@ -59,6 +60,8 @@ class Args:
     """if toggled, the environment will utilize dense shaping reward in training otherwise it would only use sparse goal"""
     sparse_reward: float = 10.0
     """total sparse reward for success"""
+    reward_geoms: str = None
+    """if geoms are passed, those specific geoms will be rewarded, for single object predicates only [format example: ketchup_1_g1,ketchup_1_g2]"""
 
     # Algorithm specific arguments
     alg: str = "ppo"
@@ -126,6 +129,9 @@ if __name__ == "__main__":
     # if args.shaping_reward:
     #     env_args["shaping_reward"] = True
     
+    # set up reward geoms
+    reward_geoms = args.reward_geoms.split(",") if args.reward_geoms is not None else None
+    
     if not args.truncate:
         env_args["horizon"] = args.total_timesteps
 
@@ -147,7 +153,7 @@ if __name__ == "__main__":
             )
         else:
             envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, **env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
+                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, reward_geoms, **env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
             )
 
     """ ## Speed test

@@ -6,7 +6,7 @@ from libero.libero.envs.base_object import OBJECTS_DICT
 
 class DenseReward:
     # dense reward for a specific goal goal_state
-    def __init__(self, env, goal_state):
+    def __init__(self, env, goal_state, reward_geoms=None):
         self.env = env
         self.object_names = []
         self.object_states = []
@@ -34,7 +34,10 @@ class DenseReward:
             else:
                 self.object_geoms.append(self.env.get_object(obj.object_name).contact_geoms)
                 self.object_bodies.append(goal_state[index+1] + "_main")
-        
+
+        # adding geoms for one object predicates
+        if len(self.object_states) == 1:
+            self.env.reward_geoms = reward_geoms
         # for up reward
         self.prior_object_height = 0
         self.prior_orientation = self.env.sim.data.body_xquat[self.env.sim.model.body_name2id(self.object_bodies[0])]
@@ -93,6 +96,15 @@ class DenseReward:
         if len(self.object_states) > 1:
             raise Exception("reach only accepts 1 object")
         object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)]
+        # reach specific geoms
+        if self.env.reward_geoms:
+            # calculate the average of geoms position
+            geom_pos = 0.0
+            for geom in self.env.reward_geoms:
+                geom_id = self.env.sim.model.geom_name2id(geom)
+                geom_pos += self.env.sim.data.geom_xpos[geom_id]
+            object_pos = geom_pos / len(self.env.reward_geoms)
+
         gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
         dist = np.linalg.norm(gripper_site_pos - object_pos)
         reaching_reward = (1 - np.tanh(10.0 * dist)) / 10.0
