@@ -1,5 +1,5 @@
 from src.extract_xml import locate_libero_xml, find_geoms_for_site, find_body_main
-from src.patch import get_list_of_geom_names_for_site, split_object_name, get_body_for_site
+from src.patch import get_list_of_geom_names_for_site, split_object_name, get_body_for_site, check_contact_excluding_gripper
 import robosuite.utils.transform_utils as T
 import numpy as np
 from libero.libero.envs.base_object import OBJECTS_DICT
@@ -40,7 +40,7 @@ class DenseReward:
             self.env.reward_geoms = reward_geoms
         else:
             self.env.reward_geoms = None
-            
+
         # for up reward
         self.prior_object_height = 0
         self.prior_orientation = self.env.sim.data.body_xquat[self.env.sim.model.body_name2id(self.object_bodies[0])]
@@ -251,6 +251,12 @@ class DenseReward:
             self.env.obj_body_id[self.object_states[0].object_name]
         ]
 
+        # check contact with other objects reward
+        contact_reward = 0
+        if check_contact_excluding_gripper(self.env.sim, self.object_states[0].object_name):
+            contact_reward = -0.1
+
+        print(contact_reward)
         # xy_dist = np.linalg.norm(this_object_position[:2] - other_object_position[:2])
         # z_dist = np.linalg.norm(this_object_position[2] - other_object_position[2])
         # reach_xy = 1 - np.tanh(10.0 * xy_dist)
@@ -258,16 +264,17 @@ class DenseReward:
 
         # return reach_xy + reach_z
 
-        # distance = np.linalg.norm(this_object_position - other_object_position)
-        # reward = 1 - np.tanh(10.0 * distance)
-        xy_dist = np.linalg.norm(this_object_position[:2] - other_object_position[:2])
-        xy_dist = 1.0 if xy_dist < 0.5 else 0.0
+        distance = np.linalg.norm(this_object_position - other_object_position)
+        distance_reward = 1 - np.tanh(10.0 * distance)
 
-        z_dist = np.linalg.norm(this_object_position[2] - other_object_position[2])
-        reach_z = (1 - np.tanh(10 * z_dist)) / 10.0
+        # xy_dist = np.linalg.norm(this_object_position[:2] - other_object_position[:2])
+        # xy_dist = 1.0 if xy_dist < 0.5 else 0.0
+        # z_dist = np.linalg.norm(this_object_position[2] - other_object_position[2])
+        # reach_z = (1 - np.tanh(10 * z_dist)) / 10.0
+
         grasp = self.object_states[0].check_grasp()
 
-        return grasp * reach_z * xy_dist
+        return grasp * distance_reward + contact_reward
 
     def inside(self):
         '''
