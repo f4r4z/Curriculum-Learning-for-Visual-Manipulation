@@ -38,6 +38,9 @@ class DenseReward:
         # adding geoms for one object predicates
         if len(self.object_states) == 1:
             self.env.reward_geoms = reward_geoms
+        else:
+            self.env.reward_geoms = None
+            
         # for up reward
         self.prior_object_height = 0
         self.prior_orientation = self.env.sim.data.body_xquat[self.env.sim.model.body_name2id(self.object_bodies[0])]
