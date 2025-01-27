@@ -107,7 +107,7 @@ class DenseReward:
                 geom_id = self.env.sim.model.geom_name2id(geom)
                 geom_pos += self.env.sim.data.geom_xpos[geom_id]
             object_pos = geom_pos / len(self.env.reward_geoms)
-
+    
         gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
         dist = np.linalg.norm(gripper_site_pos - object_pos)
         reaching_reward = (1 - np.tanh(10.0 * dist)) / 10.0
@@ -251,30 +251,11 @@ class DenseReward:
             self.env.obj_body_id[self.object_states[0].object_name]
         ]
 
-        # check contact with other objects reward
-        contact_reward = 0
-        if check_contact_excluding_gripper(self.env.sim, self.object_states[0].object_name):
-            contact_reward = -0.1
-
-        print(contact_reward)
-        # xy_dist = np.linalg.norm(this_object_position[:2] - other_object_position[:2])
-        # z_dist = np.linalg.norm(this_object_position[2] - other_object_position[2])
-        # reach_xy = 1 - np.tanh(10.0 * xy_dist)
-        # reach_z = 1 - np.tanh(10 * z_dist)
-
-        # return reach_xy + reach_z
-
         distance = np.linalg.norm(this_object_position - other_object_position)
-        distance_reward = 1 - np.tanh(10.0 * distance)
-
-        # xy_dist = np.linalg.norm(this_object_position[:2] - other_object_position[:2])
-        # xy_dist = 1.0 if xy_dist < 0.5 else 0.0
-        # z_dist = np.linalg.norm(this_object_position[2] - other_object_position[2])
-        # reach_z = (1 - np.tanh(10 * z_dist)) / 10.0
-
+        reward = 1 - np.tanh(10.0 * distance)
         grasp = self.object_states[0].check_grasp()
 
-        return grasp * distance_reward + contact_reward
+        return grasp * reward
 
     def inside(self):
         '''

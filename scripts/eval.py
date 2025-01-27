@@ -41,8 +41,8 @@ class Args:
     """if toggled, the environment will utilize dense shaping reward in training otherwise it would only use sparse goal"""
     sparse_reward: float = 10.0
     """total sparse reward for success"""
-    reward_geoms: typing.List[str] = []
-    """if geoms are passed, those specific geoms will be rewarded, for single object predicates only [format example: ketchup_1_g1 ketchup_1_g2]"""
+    reward_geoms: str = None
+    """if geoms are passed, those specific geoms will be rewarded, for single object predicates only [format example: ketchup_1_g1,ketchup_1_g2]"""
 
     # Algorithm specific arguments
     alg: str = "ppo"
@@ -93,6 +93,9 @@ if __name__ == "__main__":
             "camera_widths": 128,
         }
 
+    # set up reward geoms
+    reward_geoms = args.reward_geoms.split(",") if args.reward_geoms is not None else None
+
     print("Setting up environment")
     vec_env_class = DummyVecEnv
     if args.visual_observation:
@@ -111,7 +114,7 @@ if __name__ == "__main__":
             )
         else:
             envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, args.reward_geoms, **env_args)) for _ in range(args.num_envs)]
+                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, reward_geoms, **env_args)) for _ in range(args.num_envs)]
             )
 
     # Seeding everything
