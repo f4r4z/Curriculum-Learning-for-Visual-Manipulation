@@ -122,7 +122,10 @@ class LowDimensionalObsGymEnv(gym.Env):
         obs, reward, done, info = self.env.step(action)
 
         # sparse completion reward
-        success = self.env.check_success()
+        if self.sparse_reward:
+            success = self.env.check_success()
+        else:
+            success = False
         
         reward = 0.0
         if success:
