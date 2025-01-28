@@ -40,7 +40,7 @@ def get_list_of_geom_names_for_site(object_name, parent_name, env):
     return list_of_geom_names
 
 def check_gripper_contact(self):
-    gripper_geoms = ["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"]
+    gripper_geoms = self.env.robots[0].gripper # or gripper_geoms = ["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"]
     # if specific geoms mentioned
     if self.env.reward_geoms:
         return self.env._check_grasp(gripper=gripper_geoms, object_geoms=self.env.reward_geoms)
@@ -55,7 +55,7 @@ def check_gripper_contact(self):
         return self.env.check_contact(gripper_geoms, target_object_geoms)
 
 def check_grasp(self):
-    gripper_geoms = ["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"] # or gripper_geoms = self.env.robots[0].gripper
+    gripper_geoms = self.env.robots[0].gripper # or  gripper_geoms = ["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"]
     
     # if specific geoms mentioned
     if self.env.reward_geoms:
