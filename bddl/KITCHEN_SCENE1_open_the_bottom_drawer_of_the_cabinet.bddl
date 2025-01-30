@@ -70,7 +70,7 @@
   )
 
   (:goal
-    (And (Grasp wooden_cabinet_1_bottom_region))
+    (And (Open wooden_cabinet_1_bottom_region))
   )
 
 )

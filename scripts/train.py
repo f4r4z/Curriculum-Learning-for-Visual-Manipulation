@@ -273,6 +273,7 @@ if __name__ == "__main__":
         model.set_logger(new_logger)
     
     # get device
+    print("devices: ", [torch.cuda.device(i) for i in range(torch.cuda.device_count())])
     if not args.device:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     else:
