@@ -118,7 +118,7 @@ class DenseReward:
         if len(self.object_states) > 1:
             raise Exception("open only accepts 1 object")
         current_joint_position = self.current_joint_position()
-        reward = np.linalg.norm(current_joint_position - self.initial_joint_position) / 10.0
+        reward = np.linalg.norm(current_joint_position - self.initial_joint_position)
 
         return reward
 
