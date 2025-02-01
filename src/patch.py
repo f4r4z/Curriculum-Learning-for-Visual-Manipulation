@@ -47,11 +47,11 @@ def check_gripper_contact(self):
 
     # object could be an object (articulated, hop) or a site
     # sites do not have a way to dynamically get geoms/check contact
-    target_object_geoms = self.env.get_object(self.object_name).contact_geoms
     if self.object_state_type == "site":
         list_of_geom_names = get_list_of_geom_names_for_site(self.object_name, self.parent_name, self.env)
         return self.env.check_contact(gripper_geoms, list_of_geom_names)
     else:
+        target_object_geoms = self.env.get_object(self.object_name).contact_geoms
         return self.env.check_contact(gripper_geoms, target_object_geoms)
 
 def check_grasp(self):
@@ -61,11 +61,11 @@ def check_grasp(self):
     if self.env.reward_geoms:
         return self.env._check_grasp(gripper=gripper_geoms, object_geoms=self.env.reward_geoms)
 
-    target_object_geoms = self.env.get_object(self.object_name).contact_geoms # .contact_geoms is not really necessary, but added for readibility
     if self.object_state_type == "site":
         list_of_geom_names = get_list_of_geom_names_for_site(self.object_name, self.parent_name, self.env)
         return self.env._check_grasp(gripper=gripper_geoms, object_geoms=list_of_geom_names)
     else:
+        target_object_geoms = self.env.get_object(self.object_name).contact_geoms # .contact_geoms is not really necessary, but added for readibility
         return self.env._check_grasp(gripper=gripper_geoms, object_geoms=target_object_geoms)
 
 def reach(self):
