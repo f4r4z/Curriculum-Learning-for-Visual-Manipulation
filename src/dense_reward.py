@@ -25,7 +25,7 @@ class DenseReward:
 
             # only for open
             if self.predicate_fn_name == 'open' or self.predicate_fn_name == 'close':
-                self.initial_joint_position = self.current_joint_position()
+                self.prior_position = self.current_joint_position()
 
         for index, obj in enumerate(self.object_states):
             if obj.object_state_type == "site":
@@ -117,8 +117,10 @@ class DenseReward:
     def open(self):
         if len(self.object_states) > 1:
             raise Exception("open only accepts 1 object")
-        displacement = np.linalg.norm(self.current_joint_position() - self.initial_joint_position)
-        reward = displacement * 10
+        current_joint_position = self.current_joint_position()
+        reward = np.linalg.norm(current_joint_position - self.prior_position)
+        self.prior_position = current_joint_position
+
         return reward
 
         """
