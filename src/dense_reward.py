@@ -129,13 +129,6 @@ class DenseReward:
 
         return reward
 
-        """
-        goal_value, goal_ranges = MapObjects(self.env.obj_of_interest[0], self.env.language_instruction).define_goal()
-        joint_displacement = np.linalg.norm(self.current_joint_position() - np.mean(goal_ranges))
-        open_reward = 1 - np.tanh(10.0 * joint_displacement)
-        return open_reward * 10.0
-        """
-
     def lift(self, body_main, step_count):
         grasp = self.object_states[0].check_grasp()
         gripper_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2]
