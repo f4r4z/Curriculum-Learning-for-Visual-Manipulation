@@ -140,9 +140,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         goal_state = self.env.env.parsed_problem["goal_state"]
         if len(goal_state) > 1:
             for state in goal_state:
-                print(state)
                 result = self.env.env._eval_predicate(state)
-                print(result)
                 if result:
                     reward += 0.5
 
