@@ -108,8 +108,9 @@ class LowDimensionalObsGymEnv(gym.Env):
             print("goal_states:")
             for goal_state in self.env.env.parsed_problem['goal_state']:
                 print(goal_state)
-                self.shaping_reward.append(DenseReward(self.env.env, goal_state, reward_geoms=reward_geoms))
+                self.shaping_reward.append(DenseReward(self.env.env, goal_state, reward_geoms=reward_geoms))        
         else:
+            self.env.env.reward_geoms = None
             self.shaping_reward = []
             print("no dense reward is being used")
             

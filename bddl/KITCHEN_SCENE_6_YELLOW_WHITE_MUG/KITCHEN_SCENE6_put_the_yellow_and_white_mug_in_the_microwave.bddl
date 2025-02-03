@@ -1,6 +1,6 @@
 (define (problem LIBERO_Kitchen_Tabletop_Manipulation)
   (:domain robosuite)
-  (:language put the plate in the microwave and close it)
+  (:language put the white_yellow_mug in the microwave and close it)
     (:regions
       (microwave_init_region
           (:target kitchen_table)
@@ -13,7 +13,7 @@
             )
           )
       )
-      (plate_init_region
+      (white_yellow_mug_init_region
           (:target kitchen_table)
           (:ranges (
               (-0.025 -0.025 0.025 0.025)
@@ -61,23 +61,23 @@
 
   (:objects
     porcelain_mug_1 - porcelain_mug
-    plate_1 - plate
+    white_yellow_mug_1 - white_yellow_mug
   )
 
   (:obj_of_interest
-    plate_1
+    white_yellow_mug_1
     microwave_1
   )
 
   (:init
     (On porcelain_mug_1 kitchen_table_porcelain_mug_init_region)
-    (On plate_1 kitchen_table_plate_init_region)
+    (On white_yellow_mug_1 kitchen_table_white_yellow_mug_init_region)
     (On microwave_1 kitchen_table_microwave_init_region)
     (Open microwave_1)
   )
 
   (:goal
-    (And (Grasp plate_1))
+    (And (In white_yellow_mug_1 microwave_1_heating_region))
   )
 
 )
