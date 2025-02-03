@@ -132,9 +132,21 @@ class LowDimensionalObsGymEnv(gym.Env):
         if success:
             reward = self.sparse_reward * success
         elif len(self.shaping_reward) > 0:
+            # dense reward
             for dense_reward_object in self.shaping_reward:
                 reward += dense_reward_object.dense_reward(step_count=self.step_count)
 
+        # reward for completing each goal_state if there's more than one
+        goal_state = self.env.env.parsed_problem["goal_state"]
+        if len(goal_state) > 1:
+            for state in goal_state:
+                print(state)
+                result = self.env.env._eval_predicate(state)
+                print(result)
+                if result:
+                    reward += 0.5
+
+        # logistics
         print("reward", reward)
         self.step_count += 1
         truncated = self.step_count >= 250
