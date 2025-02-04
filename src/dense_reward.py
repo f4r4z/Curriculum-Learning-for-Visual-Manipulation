@@ -135,7 +135,7 @@ class DenseReward:
         # object_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
         if step_count == 0:
             self.prior_object_height = gripper_height
-        reward = (gripper_height - self.prior_object_height) * 10.0 * (grasp) if gripper_height > self.prior_object_height else grasp * 0.01
+        reward = (gripper_height - self.prior_object_height) * (grasp) if gripper_height > self.prior_object_height else grasp * 0.01
         self.prior_object_height = gripper_height
 
         return reward

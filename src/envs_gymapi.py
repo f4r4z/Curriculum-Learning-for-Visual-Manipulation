@@ -142,7 +142,7 @@ class LowDimensionalObsGymEnv(gym.Env):
             for state in goal_state:
                 result = self.env.env._eval_predicate(state)
                 if result:
-                    reward += 0.5
+                    reward += 0.05
 
         # logistics
         print("reward", reward)
