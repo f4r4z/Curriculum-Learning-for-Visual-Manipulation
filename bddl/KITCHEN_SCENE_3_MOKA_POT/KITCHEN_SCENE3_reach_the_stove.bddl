@@ -62,7 +62,7 @@
   )
 
   (:goal
-    (And (Turnon flat_stove_1))
+    (And (Reach flat_stove_1))
   )
 
 )
