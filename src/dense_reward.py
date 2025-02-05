@@ -108,8 +108,12 @@ class DenseReward:
             # calculate the average of geoms position
             geom_pos = 0.0
             for geom in self.env.reward_geoms:
-                geom_id = self.env.sim.model.geom_name2id(geom)
-                geom_pos += self.env.sim.data.geom_xpos[geom_id]
+                try:
+                    geom_id = self.env.sim.model.geom_name2id(geom)
+                    geom_pos += self.env.sim.data.geom_xpos[geom_id]
+                except:
+                    # in case it is a body and not geom
+                    geom_pos += self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(geom)]
             object_pos = geom_pos / len(self.env.reward_geoms)
     
         gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
