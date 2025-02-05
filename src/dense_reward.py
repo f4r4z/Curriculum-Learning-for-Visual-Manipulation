@@ -63,6 +63,9 @@ class DenseReward:
         if self.predicate_fn_name == "open":
             print("open")
             return self.open()
+        if self.predicate_fn_name == "close":
+            print("close")
+            return self.open()
         if self.predicate_fn_name == "lift":
             print("lift")
             return self.lift(self.object_bodies[0], step_count)
