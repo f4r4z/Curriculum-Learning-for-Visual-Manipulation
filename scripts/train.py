@@ -56,8 +56,8 @@ class Args:
     """file name of the BDDL file"""
     visual_observation: bool = False
     """if toggled, the environment will return visual observation otherwise it would not"""
-    shaping_reward: bool = True
-    """if toggled, the environment will utilize dense shaping reward in training otherwise it would only use sparse goal"""
+    shaping_reward: int = -1
+    """if -1, all goal states will use dense reward, if 0, no dense reward will be used, if 1, only the last goal state will have dense, and so fourth"""
     sparse_reward: float = 10.0
     """total sparse reward for success"""
     reward_geoms: str = None

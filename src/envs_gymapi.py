@@ -105,10 +105,16 @@ class LowDimensionalObsGymEnv(gym.Env):
         # for now, we will focus on objects with one goal state
         if is_shaping_reward:
             self.shaping_reward = []
-            print("goal_states:")
-            for goal_state in self.env.env.parsed_problem['goal_state']:
-                print(goal_state)
-                self.shaping_reward.append(DenseReward(self.env.env, goal_state, reward_geoms=reward_geoms))        
+            print("dense reward goal_states:")
+            if is_shaping_reward == -1:
+                for goal_state in self.env.env.parsed_problem['goal_state']:
+                    print(goal_state)
+                    self.shaping_reward.append(DenseReward(self.env.env, goal_state, reward_geoms=reward_geoms))
+            else:
+                # use last n goals
+                for goal_state in self.env.env.parsed_problem['goal_state'][-1*is_shaping_reward:]:
+                    print(goal_state)
+                    self.shaping_reward.append(DenseReward(self.env.env, goal_state, reward_geoms=reward_geoms))
         else:
             self.env.env.reward_geoms = None
             self.shaping_reward = []
