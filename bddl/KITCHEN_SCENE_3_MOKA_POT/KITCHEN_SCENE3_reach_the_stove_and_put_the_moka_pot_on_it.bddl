@@ -62,7 +62,7 @@
   )
 
   (:goal
-    (And (Reach flat_stove_1) (On moka_pot_1 flat_stove_1_cook_region))
+    (And (On moka_pot_1 flat_stove_1_cook_region) (Reach flat_stove_1))
   )
 
 )
