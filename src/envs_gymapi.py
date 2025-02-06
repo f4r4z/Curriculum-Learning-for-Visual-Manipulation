@@ -101,6 +101,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.step_count_tracker = 0
         self.images = []
         self.sparse_reward = sparse_reward
+        self.achieved_goals = set()
 
         # for now, we will focus on objects with one goal state
         if is_shaping_reward:
@@ -146,9 +147,11 @@ class LowDimensionalObsGymEnv(gym.Env):
         goal_state = self.env.env.parsed_problem["goal_state"]
         if len(goal_state) > 1:
             for state in goal_state:
-                result = self.env.env._eval_predicate(state)
-                if result:
-                    reward += 0.05
+                state_tuple = tuple(state)
+                result = self.env.env._eval_predicate(state)                
+                if result and state_tuple not in self.achieved_goals:
+                    self.achieved_goals.add(state_tuple)
+                    reward += self.sparse_reward / 10.0
 
         # logistics
         print("reward", reward)
