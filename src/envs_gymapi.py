@@ -128,6 +128,7 @@ class LowDimensionalObsGymEnv(gym.Env):
     
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
+        goal_state = self.env.env.parsed_problem["goal_state"]
 
         # sparse completion reward
         if self.sparse_reward:
@@ -139,12 +140,11 @@ class LowDimensionalObsGymEnv(gym.Env):
         if success:
             reward = self.sparse_reward * success
         elif len(self.shaping_reward) > 0:
-            # dense reward
+            # dense reward * number of goal states
             for dense_reward_object in self.shaping_reward:
-                reward += dense_reward_object.dense_reward(step_count=self.step_count)
+                reward += dense_reward_object.dense_reward(step_count=self.step_count) * len(goal_state)
 
         # reward for completing each goal_state if there's more than one
-        goal_state = self.env.env.parsed_problem["goal_state"]
         if len(goal_state) > 1:
             for state in goal_state:
                 state_tuple = tuple(state)
