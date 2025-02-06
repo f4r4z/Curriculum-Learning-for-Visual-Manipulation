@@ -151,6 +151,7 @@ class LowDimensionalObsGymEnv(gym.Env):
                 result = self.env.env._eval_predicate(state)                
                 if result and state_tuple not in self.achieved_goals:
                     self.achieved_goals.add(state_tuple)
+                    print("achieved goals: ", self.achieved_goals)
                     reward += self.sparse_reward / 10.0
 
         # logistics
