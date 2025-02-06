@@ -192,7 +192,7 @@ class Align(BinaryAtomic):
     def __call__(self, arg1, arg2):
         return arg2.align(arg1)
 
-class In(BinaryAtomic):
+class PlaceIn(BinaryAtomic):
     def __call__(self, arg1, arg2):
         return arg2.check_contact(arg1) and arg2.check_contain(arg1) and (not arg1.check_gripper_contact())
 
@@ -202,7 +202,7 @@ VALIDATE_PREDICATE_FN_DICT["grasp"] = Grasp()
 VALIDATE_PREDICATE_FN_DICT["reach"] = Reach()
 VALIDATE_PREDICATE_FN_DICT["lift"] = Lift()
 VALIDATE_PREDICATE_FN_DICT["align"] = Align()
-VALIDATE_PREDICATE_FN_DICT["in"] = In()
+VALIDATE_PREDICATE_FN_DICT["placein"] = PlaceIn()
 
 BaseObjectState.check_gripper_contact = check_gripper_contact
 BaseObjectState.check_grasp = check_grasp

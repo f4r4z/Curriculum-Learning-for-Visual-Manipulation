@@ -78,7 +78,9 @@ class DenseReward:
         if self.predicate_fn_name == "in":
             print("in")
             return self.inside()
-        
+        if self.predicate_fn_name == "placein":
+            print("place in")
+            return self.place_inside()
         print("no dense reward")
         return 0.0
 
@@ -304,6 +306,30 @@ class DenseReward:
 
         return grasp * reaching_reward
 
+    def place_inside(self):
+        '''
+        other_object in this_object with no contact with gripper
+        '''
+        this_object = self.env.get_object(self.object_states[1].object_name)
+        try:
+            this_object_position = self.env.sim.data.body_xpos[
+                self.env.obj_body_id[self.object_states[1].object_name]
+            ]
+        except:
+            this_object_position = self.env.sim.data.get_site_xpos(self.object_states[1].object_name)
+
+        other_object = self.env.get_object(self.object_states[0].object_name)
+        other_object_position = self.env.sim.data.body_xpos[
+            self.env.obj_body_id[self.object_states[0].object_name]
+        ]
+        dist = np.linalg.norm(other_object_position - this_object_position)
+        reaching_reward = 1 - np.tanh(10.0 * dist)
+        grasp = self.object_states[0].check_grasp()
+
+        if self.object_states[1].check_contain(self.object_states[0]) and self.object_states[0].check_gripper_contact():
+            return 0.0
+
+        return grasp * reaching_reward
         
     def align(self):
         '''
