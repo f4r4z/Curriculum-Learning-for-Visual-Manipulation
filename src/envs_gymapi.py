@@ -144,7 +144,6 @@ class LowDimensionalObsGymEnv(gym.Env):
             if result:
                 self.achieved_goals.add(state_tuple)
                 reward += self.sparse_reward / 10.0
-                print(f"reward after sparse result for {state}: {reward}")
                 self.current_goal_index += 1
         elif len(self.shaping_reward) > 0:
             # dense and sparse reward for completing goals in order
@@ -154,12 +153,10 @@ class LowDimensionalObsGymEnv(gym.Env):
             if result:
                 self.achieved_goals.add(state_tuple)
                 reward += self.sparse_reward / 10.0
-                print(f"reward after sparse result for {state}: {reward}")
                 self.current_goal_index += 1
             else:
                 dense_reward_object = self.shaping_reward[self.current_goal_index]
                 reward += dense_reward_object.dense_reward(step_count=self.step_count)
-                print(f"reward after 1 dense reward for {state}: {reward}")
 
         # small reward for a task remaining in complete mode
         if len(goal_states) > 1:
@@ -167,7 +164,6 @@ class LowDimensionalObsGymEnv(gym.Env):
                 if tuple(state) in self.achieved_goals:        
                     print("small reward for state: ", state)
                     reward += self.sparse_reward / 10000.0
-                    print(f"reward after small sparse reward for state {state}: {reward}")
 
         # logistics
         print("reward", reward)
