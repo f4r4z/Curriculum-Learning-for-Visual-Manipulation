@@ -110,15 +110,9 @@ class LowDimensionalObsGymEnv(gym.Env):
         if is_shaping_reward:
             self.shaping_reward = []
             print("dense reward goal_states:")
-            if is_shaping_reward == -1:
-                for goal_state in self.env.env.parsed_problem['goal_state']:
-                    print(goal_state)
-                    self.shaping_reward.append(DenseReward(self.env.env, goal_state, reward_geoms=reward_geoms))
-            else:
-                # use last n goals
-                for goal_state in self.env.env.parsed_problem['goal_state'][-1*is_shaping_reward:]:
-                    print(goal_state)
-                    self.shaping_reward.append(DenseReward(self.env.env, goal_state, reward_geoms=reward_geoms))
+            for goal_state in self.env.env.parsed_problem['goal_state']:
+                print(goal_state)
+                self.shaping_reward.append(DenseReward(self.env.env, goal_state, reward_geoms=reward_geoms))
         else:
             self.env.env.reward_geoms = None
             self.shaping_reward = []
@@ -142,12 +136,17 @@ class LowDimensionalObsGymEnv(gym.Env):
         reward = 0.0
         if success:
             reward = self.sparse_reward * success
-        elif len(self.shaping_reward) == 1:
+        elif len(self.shaping_reward) == 0:
             # dense reward for 1 goal
-            dense_reward_object = self.shaping_reward[0]
-            reward += dense_reward_object.dense_reward(step_count=self.step_count)
-            print(f"reward after 1 dense reward {reward}")
-        elif len(self.shaping_reward) > 1:
+            state = goal_states[self.current_goal_index]
+            state_tuple = tuple(state)
+            result = self.env.env._eval_predicate(state)
+            if result:
+                self.achieved_goals.add(state_tuple)
+                reward += self.sparse_reward / 10.0
+                print(f"reward after sparse result for {state}: {reward}")
+                self.current_goal_index += 1
+        elif len(self.shaping_reward) > 0:
             # dense and sparse reward for completing goals in order
             state = goal_states[self.current_goal_index]
             state_tuple = tuple(state)

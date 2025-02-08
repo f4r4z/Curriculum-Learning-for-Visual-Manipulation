@@ -37,8 +37,8 @@ class Args:
     """if passed in, the custom path will be used for bddl file as opposed to libero default files"""
     bddl_file_name: str = "libero_90/KITCHEN_SCENE6_close_the_microwave.bddl"
     """file name of the BDDL file"""
-    shaping_reward: int = -1
-    """if -1, all goal states will use dense reward, if 0, no dense reward will be used, if 1, only the last goal state will have dense, and so fourth"""
+    shaping_reward: bool = True
+    """if toggled, shaping reward will be off for all goal states"""
     sparse_reward: float = 10.0
     """total sparse reward for success"""
     reward_geoms: str = None
