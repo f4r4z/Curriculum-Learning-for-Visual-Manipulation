@@ -84,23 +84,6 @@ class DenseReward:
         print("no dense reward")
         return 0.0
 
-    def orientation_penalty(self, body_main):
-        current_orientation = self.env.sim.data.body_xquat[self.env.sim.model.body_name2id(body_main)]
-        orientation_diff = np.linalg.norm(current_orientation - self.prior_orientation)
-        orientation_penalty = np.tanh(orientation_diff)
-        self.prior_orientation = current_orientation
-
-        return orientation_penalty
-
-    def displacement_penalty(self, body_main):
-        current_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)]
-        displacement = np.linalg.norm(current_pos - self.prior_position)
-        position_penalty = np.tanh(displacement)
-        self.prior_position = current_pos
-
-        return position_penalty
-
-
     def reach(self, body_main):
         if len(self.object_states) > 1:
             raise Exception("reach only accepts 1 object")
@@ -132,7 +115,7 @@ class DenseReward:
         # only reward if it's higher than prior
         if displacement > self.prior_displacement:
             reward = displacement
-            self.displacement = displacement
+            self.prior_displacement = displacement
         else:
             reward = 0.0
 
@@ -148,98 +131,6 @@ class DenseReward:
         self.prior_object_height = gripper_height
 
         return reward
-
-    '''
-    # og
-    def up(self, body_main, step_count):
-        if len(self.object_states) > 1:
-            raise Exception("up only accepts 1 object")
-        if step_count == 0:
-            self.initial_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
-        current_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
-        height =  current_height - self.initial_height
-        grasp = self.object_states[0].check_grasp()
-        gripper_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2]
-        reward = grasp * gripper_height if gripper_height > self.prior_gripper_height else 0
-        self.prior_gripper_height = gripper_height
-
-        return reward
-        return height * 10.0 + grasp
-
-    # 1, reward only if gripper goes higher
-    def up(self, body_main, step_count):
-        grasp = self.object_states[0].check_grasp()
-        gripper_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2]
-        reward = grasp * gripper_height if gripper_height > self.prior_gripper_height else 0
-        self.prior_gripper_height = gripper_height
-
-        return reward
-
-    # 2, velocity
-    def up(self, body_main, step_count):
-        # Check if the gripper is grasping the object
-        grasp = self.object_states[0].check_grasp()
-
-        # Get the current vertical velocity of the object (z-axis)
-        object_body_id = self.env.sim.model.body_name2id(body_main)
-        vertical_velocity = self.env.sim.data.cvel[object_body_id][2]  # z-axis velocity
-
-        # Reward for vertical lifting
-        return grasp * max(0, vertical_velocity)
-
-    # 3, target height
-    def up(self, body_main, step_count, target_height=1.0):
-        # Current height of the object
-        current_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
-
-        # Grasp reward
-        grasp = self.object_states[0].check_grasp()
-
-        # Target height distance reward (penalizes horizontal movement)
-        height_difference = target_height - current_height
-        distance_reward = -abs(height_difference)
-
-        # Combined reward: grasp + height + distance-to-target
-        return grasp + (distance_reward*5.0)
-
-    # 4, reward only if object goes higher
-    def up(self, body_main):
-        grasp = self.object_states[0].check_grasp()
-        object_height = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)][2]
-        reward = grasp * object_height if object_height > self.prior_object_height else 0
-        self.prior_object_height = object_height
-
-        return reward
-
-    # 5, proximity height between gripper and object plus object height * grasp
-    def up(self, body_main):
-        grasp = self.object_states[0].check_grasp()
-        gripper_height = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id][2] # gripper height
-        object_body_id = self.env.sim.model.body_name2id(body_main)
-        object_height = self.env.sim.data.body_xpos[object_body_id][2] # object height
-        height_proximity = 1 - np.tanh(np.linalg.norm(gripper_height - object_height))
-
-        return grasp * (object_height + height_proximity)
-
-    def lift(self, body_main):
-        obj_quat = T.convert_quat(self.env.sim.data.body_xquat[self.env.sim.model.body_name2id(body_main)], to="xyzw")
-        # check if the object is tilted more than 30 degrees
-        mat = T.quat2mat(obj_quat)
-        z_unit = [0, 0, 1]
-        z_rotated = np.matmul(mat, z_unit)
-        cos_z = np.dot(z_unit, z_rotated)
-        cos_30 = np.cos(np.pi / 6)
-        direction_coef = 1 if cos_z >= cos_30 else 0
-
-        object_body_id = self.env.sim.model.body_name2id(body_main)
-        object_height = self.env.sim.data.body_xpos[object_body_id][2] # object height
-
-        reward = (10.0 * direction_coef + object_height) if object_height > self.prior_object_height else 0
-        self.prior_object_height = object_height
-        grasp = self.object_states[0].check_grasp()
-
-        return grasp * reward
-    '''
 
     def on(self):
         '''
@@ -270,27 +161,6 @@ class DenseReward:
         '''
         other_object in this_object
         '''
-        # this_object = self.env.get_object(self.object_states[1].object_name)
-        # try:
-        #     this_object_position = self.env.sim.data.body_xpos[
-        #         self.env.obj_body_id[self.object_states[1].object_name]
-        #     ]
-        # except:
-        #     this_object_position = self.env.sim.data.get_site_xpos(self.object_states[1].object_name)
-
-        # other_object = self.env.get_object(self.object_states[0].object_name)
-        # other_object_position = self.env.sim.data.body_xpos[
-        #     self.env.obj_body_id[self.object_states[0].object_name]
-        # ]
-
-        # gripper_height = this_object_position[2]
-        # target_height = other_object_position[2]
-        # lowering_reward = 1 - np.tanh(10.0 * abs(gripper_height - target_height))
-
-        # align_distance = 1- np.tanh(10.0 * np.linalg.norm(this_object_position[:2] - other_object_position[:2]))
-
-        # return (align_distance + lowering_reward) / 10.0
-
         this_object = self.env.get_object(self.object_states[1].object_name)
         try:
             this_object_position = self.env.sim.data.body_xpos[
