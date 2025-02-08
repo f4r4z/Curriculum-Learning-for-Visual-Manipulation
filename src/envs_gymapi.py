@@ -179,6 +179,8 @@ class LowDimensionalObsGymEnv(gym.Env):
     def reset(self, seed=None):
         obs = self.env.reset()
         self.step_count = 0
+        self.current_goal_index = 0
+        self.achieved_goals = set()
         return self.get_low_dim_obs(obs), {}
     
     def seed(self, seed=None):
