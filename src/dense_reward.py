@@ -81,7 +81,7 @@ class DenseReward:
         if self.predicate_fn_name == "placein":
             print("place in")
             return self.place_inside()
-        print("no dense reward")
+        print(f"no dense reward for {self.predicate_fn_name}")
         return 0.0
 
     def reach(self, body_main):
