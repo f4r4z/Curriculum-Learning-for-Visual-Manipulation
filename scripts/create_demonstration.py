@@ -3,13 +3,16 @@ Modified libero/scripts/libero_100_collect_demonstrations.py
 Adds a small fix to make keyboard work
 Does not end the demonstration until the goal is satisfied and the user presses Enter
 """
+# add parent path to sys
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import argparse
 import datetime
 import h5py
 import json
 import numpy as np
-import os
 import robosuite as suite
 import time
 from glob import glob
@@ -23,14 +26,14 @@ import libero.libero.envs.bddl_utils as BDDLUtils
 from libero.libero.envs import *
 from termcolor import colored
 
+from src.envs_gymapi import LowDimensionalObsGymEnv
+
 # patches libero
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import src.patch
 
 
 def collect_human_trajectory(
-    env, device, arm, env_configuration, problem_info, remove_directory=[]
+    env: LowDimensionalObsGymEnv, device, arm, env_configuration, problem_info, remove_directory=[]
 ):
     """
     Use the device (keyboard or SpaceNav 3D mouse) to collect a demonstration.
@@ -53,7 +56,7 @@ def collect_human_trajectory(
             continue
 
     # ID = 2 always corresponds to agentview
-    env.render()
+    env.env.env.render()
 
     task_completion_hold_count = (
         -1
@@ -81,9 +84,9 @@ def collect_human_trajectory(
         count += 1
         # Set active robot
         active_robot = (
-            env.robots[0]
+            env.env.env.robots[0]
             if env_configuration == "bimanual"
-            else env.robots[arm == "left"]
+            else env.env.env.robots[arm == "left"]
         )
 
         # Get the newest action
@@ -101,8 +104,8 @@ def collect_human_trajectory(
             break
         # Run environment step
 
-        obs, _, _, _ = env.step(action)
-        env.render()
+        env.step(action)
+        env.env.env.render()
 
         # whether gripper is closed
         # grip_pos = obs['robot0_gripper_qpos'][0]
@@ -114,7 +117,7 @@ def collect_human_trajectory(
             break
 
         # state machine to check for having a success for 10 consecutive timesteps
-        if env._check_success():
+        if env.env.env._check_success():
             if task_completion_hold_count > 0:
                 task_completion_hold_count -= 1  # latched state, decrement count
             elif task_completion_hold_count < 0:
@@ -129,7 +132,7 @@ def collect_human_trajectory(
     if not saving:
         remove_directory.append(env.ep_directory.split("/")[-1])
     completion_listener.stop()
-    env.close()
+    env.env.close() # FIXME: LowDimensionalObsGymEnv does not implement close()
     return saving
 
 
@@ -317,20 +320,51 @@ if __name__ == "__main__":
     if "TwoArm" in problem_name:
         config["env_configuration"] = args.config
     print(language_instruction)
-    env = TASK_MAPPING[problem_name](
+
+    env_args = {
+        "bddl_file_name": args.bddl_file,
+        "camera_heights": 128,
+        "camera_widths": 128,
+    }
+    env = LowDimensionalObsGymEnv(
         bddl_file_name=args.bddl_file,
-        **config,
+        # **config,
+        camera_heights=128,
+        camera_widths=128,
+        robots=args.robots,
+        controller=args.controller,
         has_renderer=True,
         has_offscreen_renderer=False,
         render_camera=args.camera,
         ignore_done=True,
-        use_camera_obs=False,
+        use_camera_obs=True,
         reward_shaping=True,
         control_freq=20,
+        # **env_args
     )
 
+    # LowDimensionalObsGymEnv creates and wraps around the actual env twice
+    base_env = env.env.env
+
+    # # LowDimensionalObsGymEnv uses OffScreenRenderEnv, which sets renderer to false and offscreen renderer to true
+    # # Our window needs the renderer, so we set this manually
+    base_env.has_renderer = True
+    base_env.reset()
+
+    # env = TASK_MAPPING[problem_name](
+    #     bddl_file_name=args.bddl_file,
+    #     **config,
+    #     has_renderer=True,
+    #     has_offscreen_renderer=False,
+    #     render_camera=args.camera,
+    #     ignore_done=True,
+    #     use_camera_obs=False,
+    #     reward_shaping=True,
+    #     control_freq=20,
+    # )
+
     # Wrap this with visualization wrapper
-    env = VisualizationWrapper(env)
+    base_env = VisualizationWrapper(base_env)
 
     # Grab reference to controller config and convert it to json-encoded string
     env_info = json.dumps(config)
@@ -342,7 +376,7 @@ if __name__ == "__main__":
         str(time.time()).replace(".", "_"),
     )
 
-    env = DataCollectionWrapper(env, tmp_directory)
+    base_env = DataCollectionWrapper(base_env, tmp_directory)
 
     # initialize device
     if args.device == "keyboard":
@@ -351,10 +385,9 @@ if __name__ == "__main__":
         device = Keyboard(
             pos_sensitivity=args.pos_sensitivity, rot_sensitivity=args.rot_sensitivity
         )
-        print(type(env.viewer))
-        env.viewer.add_keypress_callback(device.on_press)
-        # env.viewer.add_keyup_callback("any", device.on_release)
-        # env.viewer.add_keyrepeat_callback("any", device.on_press)
+        base_env.viewer.add_keypress_callback(device.on_press)
+        # base_env.viewer.add_keyup_callback("any", device.on_release)
+        # base_env.viewer.add_keyrepeat_callback("any", device.on_press)
     elif args.device == "spacemouse":
         from robosuite.devices import SpaceMouse
 
@@ -377,6 +410,8 @@ if __name__ == "__main__":
         + language_instruction.replace(" ", "_").strip('""'),
     )
     os.makedirs(new_dir)
+
+    env.env.env = base_env
 
     # collect demonstrations
 

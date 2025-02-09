@@ -1,7 +1,9 @@
 from libero.libero.envs.predicates import register_predicate_fn
 from libero.libero.envs.predicates.base_predicates import *
-from libero.libero.envs.object_states import BaseObjectState, SiteObjectState
+from libero.libero.envs.object_states import BaseObjectState, ObjectState, SiteObjectState
 from libero.libero.envs.objects import ArticulatedObject
+from robosuite.models.objects import MujocoXMLObject
+from robosuite.models.base import MujocoXMLModel
 from src.extract_xml import locate_libero_xml, find_geoms_for_site
 import numpy as np
 import re
@@ -33,7 +35,7 @@ def get_list_of_geom_names_for_site(object_name, parent_name, env):
                     list_of_geom_names.append(geom_name)
     return list_of_geom_names
 
-def check_gripper_contact(self):
+def check_gripper_contact(self: BaseObjectState):
     # object could be an object (articulated, hop) or a site
     # sites do not have a way to dynamically get geoms/check contact
     target_object_geoms = self.env.get_object(self.object_name).contact_geoms
@@ -47,7 +49,7 @@ def check_gripper_contact(self):
 BaseObjectState.check_gripper_contact = check_gripper_contact
 
 
-def check_grasp(self):
+def check_grasp(self: BaseObjectState):
     target_object_geoms = self.env.get_object(self.object_name).contact_geoms # .contact_geoms is not really necessary, but added for readibility
     gripper_geoms = ["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"] # or gripper_geoms = self.env.robots[0].gripper
     if self.object_state_type == "site":
@@ -86,7 +88,9 @@ class Reach(MultiarayAtomic):
             return self.reach(args[0], goal_distance)
         
 
-    def reach(self, object_state: BaseObjectState, goal_distance: float = None):
+    def reach(self, object_state: BaseObjectState, goal_distance: float = 0):
+        goal_distance = max(goal_distance, 0.01) # Have some leeway for goal distance
+        
         env = object_state.env
         grip_site_pos = env.sim.data.get_site_xpos("gripper0_grip_site") # This is the position between the 2 claws
 
@@ -95,13 +99,17 @@ class Reach(MultiarayAtomic):
         # print(dist)
 
         # Check whether object has been reached (without caring about goal_distance)
-        if isinstance(object_state, SiteObjectState):
+        # TODO: there is a check_contain in ObjectState, but that takes in another object as a parameter, not a single point
+        # Maybe add a new function in BaseObjectState to check whether a point is in the object
+        # Also, these in_box functions approximate the objects as axis-aligned
+        if isinstance(object_state, ObjectState):
+            object: MujocoXMLObject = env.get_object(object_state.object_name)
+            return object.in_box(object_pos, grip_site_pos) # TODO: check if this works. I don't think the object actually has an in_box function
+        elif isinstance(object_state, SiteObjectState):
             object_mat = env.sim.data.get_site_xmat(object_state.object_name)
             object_site = env.get_object_site(object_state.object_name)
             if object_site.in_box(object_pos, object_mat, grip_site_pos):
                 return True
-        elif dist < 0.02: # if not a site, just use distance. There should be an in_box for regular objects, but for now we just have this
-            return True
         
         # If object has not been reached, check if goal distance is reached
         return dist < goal_distance
@@ -173,3 +181,69 @@ class PartialClose(MultiarayAtomic):
         close_amount = float(args[1])
         # partial close is just the opposite of partial open, but with the parameter flipped
         return not PartialOpen()(args[0], 1-close_amount, *args[2:])
+    
+
+
+@register_predicate_fn
+class SparseLift(MultiarayAtomic):
+    """
+    Lift an object by a given distance
+    """
+    def __call__(self, *args):
+        assert len(args) >= 1
+        if len(args) == 1:
+            return self.is_lifted(args[0])
+        else:
+            lift_distance = float(args[1])
+            return self.is_lifted(args[0], lift_distance)
+    
+    def is_lifted(self, object_state: BaseObjectState, lift_distance: float = 0):
+        lift_distance = max(lift_distance, 0.01) # <1cm counts as not lifted
+
+        env = object_state.env
+        grip_site_pos = env.sim.data.get_site_xpos("gripper0_grip_site") # This is the position between the 2 claws
+
+        def print_geom_elevation_range(object: MujocoXMLObject):
+                geom_positions = [env.sim.data.get_geom_xpos(geom) for geom in object.contact_geoms] # + object.visual_geoms]
+                min_elevation = np.array(geom_positions).transpose()[2].min()
+                max_elevation = np.array(geom_positions).transpose()[2].max()
+                print(min_elevation, max_elevation, max_elevation - min_elevation)
+
+        if isinstance(object_state, ObjectState):
+            body_id = env.obj_body_id[object_state.object_name]
+            object_pos: np.ndarray = env.sim.data.body_xpos[body_id]
+            object_mat: np.ndarray = env.sim.data.body_xmat[body_id].reshape((3, 3))
+
+            # print(env.get_object(object_state.object_name).contact_geoms)
+            # for geom in env.get_object(object_state.object_name).contact_geoms:
+            #     print(env.sim.data.get_geom_xpos(geom) - object_pos)
+
+            print_geom_elevation_range(env.get_object(object_state.object_name))
+            print_geom_elevation_range(env.get_object(object_state.object_name))
+            # print(object, type(object))
+            # model: MujocoXMLModel = object.get_model()
+            # print(type(model), model)
+            # print(model._elements.get("contact_geoms", []))
+            # raise Exception()
+            # object_size = env.get_object(object_state.object_name).size
+        elif isinstance(object_state, SiteObjectState):
+            object_pos: np.ndarray = env.sim.data.get_site_xpos(object_state.object_name)
+            object_mat: np.ndarray = env.sim.data.get_site_xmat(object_state.object_name)
+        else:
+            raise Exception(f"SparseLift does not support object state of type {type(object_state)}")
+        
+        # total_size = np.abs(object_mat @ object_pos)
+        # print(object_state, total_size)
+        print(env.sim.model._body_name2id)
+        print(env.sim.model._site_name2id)
+        print(env.sim.data.get_body_xpos("world"))
+        print(env.sim.data.get_body_xpos("floor"))
+        print(env.sim.data.get_body_xpos("living_room_table"))
+        print(env.sim.data.get_body_xpos("living_room_table_col"))
+        print(env.sim.data.get_site_xpos("living_room_table_ketchup_init_region"))
+        print(object_pos)
+        
+
+        # dist = np.linalg.norm(grip_site_pos - object_pos)
+        
+        return False

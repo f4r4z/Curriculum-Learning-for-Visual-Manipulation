@@ -76,16 +76,16 @@ if __name__ == "__main__":
         task_name = os.path.basename(args.custom_bddl_path)
         env_args = {
             "bddl_file_name": args.custom_bddl_path,
-            "camera_heights": 128,
-            "camera_widths": 128,
+            "camera_heights": 512,
+            "camera_widths": 512,
         }
     else:
         bddl_file_base = get_libero_path("bddl_files")
         task_name = args.bddl_file_name
         env_args = {
             "bddl_file_name": os.path.join(bddl_file_base, task_name),
-            "camera_heights": 128,
-            "camera_widths": 128,
+            "camera_heights": 512,
+            "camera_widths": 512,
         }
 
     print("Setting up environment")
