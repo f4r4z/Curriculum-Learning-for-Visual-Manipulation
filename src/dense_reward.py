@@ -62,10 +62,10 @@ class DenseReward:
             return self.reach(self.object_bodies[0]) # - penalty
         if self.predicate_fn_name == "open":
             print("open")
-            return self.open()
+            return self.open(step_count)
         if self.predicate_fn_name == "close":
             print("close")
-            return self.open()
+            return self.open(step_count)
         if self.predicate_fn_name == "lift":
             print("lift")
             return self.lift(self.object_bodies[0], step_count)
@@ -107,11 +107,16 @@ class DenseReward:
 
         return reaching_reward
 
-    def open(self):
+    def open(self, step_count):
         if len(self.object_states) > 1:
             raise Exception("open only accepts 1 object")
+        
+        if step_count == 0:
+            self.prior_displacement = 0.0
+
         current_joint_position = self.current_joint_position()
         displacement = np.linalg.norm(current_joint_position - self.initial_joint_position)
+        print("disp ", displacement, "current ", current_joint_position, "initial ", self.initial_joint_position, "prior", self.prior_displacement)
         # only reward if it's higher than prior
         if displacement > self.prior_displacement:
             reward = displacement
