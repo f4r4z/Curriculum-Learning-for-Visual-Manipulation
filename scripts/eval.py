@@ -43,6 +43,8 @@ class Args:
     """total sparse reward for success"""
     reward_geoms: str = None
     """if geoms are passed, those specific geoms will be rewarded, for single object predicates only [format example: ketchup_1_g1,ketchup_1_g2]"""
+    dense_reward_multiplier: float = 1.0
+    """multiplies the last goal state's shaping reward"""
 
     # Algorithm specific arguments
     alg: str = "ppo"
@@ -114,7 +116,7 @@ if __name__ == "__main__":
             )
         else:
             envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, reward_geoms, **env_args)) for _ in range(args.num_envs)]
+                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, reward_geoms, args.dense_reward_multiplier, **env_args)) for _ in range(args.num_envs)]
             )
 
     # Seeding everything

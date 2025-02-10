@@ -90,7 +90,7 @@ class MapObjects():
 class LowDimensionalObsGymEnv(gym.Env):
     """ Sparse reward environment with all the low-dimensional states
     """
-    def __init__(self, is_shaping_reward, sparse_reward, reward_geoms, **kwargs):
+    def __init__(self, is_shaping_reward, sparse_reward, reward_geoms, dense_reward_multiplier, **kwargs):
         self.env = OffScreenRenderEnv(**kwargs)
         obs = self.env.env._get_observations()
         low_dim_obs = self.get_low_dim_obs(obs)
@@ -98,6 +98,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.action_space = Box(low=-1, high=1, shape=(7,), dtype="float32")
         self.step_count = 0
         self.goal_states = self.env.env.parsed_problem["goal_state"]
+        self.dense_reward_multiplier = dense_reward_multiplier
         self.step_count_tracker = 0
         self.images = []
         self.sparse_reward = sparse_reward
@@ -112,9 +113,10 @@ class LowDimensionalObsGymEnv(gym.Env):
             for goal_state in self.goal_states:
                 state_tuple = tuple(goal_state)
                 print(goal_state)
+                # reward geoms will be set through dense reward
                 self.shaping_reward[state_tuple] = DenseReward(self.env.env, goal_state, reward_geoms=reward_geoms)
         else:
-            self.env.env.reward_geoms = None
+            self.env.env.reward_geoms = reward_geoms
             self.shaping_reward = {}
             print("no dense reward is being used")
         
@@ -131,7 +133,6 @@ class LowDimensionalObsGymEnv(gym.Env):
         # sparse completion reward
         if self.sparse_reward:
             success = self.env.check_success()
-            print("success")
         else:
             success = False
         reward = 0.0
@@ -160,7 +161,10 @@ class LowDimensionalObsGymEnv(gym.Env):
                     print("current goal index: ", self.current_goal_index)
             else:
                 dense_reward_object = self.shaping_reward[state_tuple]
-                reward += dense_reward_object.dense_reward(step_count=self.step_count)
+                if self.current_goal_index == len(self.goal_states) - 1:
+                    reward += self.dense_reward_multiplier * dense_reward_object.dense_reward(step_count=self.step_count)
+                else:
+                    reward += dense_reward_object.dense_reward(step_count=self.step_count)
 
         # small reward for a task remaining in complete mode
         if len(self.goal_states) > 1:
