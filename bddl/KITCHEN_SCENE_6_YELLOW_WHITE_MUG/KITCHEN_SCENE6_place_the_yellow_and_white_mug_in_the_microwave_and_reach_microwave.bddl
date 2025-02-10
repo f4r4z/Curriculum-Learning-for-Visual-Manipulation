@@ -77,7 +77,7 @@
   )
 
   (:goal
-    (And (Placein white_yellow_mug_1 microwave_1_heating_region) (Reach robot0_base))
+    (And (Placein white_yellow_mug_1 microwave_1_heating_region) (Reach microwave_1))
   )
 
 )
