@@ -174,7 +174,7 @@ class LowDimensionalObsGymEnv(gym.Env):
                     reward += self.sparse_reward / 10000.0
 
         # logistics
-        print("reward", reward)
+        print(f"reward at step {self.step_count}: {reward}")
         self.step_count += 1
         truncated = self.step_count >= 250
         done = success or truncated

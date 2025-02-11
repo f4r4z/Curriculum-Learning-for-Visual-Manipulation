@@ -23,10 +23,16 @@ class DenseReward:
             self.object_names.append(goal_state[1])
             self.object_states.append(self.env.object_states_dict[self.object_names[0]])
 
+
             # only for open
             if self.predicate_fn_name == 'open' or self.predicate_fn_name == 'close':
                 self.initial_joint_position = self.current_joint_position()
                 self.prior_displacement = 0.0
+
+            if self.predicate_fn_name == 'close':
+                close_ranges = self.env.object_states_dict[self.object_names[0]].query_dict[self.object_names[0]].object_properties["articulation"]["default_close_ranges"]
+                self.close_joint_position = np.array([np.mean(close_ranges)])
+
 
         for index, obj in enumerate(self.object_states):
             if obj.object_state_type == "site":
@@ -65,7 +71,7 @@ class DenseReward:
             return self.open(step_count)
         if self.predicate_fn_name == "close":
             print("close")
-            return self.open(step_count)
+            return self.close()
         if self.predicate_fn_name == "lift":
             print("lift")
             return self.lift(self.object_bodies[0], step_count)
@@ -116,13 +122,23 @@ class DenseReward:
 
         current_joint_position = self.current_joint_position()
         displacement = np.linalg.norm(current_joint_position - self.initial_joint_position)
-        print("disp ", displacement, "current ", current_joint_position, "initial ", self.initial_joint_position, "prior", self.prior_displacement)
         # only reward if it's higher than prior
         if displacement > self.prior_displacement:
             reward = displacement
             self.prior_displacement = displacement
         else:
             reward = 0.0
+
+        return reward
+
+    def close(self):
+        if len(self.object_states) > 1:
+            raise Exception("open only accepts 1 object")
+
+        current_joint_position = self.current_joint_position()
+        displacement = np.linalg.norm(current_joint_position - self.close_joint_position)
+        
+        reward = (1 - np.tanh(displacement))
 
         return reward
 
