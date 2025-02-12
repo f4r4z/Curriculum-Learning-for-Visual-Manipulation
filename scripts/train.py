@@ -4,13 +4,14 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import tyro
 import imageio
 from IPython.display import HTML
 import wandb
 import torch
 import numpy as np
+import typing
 
 from libero.libero import get_libero_path
 from libero.libero.envs import OffScreenRenderEnv
@@ -56,7 +57,15 @@ class Args:
     visual_observation: bool = False
     """if toggled, the environment will return visual observation otherwise it would not"""
     shaping_reward: bool = True
-    """if toggled, the environment will utilize dense shaping reward in training otherwise it would only use sparse goal"""
+    """if toggled, shaping reward will be off for all goal states"""
+    sparse_reward: float = 10.0
+    """total sparse reward for success"""
+    reward_geoms: str = None
+    """if geoms are passed, those specific geoms will be rewarded, for single object predicates only [format example: ketchup_1_g1,ketchup_1_g2]"""
+    dense_reward_multiplier: float = 1.0
+    """multiplies the last goal state's shaping reward"""
+    steps_per_episode: int = 250
+    """number of steps in episode. If truncate is True, the episode will terminate after this value"""
     setup_demo_path: str = None
     """If passed in, runs the actions in the given demonstration before every episode to setup the scene"""
 
@@ -126,6 +135,9 @@ if __name__ == "__main__":
     # if args.shaping_reward:
     #     env_args["shaping_reward"] = True
     
+    # set up reward geoms
+    reward_geoms = args.reward_geoms.split(",") if args.reward_geoms is not None else None
+    
     if not args.truncate:
         env_args["horizon"] = args.total_timesteps
 
@@ -147,7 +159,7 @@ if __name__ == "__main__":
             )
         else:
             envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(setup_demo=args.setup_demo_path, **env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
+                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, reward_geoms, args.dense_reward_multiplier, args.steps_per_episode, setup_demo=args.setup_demo_path, **env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
             )
 
     """ ## Speed test
@@ -267,6 +279,7 @@ if __name__ == "__main__":
         model.set_logger(new_logger)
     
     # get device
+    print("devices: ", [torch.cuda.get_device_properties(i).name for i in range(torch.cuda.device_count())])
     if not args.device:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     else:
@@ -278,7 +291,7 @@ if __name__ == "__main__":
     callbacks = []
 
     # checkpoint callback
-    checkpoint_callback = CheckpointCallback(save_freq=log_interval*32, save_path=save_path, name_prefix="model")
+    checkpoint_callback = CheckpointCallback(save_freq=log_interval*1024, save_path=save_path, name_prefix="model")
     callbacks.append(checkpoint_callback)
 
     # log videos
