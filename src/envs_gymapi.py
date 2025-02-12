@@ -1,16 +1,13 @@
-from typing import List, Optional, Union
-from collections import OrderedDict
+from typing import List, Optional, Union, Tuple
+import typing
 import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import Box, Dict
 
-import torch
-from stable_baselines3.common.vec_env import VecEnv
-from libero.libero.envs import OffScreenRenderEnv, SubprocVectorEnv
-from libero.libero.envs.objects import OBJECTS_DICT
+
+from libero.libero.envs.env_wrapper import OffScreenRenderEnv
 from libero.libero.envs.objects.articulated_objects import Microwave, SlideCabinet, Window, Faucet, BasinFaucet, ShortCabinet, ShortFridge, WoodenCabinet, WhiteCabinet, FlatStove
 
-from src.rnd import RNDNetworkLowDim
 from src.dense_reward import DenseReward
 import datetime
 import os
@@ -18,28 +15,7 @@ import h5py
 
 current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
-import imageio
-from IPython.display import HTML
-
 import src.patch
-
-def obs_to_video(images, filename):
-    """
-    converts a list of images to video and writes the file
-    """
-    video_writer = imageio.get_writer(filename, fps=60)
-    for image in images:
-        video_writer.append_data(image[::-1])
-    video_writer.close()
-    HTML("""
-        <video width="640" height="480" controls>
-            <source src="output.mp4" type="video/mp4">
-        </video>
-        <script>
-            var video = document.getElementsByTagName('video')[0];
-            video.playbackRate = 2.0; // Increase the playback speed to 2x
-            </script>    
-    """)
 
 class MapObjects():
     '''
@@ -90,7 +66,7 @@ class MapObjects():
         return goal_value, goal_ranges
     
 class LowDimensionalObsGymEnv(gym.Env):
-    """ Sparse reward environment with all the low-dimensional states
+    """ Sparse or dense reward environment with all the low-dimensional states
     """
     def __init__(
         self, 
@@ -99,9 +75,28 @@ class LowDimensionalObsGymEnv(gym.Env):
         reward_geoms: Optional[List[str]] = None, 
         dense_reward_multiplier: float = 1.0, 
         steps_per_episode=250, 
-        setup_demo=None, 
+        setup_demo=None,
+        verbose=1, # 
         **kwargs
     ):
+        """
+        Args:
+            is_shaping_reward (bool): whether to use shaping/dense rewards
+            sparse_reward (float): the amount of sparse reward on success. If zero, will not check for success
+            reward_geoms (list[str] | None): optional list of geoms to use for certain predicates (e.g. reach, grasp)
+            dense_reward_multiplier (float): multiplier applied to the dense reward
+            steps_per_episode (int): truncate the episode if the number of steps exceeds this
+            setup_demo (str): path to a demo directory (containing a demo.hdf5) to run before each episode
+            verbose (int): verbosity of print output
+                - 0: no prints
+                - 1: a few permanent lines
+                - 2: prints on every episode
+                - 3: multiple prints throughout each episode
+                - 4: prints on every step
+        """
+
+        assert is_shaping_reward or sparse_reward > 0, "Must use at least one of shaping or sparse rewards"
+
         self.env = OffScreenRenderEnv(**kwargs)
         obs = self.env.env._get_observations()
         low_dim_obs = self.get_low_dim_obs(obs)
@@ -114,25 +109,26 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.images = []
         self.sparse_reward = sparse_reward
         self.steps_per_episode = steps_per_episode
+        self.verbose = verbose
 
         # for multi-goal tasks
         self.current_goal_index = 0
 
         # for now, we will focus on objects with one goal state
         if is_shaping_reward:
-            self.shaping_reward: List[DenseReward] = {}
-            print("dense reward goal_states:")
+            self.shaping_reward: typing.Dict[Tuple, DenseReward] = {}
+            if self.verbose >= 1: print("using dense reward")
+            if self.verbose >= 1: print("goal_states:")
             for goal_state in self.goal_states:
                 state_tuple = tuple(goal_state)
-                print(goal_state)
+                if self.verbose >= 1: print(goal_state)
                 # reward geoms will be set through dense reward
-                self.shaping_reward[state_tuple] = DenseReward(self.env.env, goal_state, reward_geoms=reward_geoms)
+                self.shaping_reward[state_tuple] = DenseReward(self.env.env, goal_state, reward_geoms=reward_geoms, verbose=self.verbose)
         else:
             self.env.env.reward_geoms = reward_geoms
             self.shaping_reward = {}
-            print("no dense reward is being used")
-        
-        print(self.shaping_reward)
+
+        if self.verbose >= 1: print("shaping rewards:", self.shaping_reward)
         
         # setup actions from demo
         if setup_demo is None:
@@ -141,6 +137,7 @@ class LowDimensionalObsGymEnv(gym.Env):
             hdf5_path = os.path.join(setup_demo, "demo.hdf5")
             f = h5py.File(hdf5_path, "r")
             self.setup_actions = f['data/demo_1/actions'][:]
+            if self.verbose >= 1: print("loaded setup actions with length", len(self.setup_actions))
 
     
     def get_low_dim_obs(self, obs):
@@ -161,28 +158,28 @@ class LowDimensionalObsGymEnv(gym.Env):
             success = False
         reward = 0.0
         if success:
-            reward = self.sparse_reward * success
+            reward = self.sparse_reward
         elif len(self.shaping_reward) == 0:
-            # no dense reward
-            state = self.goal_states[self.current_goal_index]
+            # if not using dense reward, only check sparse predicate
+            state = self.goal_states[self.current_goal_index] # complete multiple goals in order
             state_tuple = tuple(state)
-            result = self.env.env._eval_predicate(state)
+            result = self.env.env._eval_predicate(state) # FIXME: would this be an extra call to the predicates, since check_success() was called earlier?
             if result:
                 reward += self.sparse_reward / 10.0
                 if self.current_goal_index + 1 < len(self.goal_states):
                     self.current_goal_index += 1
-                    print("current goal index: ", self.current_goal_index)
+                    if self.verbose >= 3: print("current goal index: ", self.current_goal_index)
         elif len(self.shaping_reward) > 0:
-            # dense and sparse reward for completing goals in order
-            state = self.goal_states[self.current_goal_index]
+            # when using dense reward, check sparse predicate and add dense reward
+            state = self.goal_states[self.current_goal_index] # complete multiple goals in order
             state_tuple = tuple(state)
             result = self.env.env._eval_predicate(state)
             if result:
-                print(f"achieved {state_tuple}")
+                if self.verbose >= 3: print(f"achieved {state_tuple}")
                 reward += self.sparse_reward / 10.0
                 if self.current_goal_index + 1 < len(self.goal_states):
                     self.current_goal_index += 1
-                    print("current goal index: ", self.current_goal_index)
+                    if self.verbose >= 3: print("current goal index: ", self.current_goal_index)
             else:
                 dense_reward_object = self.shaping_reward[state_tuple]
                 if self.current_goal_index == len(self.goal_states) - 1:
@@ -194,28 +191,31 @@ class LowDimensionalObsGymEnv(gym.Env):
         if len(self.goal_states) > 1:
             for state in self.goal_states:
                 if self.env.env._eval_predicate(state):        
-                    print("small reward for state: ", state)
+                    if self.verbose >= 4: print("small reward for state: ", state)
                     reward += self.sparse_reward / 10000.0
 
         # logistics
-        print(f"reward at step {self.step_count}: {reward}")
+        if self.verbose >= 4: print(f"reward at step {self.step_count}: {reward}")
         self.step_count += 1
         truncated = self.step_count >= self.steps_per_episode
         done = success or truncated
-        # print("done", done)
-        if done:
+        if done and self.verbose >= 2:
             print("done. success:", success)
         info["agentview_image"] = obs["agentview_image"]
         info["is_success"] = success
+
+        print(list(obs.keys()))
+        # print(obs)
 
         return self.get_low_dim_obs(obs), reward, done, truncated, info
     
     def reset(self, seed=None):
         obs = self.env.reset()
         
-        # run setup actions
-        for action in self.setup_actions:
-            obs, _, _, _ = self.env.step(action)
+        if len(self.setup_actions) > 0:
+            if self.verbose >= 2: print("running setup actions")
+            for action in self.setup_actions:
+                obs, _, _, _ = self.env.step(action)
 
         self.step_count = 0
         self.current_goal_index = 0
@@ -264,7 +264,7 @@ class LowDimensionalObsGymEnv(gym.Env):
 class LowDimensionalObsGymGoalEnv(gym.Env):
     """ Sparse reward environment with all the low-dimensional states with HER
     """
-    def __init__(self, **kwargs):
+    def __init__(self, verbose=1, **kwargs):
         self._env = OffScreenRenderEnv(**kwargs)
         self.obj_of_interest = self._env.obj_of_interest[0]  # hardcoded for now
         self.instruction = self._env.language_instruction
@@ -367,7 +367,7 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
 class AgentViewGymEnv(gym.Env):
     """ Sparse reward environment with image observations
     """
-    def __init__(self, **kwargs):
+    def __init__(self, verbose=1, **kwargs):
         self._env = OffScreenRenderEnv(**kwargs)
         obs_shape = self._env.env._get_observations()["agentview_image"].shape
 
@@ -402,7 +402,7 @@ class AgentViewGymEnv(gym.Env):
 class AgentViewSimpleGymEnv(gym.Env):
     """ Sparse reward environment with image observations but much simpler tasks [For testing only]
     """
-    def __init__(self, **kwargs):
+    def __init__(self, verbose=1, **kwargs):
         self._env = OffScreenRenderEnv(**kwargs)
         obs_shape = self._env.env._get_observations()["agentview_image"].shape
 
@@ -455,7 +455,7 @@ class AgentViewSimpleGymEnv(gym.Env):
 class AgentViewGymGoalEnv(gym.Env):
     """ Sparse reward environment with image observations
     """
-    def __init__(self, **kwargs):
+    def __init__(self, verbose=1, **kwargs):
         self._env = OffScreenRenderEnv(**kwargs)
         self.obj_of_interest = self._env.obj_of_interest[0]  # hardcoded for now
         obs_shape = self._env.env._get_observations()["agentview_image"].shape

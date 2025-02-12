@@ -30,6 +30,8 @@ class Args(WandbArgs, AlgArgs, EnvArgs):
     """directory path of the models checkpoints"""
     model_path: Optional[str] = None
     """path to existing model if loading a model"""
+    verbose: Optional[int] = 1
+    """verbosity of outputs, with 0 being least"""
 
     # Environment specific arguments
     custom_bddl_path: Optional[str] = None
@@ -51,7 +53,7 @@ if __name__ == "__main__":
     
 
     print("Setting up environment")
-    envs = setup_envs(bddl_file, args)
+    envs = setup_envs(bddl_file, args, verbose=args.verbose)
 
     # Seeding everything
     if args.seed is not None:

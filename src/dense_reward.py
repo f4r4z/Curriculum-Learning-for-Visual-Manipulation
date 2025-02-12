@@ -8,8 +8,9 @@ from typing import List
 
 class DenseReward:
     # dense reward for a specific goal goal_state
-    def __init__(self, env: BDDLBaseDomain, goal_state: List[str], reward_geoms=None):
+    def __init__(self, env: BDDLBaseDomain, goal_state: List[str], reward_geoms=None, verbose=1):
         self.env = env
+        self.verbose = verbose
         self.object_names = []
         self.object_states = []
         self.object_geoms = []
@@ -65,31 +66,31 @@ class DenseReward:
 
     def dense_reward(self, step_count=0):
         if self.predicate_fn_name == "reach":
-            print("reach")
+            if self.verbose >= 4: print("reach")
             # penalty = (0.5 * self.orientation_penalty(self.object_bodies[0])) + (0.5 * self.displacement_penalty(self.object_bodies[0]))
             return self.reach(self.object_bodies[0]) # - penalty
         if self.predicate_fn_name == "open":
-            print("open")
+            if self.verbose >= 4: print("open")
             return self.open(step_count)
         if self.predicate_fn_name == "close":
-            print("close")
+            if self.verbose >= 4: print("close")
             return self.close()
         if self.predicate_fn_name == "lift":
-            print("lift")
+            if self.verbose >= 4: print("lift")
             return self.lift(self.object_bodies[0], step_count)
         if self.predicate_fn_name == "on":
-            print("on")
+            if self.verbose >= 4: print("on")
             return self.on()
         if self.predicate_fn_name == "align":
-            print("align")
+            if self.verbose >= 4: print("align")
             return self.align()
         if self.predicate_fn_name == "in":
-            print("in")
+            if self.verbose >= 4: print("in")
             return self.inside()
         if self.predicate_fn_name == "placein":
-            print("place in")
+            if self.verbose >= 4: print("place in")
             return self.place_inside()
-        print(f"no dense reward for {self.predicate_fn_name}")
+        if self.verbose >= 4: print(f"no dense reward for {self.predicate_fn_name}")
         return 0.0
 
     def reach(self, body_main):

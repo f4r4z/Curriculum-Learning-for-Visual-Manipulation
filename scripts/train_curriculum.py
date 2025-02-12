@@ -35,6 +35,8 @@ class Args(WandbArgs, AlgArgs, EnvArgs):
     """directory path of the models checkpoints"""
     model_path: Optional[str] = None
     """path to existing model if loading a model"""
+    verbose: Optional[int] = 1
+    """verbosity of outputs, with 0 being least"""
 
     # Environment specific arguments
     curriculum_file: str
@@ -77,14 +79,14 @@ def load_bddls(curriculum_file: str):
     return bddls
 
 
-def create_envs(bddl_str: str, tmp_dir = "."):
+def create_envs(bddl_str: str, args: Args, tmp_dir = "."):
     bddl_path = os.path.join(tmp_dir, f"tmp_bddl_{START_TIME_STR}.bddl")
     if not os.path.exists(tmp_dir):
         os.makedirs(tmp_dir)
     with open(bddl_path, 'w') as f:
         f.write(bddl_str)
 
-    envs = setup_envs(bddl_path, args)
+    envs = setup_envs(bddl_path, args, verbose=args.verbose)
     
     os.remove(bddl_path)
     return envs
@@ -109,6 +111,7 @@ if __name__ == "__main__":
     tensorboard_path = os.path.join(save_path, "tensorboard")
     models_path = os.path.join(save_path, "models")
     checkpoints_path = os.path.join(save_path, "checkpoints")
+    tmp_path = os.path.join(save_path, "tmp")
 
     if args.wandb:
         wandb.init(
@@ -123,7 +126,7 @@ if __name__ == "__main__":
 
     print("Setting up environment")
     # Create temporary env using first bddls because model requires an env to initialize
-    envs = create_envs(bddls[0][1], tmp_dir=os.path.join(save_path, "tmp"))
+    envs = create_envs(bddls[0][1], args, tmp_dir=tmp_path)
 
     # Seeding everything
     if args.seed is not None:
@@ -143,7 +146,7 @@ if __name__ == "__main__":
         print(f"Starting subtask {i+1}/{len(bddls)} ({subtask_name}) at step {model.num_timesteps}")
 
 
-        envs = create_envs(bddl)
+        envs = create_envs(bddl, args, tmp_dir=tmp_path)
         if args.seed is not None:
             envs.seed(args.seed)
         model.set_env(envs)
@@ -178,7 +181,7 @@ if __name__ == "__main__":
             reset_num_timesteps=False,
             progress_bar=False
         )
-        
+
 
         if args.wandb: # save tensorboard files to wandb
             wandb.save(os.path.join(tensorboard_path, "*", "*"), base_path=tensorboard_path, policy='now')

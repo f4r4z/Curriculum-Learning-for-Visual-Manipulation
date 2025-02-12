@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from typing import List, Optional, Union
-import os
 
 import imageio
 from IPython.display import HTML
@@ -10,15 +9,14 @@ import torch
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv, VecEnv
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3 import PPO, SAC
-from stable_baselines3.common.logger import configure
 
 from rllte.xplore.reward import RND, Disagreement, E3B, Fabric, ICM, NGU, PseudoCounts, RE3, RIDE
 from rllte.common.prototype import BaseReward
 
 from src.envs_gymapi import LowDimensionalObsGymEnv, LowDimensionalObsGymGoalEnv, AgentViewGymEnv, AgentViewGymGoalEnv
-from src.networks import CustomCNN, CustomCombinedExtractor, CustomCombinedExtractor2, CustomCombinedPatchExtractor
+from src.networks import CustomCNN, CustomCombinedPatchExtractor
 from src.her_replay_buffer_modified import HerReplayBufferModified
-from src.callbacks import TensorboardCallback, RLeXploreWithOffPolicyRL, RLeXploreWithOnPolicyRL, VideoWriter
+from src.callbacks import RLeXploreWithOffPolicyRL, RLeXploreWithOnPolicyRL
 
 
 @dataclass
@@ -162,35 +160,31 @@ def setup_envs(
         
     env_args.update(env_args_override)
 
-    vec_env_class = SubprocVecEnv if args.num_envs > 1 else DummyVecEnv
+    # vec_env_class = SubprocVecEnv if args.num_envs > 1 else DummyVecEnv
     if args.visual_observation:
         if args.her:
-            envs = vec_env_class(
-                [lambda: Monitor(AgentViewGymGoalEnv(**env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
-            )
+            envs = [lambda: Monitor(AgentViewGymGoalEnv(**env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
         else:
-            envs = vec_env_class(
-                [lambda: Monitor(AgentViewGymEnv(**env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
-            )
+            envs = [lambda: Monitor(AgentViewGymEnv(**env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
     else:
-        if her:
-            envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymGoalEnv(**env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
-            )
+        if args.her:
+            envs = [lambda: Monitor(LowDimensionalObsGymGoalEnv(**env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
         else:
-            envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(
-                    args.shaping_reward,
-                    args.sparse_reward,
-                    reward_geoms=args.reward_geoms.split(",") if args.reward_geoms is not None else None,
-                    dense_reward_multiplier=args.dense_reward_multiplier,
-                    steps_per_episode=args.steps_per_episode,
-                    setup_demo=args.setup_demo_path,
-                    **env_args
-                ), info_keywords=["is_success"]) for _ in range(args.num_envs)]
-            )
-            
-    return envs
+            envs = [lambda: Monitor(LowDimensionalObsGymEnv(
+                args.shaping_reward,
+                args.sparse_reward,
+                reward_geoms=args.reward_geoms.split(",") if args.reward_geoms is not None else None,
+                dense_reward_multiplier=args.dense_reward_multiplier,
+                steps_per_episode=args.steps_per_episode,
+                setup_demo=args.setup_demo_path,
+                **env_args
+            ), info_keywords=["is_success"]) for _ in range(args.num_envs)]
+    
+    if args.num_envs > 1:
+        print("method", args.multiprocessing_start_method)
+        return SubprocVecEnv(envs, start_method=args.multiprocessing_start_method)
+    else:
+        return DummyVecEnv(envs)
 
 
 def setup_model(
@@ -275,7 +269,7 @@ def setup_model(
             tensorboard_log=tensorboard_path,
             n_steps=args.n_steps,
             ent_coef=args.ent_coef,
-        	# clip_range = args.clip_range,
+            # clip_range = args.clip_range,
             seed=seed,
         )
         # model = algorithm.load(f"{load_path}", env=env)
