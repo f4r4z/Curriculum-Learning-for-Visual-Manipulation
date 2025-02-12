@@ -191,15 +191,13 @@ class StopTrainingOnSuccessRateThreshold(BaseCallback):
     Stop the training once a threshold in success rate has been reached
 
     :param threshold:  Minimum expected success rate to stop training.
-    :param n_times:  The threshold must be met this number of consecutive times to stop training
     :param verbose: Verbosity level: 0 for no output, 1 for indicating when training ended because episodic reward
         threshold reached
     """
 
-    def __init__(self, threshold: float, min_count: int = 1, verbose: int = 0):
+    def __init__(self, threshold: float, verbose: int = 0):
         super().__init__(verbose=verbose)
         self.threshold = threshold
-        self.min_count = min_count
         self.should_end = False
 
     def _on_step(self) -> bool:

@@ -92,7 +92,16 @@ class MapObjects():
 class LowDimensionalObsGymEnv(gym.Env):
     """ Sparse reward environment with all the low-dimensional states
     """
-    def __init__(self, is_shaping_reward, sparse_reward, reward_geoms, dense_reward_multiplier, steps_per_episode=250, setup_demo=None, **kwargs):
+    def __init__(
+        self, 
+        is_shaping_reward: bool, 
+        sparse_reward: float, 
+        reward_geoms: Optional[List[str]] = None, 
+        dense_reward_multiplier: float = 1.0, 
+        steps_per_episode=250, 
+        setup_demo=None, 
+        **kwargs
+    ):
         self.env = OffScreenRenderEnv(**kwargs)
         obs = self.env.env._get_observations()
         low_dim_obs = self.get_low_dim_obs(obs)

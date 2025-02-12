@@ -6,3 +6,6 @@ video/
 notes/
 **/__pycache__/
 demonstration_data/
+
+# Can put .pyi files here for typing
+typings/

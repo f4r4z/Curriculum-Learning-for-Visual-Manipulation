@@ -1,13 +1,14 @@
 from src.extract_xml import locate_libero_xml, find_geoms_for_site, find_body_main
-from src.patch import get_list_of_geom_names_for_site, split_object_name, get_body_for_site, check_contact_excluding_gripper
+from src.libero_utils import get_list_of_geom_names_for_site, split_object_name, get_body_for_site, check_contact_excluding_gripper
 import robosuite.utils.transform_utils as T
 from libero.libero.envs.bddl_base_domain import BDDLBaseDomain
 import numpy as np
 from libero.libero.envs.base_object import OBJECTS_DICT
+from typing import List
 
 class DenseReward:
     # dense reward for a specific goal goal_state
-    def __init__(self, env, goal_state, reward_geoms=None):
+    def __init__(self, env: BDDLBaseDomain, goal_state: List[str], reward_geoms=None):
         self.env = env
         self.object_names = []
         self.object_states = []
