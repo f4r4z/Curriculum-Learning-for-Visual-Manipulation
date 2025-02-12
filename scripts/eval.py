@@ -45,6 +45,8 @@ class Args:
     """if geoms are passed, those specific geoms will be rewarded, for single object predicates only [format example: ketchup_1_g1,ketchup_1_g2]"""
     dense_reward_multiplier: float = 1.0
     """multiplies the last goal state's shaping reward"""
+    steps_per_episode: int = 250
+    """number of steps in episode. If truncate is True, the episode will terminate after this value"""
 
     # Algorithm specific arguments
     alg: str = "ppo"
@@ -116,7 +118,7 @@ if __name__ == "__main__":
             )
         else:
             envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, reward_geoms, args.dense_reward_multiplier, **env_args)) for _ in range(args.num_envs)]
+                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, reward_geoms, args.dense_reward_multiplier, args.steps_per_episode, **env_args)) for _ in range(args.num_envs)]
             )
 
     # Seeding everything
@@ -142,7 +144,7 @@ if __name__ == "__main__":
     count = 0
     success = 0
     total_episodes = 0
-    for i in range(250*args.num_episodes):
+    for i in range(args.steps_per_episode*args.num_episodes):
         action, _states = model.predict(obs)
         obs, rewards, dones, info = envs.step(action)
         images.append(info[0]["agentview_image"])

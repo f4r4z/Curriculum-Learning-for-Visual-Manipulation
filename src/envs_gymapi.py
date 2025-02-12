@@ -90,7 +90,7 @@ class MapObjects():
 class LowDimensionalObsGymEnv(gym.Env):
     """ Sparse reward environment with all the low-dimensional states
     """
-    def __init__(self, is_shaping_reward, sparse_reward, reward_geoms, dense_reward_multiplier, **kwargs):
+    def __init__(self, is_shaping_reward, sparse_reward, reward_geoms, dense_reward_multiplier, steps_per_episode=250, **kwargs):
         self.env = OffScreenRenderEnv(**kwargs)
         obs = self.env.env._get_observations()
         low_dim_obs = self.get_low_dim_obs(obs)
@@ -102,6 +102,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.step_count_tracker = 0
         self.images = []
         self.sparse_reward = sparse_reward
+        self.steps_per_episode = steps_per_episode
 
         # for multi-goal tasks
         self.current_goal_index = 0
@@ -176,7 +177,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         # logistics
         print(f"reward at step {self.step_count}: {reward}")
         self.step_count += 1
-        truncated = self.step_count >= 250
+        truncated = self.step_count >= self.steps_per_episode
         done = success or truncated
         print("done", done)
         info["agentview_image"] = obs["agentview_image"]
