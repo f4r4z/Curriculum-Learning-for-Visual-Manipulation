@@ -109,7 +109,8 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.images = []
         self.sparse_reward = sparse_reward
         self.steps_per_episode = steps_per_episode
-        self.robot_init_qpos = self.env.robots[0].init_qpos
+        # self.robot_init_qpos = self.env.robots[0].init_qpos
+        self.robot_init_qpos = None
         self.verbose = verbose
 
         # for multi-goal tasks
