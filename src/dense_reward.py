@@ -91,7 +91,7 @@ class DenseReward:
             if self.verbose >= 4: print("place in")
             return self.place_inside()
         if self.predicate_fn_name == "reset":
-            print("reset")
+            if self.verbose >= 4: print("reset")
             return self.reset_qpos()
         if self.verbose >= 4: print(f"no dense reward for {self.predicate_fn_name}")
         return 0.0
