@@ -40,7 +40,7 @@ class Args(WandbArgs, AlgArgs, EnvArgs):
     """verbosity of outputs, with 0 being least"""
 
     # Environment specific arguments
-    curriculum_file: str
+    curriculum_file: str = tyro.MISSING
     """The path to a python file containing functions that generate BDDL files"""
 
     n_eval_episodes: int = 10

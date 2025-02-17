@@ -1,6 +1,6 @@
 from libero.libero.envs.object_states import BaseObjectState
 from src.libero_utils import get_body_for_site, get_list_of_geom_names_for_site, check_contact_excluding_gripper
-from .patch_utils import patch
+from .utils import patch
 
 import numpy as np
 

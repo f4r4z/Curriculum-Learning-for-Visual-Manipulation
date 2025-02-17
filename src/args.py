@@ -99,7 +99,7 @@ class EnvArgs:
     """if toggled, shaping reward will be off for all goal states"""
     sparse_reward: float = 10.0
     """total sparse reward for success"""
-    reward_geoms: str = None
+    reward_geoms: Optional[str] = None
     """if geoms are passed, those specific geoms will be rewarded, for single object predicates only [format example: ketchup_1_g1,ketchup_1_g2]"""
     dense_reward_multiplier: float = 1.0
     """multiplies the last goal state's shaping reward"""

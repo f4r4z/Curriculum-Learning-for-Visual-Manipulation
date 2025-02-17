@@ -8,6 +8,7 @@ import numpy as np
 def register_predicate_fn(target_class):
     """We design the mapping to be case-INsensitive."""
     VALIDATE_PREDICATE_FN_DICT[target_class.__name__.lower()] = target_class()
+    # print("Registered new predicate", target_class.__name__.lower())
     return target_class
 
 
@@ -46,7 +47,6 @@ class Reach(MultiarayAtomic):
 
         object_pos = object_state.get_geom_state()['pos']
         dist = np.linalg.norm(grip_site_pos - object_pos)
-        # print(dist)
 
         # Check whether object has been reached (without caring about goal_distance)
         # TODO: there is a check_contain in ObjectState, but that takes in another object as a parameter, not a single point

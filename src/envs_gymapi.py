@@ -128,7 +128,11 @@ class LowDimensionalObsGymEnv(gym.Env):
             self.env.env.reward_geoms = reward_geoms
             self.shaping_reward = {}
 
-        if self.verbose >= 1: print("shaping rewards:", self.shaping_reward)
+        if self.verbose >= 1:
+            if is_shaping_reward:
+                print("using shaping rewards:", self.shaping_reward)
+            if self.sparse_reward > 0:
+                print("using sparse rewards:", self.goal_states)
         
         # setup actions from demo
         if setup_demo is None:

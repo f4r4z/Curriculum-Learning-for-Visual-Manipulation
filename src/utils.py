@@ -74,7 +74,6 @@ def setup_envs(
             ), info_keywords=["is_success"]) for _ in range(args.num_envs)]
     
     if args.num_envs > 1:
-        print("method", args.multiprocessing_start_method)
         return SubprocVecEnv(envs, start_method=args.multiprocessing_start_method)
     else:
         return DummyVecEnv(envs)
