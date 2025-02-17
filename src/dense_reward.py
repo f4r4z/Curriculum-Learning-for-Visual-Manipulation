@@ -97,7 +97,6 @@ class DenseReward:
         robot_joints = self.env.robots[0]._joint_positions
         robot_initial_joints = self.env.robots[0].init_qpos
         norm = np.linalg.norm(robot_joints - robot_initial_joints)
-        print("NORM", norm)
         reward = (1 - np.tanh(10.0 * norm)) / 10.0
         return reward
 
