@@ -114,7 +114,7 @@ class Open(MultiarayAtomic):
 
             assert isinstance(object, ArticulatedObject), (
                 f"{object_state.object_name}'s parent, {object_state.parent_name} "
-                "is not an articulated object. PartialOpen can only be used with articulated objects"
+                "is not an articulated object. Open can only be used with articulated objects"
             )
             if self.is_articulated_object_partial_open(object, qpos, open_amount):
                 return True

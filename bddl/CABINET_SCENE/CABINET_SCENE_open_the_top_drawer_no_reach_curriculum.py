@@ -48,7 +48,7 @@ def partial_open_the_cabinet():
 	)
 
 	(:goal
-		(PartialOpen wooden_cabinet_1_top_region {})
+		(Open wooden_cabinet_1_top_region {})
 	)
 
 )
