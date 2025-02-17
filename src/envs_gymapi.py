@@ -103,6 +103,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.images = []
         self.sparse_reward = sparse_reward
         self.steps_per_episode = steps_per_episode
+        self.robot_init_qpos = None # np.array([-1.92024761e-03,  1.42055016,  2.73124770e-01, -7.01385291e-02, 5.27799245e-01,  8.66614671e-01, -2.22282502])
 
         # for multi-goal tasks
         self.current_goal_index = 0
@@ -189,7 +190,20 @@ class LowDimensionalObsGymEnv(gym.Env):
         obs = self.env.reset()
         self.step_count = 0
         self.current_goal_index = 0
+        # initialize the robot's qpos randomly
+        if self.robot_init_qpos is not None:
+            self.reset_robots_random(self.robot_init_qpos)
+
         return self.get_low_dim_obs(obs), {}
+
+    def reset_robots_random(self, init_qpos):
+        for robot in self.env.robots:
+            random_qpos = robot.init_qpos.copy()
+            random_qpos += np.random.uniform(-0.5, 0.5, size=init_qpos.shape)
+            robot.init_qpos = random_qpos
+            robot.reset()
+            # revert qpos back
+            robot.init_qpos = init_qpos
     
     def seed(self, seed=None):
         return self.env.seed(seed)

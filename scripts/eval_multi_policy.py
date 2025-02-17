@@ -27,7 +27,9 @@ class Args:
     """random seed for reproducibility"""
     video_path: str = "videos/output.mp4"
     """file path of the video output file"""
-    load_path: str = "logs"
+    load_path_1: str = "logs"
+    """file path of the model file"""
+    load_path_2: str = "logs"
     """file path of the model file"""
     num_episodes: int = 10
     """number of episodes to generate evaluation"""
@@ -134,9 +136,15 @@ if __name__ == "__main__":
 
     # start evaluation
     print("loading model")
-    model = algorithm.load(f"{args.load_path}", env=envs if args.her else None)
+    model_1 = algorithm.load(f"{args.load_path_1}", env=envs if args.her else None)
+    model_2 = algorithm.load(f"{args.load_path_2}", env=envs if args.her else None)
+    
+    # start with model 1
+    model = model_1
 
     obs = envs.reset()
+    target_qpos = envs.envs[0].env.env.robots[0]._joint_positions
+
 
     images = []
 
@@ -148,7 +156,12 @@ if __name__ == "__main__":
         action, _states = model.predict(obs)
         obs, rewards, dones, info = envs.step(action)
         images.append(info[0]["agentview_image"])
-        print(envs.envs[0].env.env.robots[0]._joint_positions)
+
+        if rewards[0] > args.sparse_reward / 10.0:
+            print("switching to model 2")
+            model = model_2
+            # reset robot
+            # envs.envs[0].reset_robots_random()
 
         if dones[0]:
             count = 0
@@ -156,6 +169,7 @@ if __name__ == "__main__":
             total_episodes += 1
             print(total_episodes)
             envs.reset()
+            model = model_1
 
         if total_episodes == args.num_episodes:
             break
@@ -165,3 +179,5 @@ if __name__ == "__main__":
     obs_to_video(images, f"{args.video_path}")
     print("# of tasks successful", success, "out of", total_episodes)
     envs.close()
+
+    init_qpos = [-1.92024761e-03,  1.42055016,  2.73124770e-01, -7.01385291e-02, 5.27799245e-01,  8.66614671e-01, -2.22282502]
