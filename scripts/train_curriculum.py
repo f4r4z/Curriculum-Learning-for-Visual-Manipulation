@@ -163,7 +163,10 @@ if __name__ == "__main__":
 
         # Stop training when the model reaches the success rate threshold
         if i < len(bddls)-1: # on the last subtask, train all the way to the end
-            callbacks.append(StopTrainingOnSuccessRateThreshold(threshold=args.success_rate_threshold))
+            callbacks.append(StopTrainingOnSuccessRateThreshold(
+                threshold=args.success_rate_threshold, 
+                min_count=log_interval*args.num_envs,
+            ))
 
         # exploration technique callbacks
         if args.exploration_alg != None:

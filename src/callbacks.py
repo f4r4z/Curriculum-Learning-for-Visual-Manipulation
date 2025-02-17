@@ -195,9 +195,10 @@ class StopTrainingOnSuccessRateThreshold(BaseCallback):
         threshold reached
     """
 
-    def __init__(self, threshold: float, verbose: int = 0):
+    def __init__(self, threshold: float, min_count: int = 1, verbose: int = 0):
         super().__init__(verbose=verbose)
         self.threshold = threshold
+        self.min_count = min_count
         self.should_end = False
 
     def _on_step(self) -> bool:
