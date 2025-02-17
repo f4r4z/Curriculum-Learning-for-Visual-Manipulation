@@ -198,8 +198,8 @@ class LowDimensionalObsGymEnv(gym.Env):
 
     def reset_robots_random(self, init_qpos):
         for robot in self.env.robots:
-            random_qpos = robot.init_qpos.copy()
-            random_qpos += np.random.uniform(-0.5, 0.5, size=init_qpos.shape)
+            random_qpos = init_qpos.copy()
+            random_qpos += np.random.uniform(-0.5, 0.5, size=random_qpos.shape)
             robot.init_qpos = random_qpos
             robot.reset()
             # revert qpos back
