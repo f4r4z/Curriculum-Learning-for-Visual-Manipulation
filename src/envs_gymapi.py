@@ -204,9 +204,6 @@ class LowDimensionalObsGymEnv(gym.Env):
         info["agentview_image"] = obs["agentview_image"]
         info["is_success"] = success
 
-        print(list(obs.keys()))
-        # print(obs)
-
         return self.get_low_dim_obs(obs), reward, done, truncated, info
     
     def reset(self, seed=None):

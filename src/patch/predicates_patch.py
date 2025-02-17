@@ -68,8 +68,11 @@ class Open(MultiarayAtomic):
     The bounds for fully open/closed is given by the object_properties of the articulated object
     """
     def __call__(self, *args):
-        assert len(args) >= 2
-        open_amount = float(args[1])
+        assert len(args) >= 1
+        if len(args) == 1:
+            open_amount = 1
+        else:
+            open_amount = float(args[1])
         return self.is_partial_open(args[0], open_amount)
     
     def is_articulated_object_partial_open(self, object: ArticulatedObject, qpos, open_amount):
@@ -122,7 +125,11 @@ class Close(MultiarayAtomic):
     The bounds for fully open/closed is given by the object_properties of the articulated object
     """
     def __call__(self, *args):
-        assert len(args) >= 2
+        assert len(args) >= 1
+        if len(args) == 1:
+            close_amount = 1
+        else:
+            close_amount = float(args[1])
         close_amount = float(args[1])
         # partial close is just the opposite of partial open, but with the parameter flipped
         return not Open()(args[0], 1-close_amount, *args[2:])

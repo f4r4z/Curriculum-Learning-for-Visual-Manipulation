@@ -18,7 +18,8 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 
 from src.callbacks import VideoWriter, StopTrainingOnSuccessRateThreshold
 
-from utils import WandbArgs, AlgArgs, EnvArgs, setup_envs, setup_model
+from src.utils import setup_envs, setup_model
+from src.args import WandbArgs, AlgArgs, EnvArgs
 
 import inspect
 

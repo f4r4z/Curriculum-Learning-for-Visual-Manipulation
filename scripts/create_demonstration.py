@@ -327,6 +327,8 @@ if __name__ == "__main__":
         "camera_widths": 128,
     }
     env = LowDimensionalObsGymEnv(
+        is_shaping_reward=False,
+        sparse_reward=10.0,
         bddl_file_name=args.bddl_file,
         # **config,
         camera_heights=128,
