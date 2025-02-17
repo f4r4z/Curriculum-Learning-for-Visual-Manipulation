@@ -90,9 +90,33 @@ class DenseReward:
         if self.predicate_fn_name == "placein":
             if self.verbose >= 4: print("place in")
             return self.place_inside()
+        if self.predicate_fn_name == "reset":
+            print("reset")
+            return self.reset_qpos()
         if self.verbose >= 4: print(f"no dense reward for {self.predicate_fn_name}")
         return 0.0
 
+    def reset_qpos(self):
+        robot_joints = self.env.robots[0]._joint_positions
+        robot_initial_joints = self.env.robots[0].init_qpos
+        norm = np.linalg.norm(robot_joints - robot_initial_joints)
+        reward = (1 - np.tanh(10.0 * norm)) / 10.0
+        return reward
+
+    def get_object_width(self, body_main):
+        # Get the geom ID of the object
+        geom_id = self.env.sim.model.body_name2id(body_main)
+        print("id", geom_id)
+        # Extract the size of the geom (half extents)
+        print("wtf", dir(self.env.sim.model))
+        geom_size = self.env.sim.model.geom_size[geom_id]  # [x_half, y_half, z_half]
+        print("size", geom_size)
+        # Object width is typically the x-dimension (full width is `2 * x_half`)
+        object_width = 2 * geom_size[0]  # Multiply by 2 to get full width
+        print("width", object_width)
+
+        return object_width
+        
     def reach(self, body_main):
         if len(self.object_states) > 1:
             raise Exception("reach only accepts 1 object")
@@ -131,6 +155,35 @@ class DenseReward:
             self.prior_displacement = displacement
         else:
             reward = 0.0
+
+        return reward
+
+    def grasp(self, body_main):
+        reward = 0.0
+
+        # Get relevant state info
+        gripper_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
+        object_pos = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(body_main)]
+        gripper_finger_pos = env.get_finger_positions()
+        object_grasped = env.check_grasp()  # Check if MuJoCo recognizes a stable grasp
+
+        # 1. Encourage the gripper to open before grasping
+        finger_distance = np.linalg.norm(gripper_finger_pos[0] - gripper_finger_pos[1])
+        desired_opening = self.get_object_width(body_main)  # Adjust this based on object size
+        reward += 2.0 * max(0, finger_distance - desired_opening)  # Reward for keeping fingers open initially
+
+        # 2. Encourage proper gripper-object alignment
+        gripper_to_object_dist = np.linalg.norm(gripper_pos - object_pos)
+        alignment_threshold = 0.02  # Adjust for precision
+        reward += 3.0 * max(0, alignment_threshold - gripper_to_object_dist)
+
+        # 3. Encourage closing fingers **only when object is within grasp**
+        if gripper_to_object_dist < alignment_threshold:  # If well-aligned
+            reward += 5.0 * (desired_opening - finger_distance)  # Reward closing fingers appropriately
+
+        # 4. Give a big reward if the object is stably grasped
+        if object_grasped:
+            reward += 10.0  # High reward for a successful grasp
 
         return reward
 

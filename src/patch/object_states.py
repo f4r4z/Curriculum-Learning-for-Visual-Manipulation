@@ -74,7 +74,6 @@ def align(self: BaseObjectState, other: BaseObjectState):
     """
     other object align with this object
     """
-    
     if self.object_state_type == "site":
         this_object_position = self.env.sim.data.get_site_xpos(self.object_name)
     else:
@@ -92,7 +91,6 @@ def align(self: BaseObjectState, other: BaseObjectState):
         return True
     else:
         return False
-
 
 
 @patch(BaseObjectState)
@@ -126,3 +124,18 @@ def lift(self: BaseObjectState):
         return True
 
     return False
+
+
+@patch(BaseObjectState)
+def reset_qpos(self: BaseObjectState):
+    """
+    resets robot to original qpos
+    """
+    robot_joints = self.env.robots[0]._joint_positions
+    robot_initial_joints = self.env.robots[0].init_qpos
+    norm = np.linalg.norm(robot_joints - robot_initial_joints)
+
+    if norm < 0.03:
+        return True
+    else:
+        return False

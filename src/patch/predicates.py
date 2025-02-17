@@ -1,4 +1,4 @@
-from libero.libero.envs.predicates import VALIDATE_PREDICATE_FN_DICT, UnaryAtomic, MultiarayAtomic
+from libero.libero.envs.predicates import VALIDATE_PREDICATE_FN_DICT, UnaryAtomic, BinaryAtomic, MultiarayAtomic
 from libero.libero.envs.object_states import BaseObjectState, ObjectState, SiteObjectState
 from libero.libero.envs.objects import ArticulatedObject
 from robosuite.models.objects import MujocoXMLObject
@@ -65,7 +65,6 @@ class Reach(MultiarayAtomic):
         return dist < goal_distance
 
 
-
 @register_predicate_fn
 class Open(MultiarayAtomic):
     """
@@ -122,7 +121,6 @@ class Open(MultiarayAtomic):
         return False
 
 
-
 @register_predicate_fn
 class Close(MultiarayAtomic):
     """
@@ -139,7 +137,6 @@ class Close(MultiarayAtomic):
         # partial close is just the opposite of partial open, but with the parameter flipped
         return not Open()(args[0], 1-close_amount, *args[2:])
     
-
 
 @register_predicate_fn
 class Lift(MultiarayAtomic):
@@ -204,3 +201,21 @@ class Lift(MultiarayAtomic):
         # dist = np.linalg.norm(grip_site_pos - object_pos)
         
         return False
+
+
+@register_predicate_fn
+class Align(BinaryAtomic):
+    def __call__(self, arg1, arg2):
+        return arg2.align(arg1)
+    
+
+@register_predicate_fn
+class PlaceIn(BinaryAtomic):
+    def __call__(self, arg1, arg2):
+        return arg2.check_contact(arg1) and arg2.check_contain(arg1) and (not arg1.check_gripper_contact())
+    
+
+@register_predicate_fn
+class Reset(UnaryAtomic):
+    def __call__(self, arg):
+        return arg.reset_qpos()

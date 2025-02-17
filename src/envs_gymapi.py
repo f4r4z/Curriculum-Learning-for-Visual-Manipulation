@@ -220,7 +220,20 @@ class LowDimensionalObsGymEnv(gym.Env):
 
         self.step_count = 0
         self.current_goal_index = 0
+        # initialize the robot's qpos randomly
+        if self.robot_init_qpos is not None:
+            self.reset_robots_random(self.robot_init_qpos)
+
         return self.get_low_dim_obs(obs), {}
+
+    def reset_robots_random(self, init_qpos):
+        for robot in self.env.robots:
+            random_qpos = init_qpos.copy()
+            random_qpos += np.random.uniform(-5.0, 5.0, size=random_qpos.shape)
+            robot.init_qpos = random_qpos
+            robot.reset()
+            # revert qpos back
+            robot.init_qpos = init_qpos
     
     def seed(self, seed=None):
         return self.env.seed(seed)
