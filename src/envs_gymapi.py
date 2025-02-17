@@ -90,7 +90,7 @@ class MapObjects():
 class LowDimensionalObsGymEnv(gym.Env):
     """ Sparse reward environment with all the low-dimensional states
     """
-    def __init__(self, is_shaping_reward, sparse_reward, reward_geoms, dense_reward_multiplier, steps_per_episode=250, **kwargs):
+    def __init__(self, is_shaping_reward, sparse_reward, reward_geoms, dense_reward_multiplier, steps_per_episode=250, goal_1_policy=None, **kwargs):
         self.env = OffScreenRenderEnv(**kwargs)
         obs = self.env.env._get_observations()
         low_dim_obs = self.get_low_dim_obs(obs)
@@ -103,7 +103,8 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.images = []
         self.sparse_reward = sparse_reward
         self.steps_per_episode = steps_per_episode
-        self.robot_init_qpos = self.env.robots[0].init_qpos
+        self.robot_init_qpos = None
+        self.goal_1_policy = goal_1_policy
 
         # for multi-goal tasks
         self.current_goal_index = 0
@@ -188,18 +189,27 @@ class LowDimensionalObsGymEnv(gym.Env):
     
     def reset(self, seed=None):
         obs = self.env.reset()
+        obs = self.get_low_dim_obs(obs)
         self.step_count = 0
         self.current_goal_index = 0
+
         # initialize the robot's qpos randomly
         if self.robot_init_qpos is not None:
             self.reset_robots_random(self.robot_init_qpos)
+        
+        # run previous policy for first goal state
+        if self.goal_1_policy:
+            while self.current_goal_index < 1:
+                action, _states = self.goal_1_policy.predict(obs)
+                obs, reward, done, truncated, info = self.step(action)
+                print("reset phase")
 
-        return self.get_low_dim_obs(obs), {}
+        return obs, {}
 
     def reset_robots_random(self, init_qpos):
         for robot in self.env.robots:
             random_qpos = init_qpos.copy()
-            random_qpos += np.random.uniform(-5.0, 5.0, size=random_qpos.shape)
+            random_qpos += np.random.uniform(-0.5, 0.5, size=random_qpos.shape)
             robot.init_qpos = random_qpos
             robot.reset()
             # revert qpos back
@@ -207,34 +217,6 @@ class LowDimensionalObsGymEnv(gym.Env):
     
     def seed(self, seed=None):
         return self.env.seed(seed)
-
-    def get_bodies_and_geoms(self):
-        if "ketchup_1" in self.env.obj_of_interest:
-            body_main = "ketchup_1_main"
-            geom_names = [
-                "ketchup_1_main", 
-            ]
-        else:
-            body_main = "wooden_cabinet_1_cabinet_bottom"
-            geom_names = [
-                "wooden_cabinet_1_g40",
-                "wooden_cabinet_1_g41",
-                "wooden_cabinet_1_g42"
-            ]
-
-        geom_names = []
-        for i in range(self.env.sim.model.ngeom):
-            geom_name = self.env.sim.model.geom_id2name(i)
-            # print(f"Geom ID {i}: {geom_name}")
-            geom_pos = self.env.sim.model.geom_pos[i]
-            geom_size = self.env.sim.model.geom_size[i]
-            # print(f"Geom Position: {geom_pos}, Size: {geom_size}")
-            for obj in self.env.obj_of_interest:
-                if geom_name and obj in geom_name:
-                    geom_names.append(geom_name)
-        body_mains = [obj + "_main" for obj in self.env.obj_of_interest]
-
-        return body_mains, geom_names
 
     def current_joint_position(self):
         qposs = []
