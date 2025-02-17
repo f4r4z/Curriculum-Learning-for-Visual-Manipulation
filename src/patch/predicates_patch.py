@@ -1,9 +1,14 @@
-from libero.libero.envs.predicates import register_predicate_fn
-from libero.libero.envs.predicates.base_predicates import UnaryAtomic, MultiarayAtomic
+from libero.libero.envs.predicates import VALIDATE_PREDICATE_FN_DICT, UnaryAtomic, MultiarayAtomic
 from libero.libero.envs.object_states import BaseObjectState, ObjectState, SiteObjectState
 from libero.libero.envs.objects import ArticulatedObject
 from robosuite.models.objects import MujocoXMLObject
 import numpy as np
+
+
+def register_predicate_fn(target_class):
+    """We design the mapping to be case-INsensitive."""
+    VALIDATE_PREDICATE_FN_DICT[target_class.__name__.lower()] = target_class()
+    return target_class
 
 
 @register_predicate_fn
@@ -52,7 +57,7 @@ class Reach(MultiarayAtomic):
             return object.in_box(object_pos, grip_site_pos) # TODO: check if this works. I don't think the object actually has an in_box function
         elif isinstance(object_state, SiteObjectState):
             object_mat = env.sim.data.get_site_xmat(object_state.object_name)
-            object_site = env.get_object_site(object_state.object_name)
+            object_site = env.get_object(object_state.object_name)
             if object_site.in_box(object_pos, object_mat, grip_site_pos):
                 return True
         
@@ -103,7 +108,7 @@ class Open(MultiarayAtomic):
     def is_partial_open(self, object_state: BaseObjectState, open_amount: float):
         "Checks whether any joint is open by open_amounts"
         env = object_state.env
-        for joint in env.get_object_site(object_state.object_name).joints:
+        for joint in env.get_object(object_state.object_name).joints:
             qpos = env.sim.data.get_joint_qpos(joint)
             object = env.get_object(object_state.parent_name)
 

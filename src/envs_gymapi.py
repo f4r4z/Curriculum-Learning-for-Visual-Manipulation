@@ -5,7 +5,7 @@ import numpy as np
 from gymnasium.spaces import Box, Dict
 
 
-from libero.libero.envs.env_wrapper import OffScreenRenderEnv
+from libero.libero.envs import OffScreenRenderEnv
 from libero.libero.envs.objects.articulated_objects import Microwave, SlideCabinet, Window, Faucet, BasinFaucet, ShortCabinet, ShortFridge, WoodenCabinet, WhiteCabinet, FlatStove
 
 from src.dense_reward import DenseReward

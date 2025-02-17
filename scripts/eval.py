@@ -17,6 +17,8 @@ from src.args import AlgArgs, EnvArgs
 
 @dataclass
 class Args(EnvArgs, AlgArgs):
+    """Note: many of the args in AlgArgs aren't actually used in this script"""
+
     # User specific arguments
     seed: int = None
     """random seed for reproducibility"""

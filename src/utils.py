@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import imageio
 from IPython.display import HTML
@@ -30,11 +30,14 @@ def obs_to_video(images: list, filename: str):
             video.playbackRate = 2.0; // Increase the playback speed to 2x
             </script>    
     """)
-    
+
+
+class EnvAndAlgArgs(args.EnvArgs, args.AlgArgs):
+    pass
 
 def setup_envs(
     bddl_file: str,
-    args: Union[args.EnvArgs, args.AlgArgs],
+    args: EnvAndAlgArgs,
     **env_args_override
 ) -> VecEnv:
     print("Setting up environment")
