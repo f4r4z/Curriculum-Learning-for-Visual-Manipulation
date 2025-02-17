@@ -144,18 +144,21 @@ if __name__ == "__main__":
     count = 0
     success = 0
     total_episodes = 0
+    last_joint_positions = []
     for i in range(args.steps_per_episode*args.num_episodes):
         action, _states = model.predict(obs)
         obs, rewards, dones, info = envs.step(action)
         images.append(info[0]["agentview_image"])
-        print(envs.envs[0].env.env.robots[0]._joint_positions)
-
+        
         if dones[0]:
             count = 0
             success += 1 if info[0]["is_success"] else 0
             total_episodes += 1
             print(total_episodes)
+            last_joint_positions.append(last_pos)
             envs.reset()
+        
+        last_pos = envs.envs[0].env.env.robots[0]._joint_positions
 
         if total_episodes == args.num_episodes:
             break
@@ -164,4 +167,5 @@ if __name__ == "__main__":
         
     obs_to_video(images, f"{args.video_path}")
     print("# of tasks successful", success, "out of", total_episodes)
+    print("average of final robot joints", sum(last_joint_positions)/len(last_joint_positions))
     envs.close()

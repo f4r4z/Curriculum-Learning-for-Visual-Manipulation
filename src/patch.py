@@ -172,6 +172,20 @@ def lift(self):
 
     return False
 
+def reset_qpos(self):
+    """
+    resets robot to original qpos
+    """
+    robot_joints = self.env.robots[0]._joint_positions
+    robot_initial_joints = self.env.robots[0].init_qpos
+    norm = np.linalg.norm(robot_joints - robot_initial_joints)
+
+    if norm < 0.03:
+        return True
+    else:
+        return False
+
+
 class Contact(UnaryAtomic):
     def __call__(self, arg):
         return arg.check_gripper_contact()
@@ -196,6 +210,10 @@ class PlaceIn(BinaryAtomic):
     def __call__(self, arg1, arg2):
         return arg2.check_contact(arg1) and arg2.check_contain(arg1) and (not arg1.check_gripper_contact())
 
+class Reset(UnaryAtomic):
+    def __call__(self, arg):
+        return arg.reset_qpos()
+
 
 VALIDATE_PREDICATE_FN_DICT["contact"] = Contact()
 VALIDATE_PREDICATE_FN_DICT["grasp"] = Grasp()
@@ -203,11 +221,13 @@ VALIDATE_PREDICATE_FN_DICT["reach"] = Reach()
 VALIDATE_PREDICATE_FN_DICT["lift"] = Lift()
 VALIDATE_PREDICATE_FN_DICT["align"] = Align()
 VALIDATE_PREDICATE_FN_DICT["placein"] = PlaceIn()
+VALIDATE_PREDICATE_FN_DICT["reset"] = Reset()
 
 BaseObjectState.check_gripper_contact = check_gripper_contact
 BaseObjectState.check_grasp = check_grasp
 BaseObjectState.reach = reach
 BaseObjectState.lift = lift
 BaseObjectState.align = align
+BaseObjectState.reset_qpos = reset_qpos
 
 # BDDLBaseDomain.reward = reward

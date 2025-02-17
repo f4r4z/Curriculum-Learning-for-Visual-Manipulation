@@ -87,8 +87,19 @@ class DenseReward:
         if self.predicate_fn_name == "placein":
             print("place in")
             return self.place_inside()
+        if self.predicate_fn_name == "reset":
+            print("reset")
+            return self.reset_qpos()
         print(f"no dense reward for {self.predicate_fn_name}")
         return 0.0
+
+    def reset_qpos(self):
+        robot_joints = self.env.robots[0]._joint_positions
+        robot_initial_joints = self.env.robots[0].init_qpos
+        norm = np.linalg.norm(robot_joints - robot_initial_joints)
+        print("NORM", norm)
+        reward = (1 - np.tanh(10.0 * norm)) / 10.0
+        return reward
 
     def get_object_width(self, body_main):
         # Get the geom ID of the object
