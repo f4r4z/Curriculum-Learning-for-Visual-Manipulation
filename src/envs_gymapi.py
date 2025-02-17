@@ -199,7 +199,8 @@ class LowDimensionalObsGymEnv(gym.Env):
         
         # run previous policy for first goal state
         if self.goal_1_policy:
-            while self.current_goal_index < 1:
+            done = False
+            while self.current_goal_index < 1 and not done:
                 action, _states = self.goal_1_policy.predict(obs)
                 obs, reward, done, truncated, info = self.step(action)
                 print("reset phase")
