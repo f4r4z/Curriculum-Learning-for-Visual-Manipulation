@@ -17,8 +17,7 @@ from typing import List, Tuple, Optional
 from stable_baselines3.common.callbacks import CheckpointCallback
 
 from src.callbacks import VideoWriter, StopTrainingOnSuccessRateThreshold
-
-from src.utils import setup_envs, setup_model
+from src.utils import setup_envs, setup_run_at_path, setup_model
 from src.args import WandbArgs, AlgArgs, EnvArgs
 
 import inspect
@@ -104,25 +103,22 @@ if __name__ == "__main__":
 
     print("Creating save directory")
     task_name = os.path.splitext(os.path.basename(args.curriculum_file))[0]
-    run_name = os.path.join(task_name, f"{args.get_alg_str()}_seed_{args.seed}", START_TIME_STR)
-    save_path = os.path.join(args.save_path, run_name)
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-
+    run_name, save_path = setup_run_at_path(
+        args.save_path,
+        task_name,
+        f"{args.get_alg_str()}_seed_{args.seed}",
+        START_TIME_STR
+    )
     tensorboard_path = os.path.join(save_path, "tensorboard")
     models_path = os.path.join(save_path, "models")
     checkpoints_path = os.path.join(save_path, "checkpoints")
     tmp_path = os.path.join(save_path, "tmp")
-
-    if args.wandb:
-        wandb.init(
-            project=args.wandb_project,
-            entity=args.wandb_entity,
-            dir=save_path,
-            config=vars(args),
-            sync_tensorboard=True,
-            name=run_name
-        )
+    args.init_wandb_if_toggled(
+        dir=save_path,
+        config=vars(args),
+        sync_tensorboard=True,
+        name=run_name
+    )
 
 
     print("Setting up environment")
@@ -169,7 +165,7 @@ if __name__ == "__main__":
             ))
 
         # exploration technique callbacks
-        if args.exploration_alg != None:
+        if args.exploration_alg is not None:
             callbacks.append(args.get_exploration_callback(envs))
         
         

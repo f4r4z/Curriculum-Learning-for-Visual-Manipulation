@@ -1,4 +1,5 @@
-from typing import List, Optional
+import os
+from typing import List, Optional, Tuple
 
 import imageio
 from IPython.display import HTML
@@ -79,6 +80,14 @@ def setup_envs(
         return SubprocVecEnv(envs, start_method=args.multiprocessing_start_method)
     else:
         return DummyVecEnv(envs)
+
+
+def setup_run_at_path(base_path: str, *paths: str):
+    run_name = os.path.join(*paths)
+    save_path = os.path.join(base_path, run_name)
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    return run_name, save_path
 
 
 def setup_model(

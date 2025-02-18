@@ -6,16 +6,15 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import datetime
 from dataclasses import dataclass
 import tyro
-import wandb
 import torch
 import numpy as np
 from typing import List, Tuple, Optional
 
 from libero.libero import get_libero_path
 from stable_baselines3.common.callbacks import CheckpointCallback
-from src.callbacks import VideoWriter
 
-from src.utils import setup_envs, setup_model
+from src.callbacks import VideoWriter
+from src.utils import setup_envs, setup_run_at_path, setup_model
 from src.args import WandbArgs, AlgArgs, EnvArgs
 
 @dataclass
@@ -53,6 +52,10 @@ if __name__ == "__main__":
         bddl_file = os.path.join(get_libero_path("bddl_files"), task_name)
     
 
+    # env_args = {} # can pass this into setup_envs(..., **env_args)
+    # if args.shaping_reward:
+    #     env_args["shaping_reward"] = True
+
     print("Setting up environment")
     envs = setup_envs(bddl_file, args, verbose=args.verbose)
 
@@ -64,24 +67,18 @@ if __name__ == "__main__":
 
 
     print("Creating save directory")
-    run_name = os.path.join(
+    run_name, save_path = setup_run_at_path(
+        args.save_path,
         task_name,
         f"{args.get_alg_str()}_seed_{args.seed}",
         datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     )
-    save_path = os.path.join(args.save_path, run_name)
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-
-    if args.wandb:
-        wandb.init(
-            project=args.wandb_project,
-            entity=args.wandb_entity,
-            dir=save_path,
-            config=vars(args),
-            sync_tensorboard=True,
-            name=run_name
-        )
+    args.init_wandb_if_toggled(
+        dir=save_path,
+        config=vars(args),
+        sync_tensorboard=True,
+        name=run_name
+    )
 
 
     print("Setting up model")
@@ -99,7 +96,7 @@ if __name__ == "__main__":
     # log videos
     callbacks.append(VideoWriter(n_steps=5000 * args.num_envs))
 
-    if args.exploration_alg != None:
+    if args.exploration_alg is not None:
         callbacks.append(args.get_exploration_callback(envs))
     
 

@@ -91,7 +91,7 @@ class DenseReward:
             if self.verbose >= 4: print("place in")
             return self.place_inside()
         if self.predicate_fn_name == "turnon":
-            print("turn on")
+            if self.verbose >= 4: print("turn on")
             return self.reach(self.object_bodies[0])
         if self.predicate_fn_name == "reset":
             if self.verbose >= 4: print("reset")

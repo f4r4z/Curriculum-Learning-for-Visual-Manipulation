@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import List, Optional, Union
 
 import torch
+import wandb
 
 from stable_baselines3.common.vec_env import VecEnv
 
@@ -119,3 +120,11 @@ class WandbArgs:
     """wandb entity name (username)"""
     wandb: bool = False
     """if toggled, model will log to wandb otherwise it would not"""
+
+    def init_wandb_if_toggled(self, **wandb_args):
+        if self.wandb:
+            wandb.init(
+                project=self.wandb_project,
+                entity=self.wandb_entity,
+                **wandb_args
+            )
