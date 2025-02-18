@@ -173,6 +173,21 @@ class LowDimensionalObsGymEnv(gym.Env):
         reward = 0.0
         if success:
             reward = self.sparse_reward
+        # only for goal 1 policy    
+        elif self.goal_1_policy:
+            if self.result_1:
+                print("hey! result 1 is complete")
+                state_2 = self.goal_states[1]
+                result_2 = self.env.env._eval_predicate(state_2)
+                state_tuple = tuple(state_2)
+                if result_2:
+                    success = True
+                dense_reward_object = self.shaping_reward[state_tuple]
+                reward += dense_reward_object.dense_reward(step_count=self.step_count)
+            else:
+                print("still completing result 1 ")
+                state_1 = self.goal_states[0]
+                self.result_1 = self.env.env._eval_predicate(state_1)
         elif len(self.shaping_reward) == 0:
             # if not using dense reward, only check sparse predicate
             state = self.goal_states[self.current_goal_index] # complete multiple goals in order
@@ -206,7 +221,7 @@ class LowDimensionalObsGymEnv(gym.Env):
             for state in self.goal_states:
                 if self.env.env._eval_predicate(state):        
                     if self.verbose >= 4: print("small reward for state: ", state)
-                    reward += self.sparse_reward / 10000.0
+                    reward += self.sparse_reward / 1000.0
 
         # logistics
         if self.verbose >= 4: print(f"reward at step {self.step_count}: {reward}")
@@ -231,6 +246,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         obs = self.get_low_dim_obs(obs)
         self.step_count = 0
         self.current_goal_index = 0
+        self.result_1 = False
 
         # initialize the robot's qpos randomly
         if self.init_qpos_file_path is not None:
@@ -242,10 +258,12 @@ class LowDimensionalObsGymEnv(gym.Env):
         # run previous policy for first goal state
         if self.goal_1_policy:
             done = False
-            while self.current_goal_index < 1 and not done:
+            while not self.result_1 and not done:
                 action, _states = self.goal_1_policy.predict(obs)
                 obs, reward, done, truncated, info = self.step(action)
                 print("reset phase")
+            if done:
+                self.reset()
 
         return obs, {}
 
