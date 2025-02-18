@@ -3,6 +3,7 @@ from collections import OrderedDict
 import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import Box, Dict
+import random
 
 import torch
 from stable_baselines3.common.vec_env import VecEnv
@@ -90,7 +91,7 @@ class MapObjects():
 class LowDimensionalObsGymEnv(gym.Env):
     """ Sparse reward environment with all the low-dimensional states
     """
-    def __init__(self, is_shaping_reward, sparse_reward, reward_geoms, dense_reward_multiplier, steps_per_episode=250, goal_1_policy=None, **kwargs):
+    def __init__(self, is_shaping_reward, sparse_reward, reward_geoms, dense_reward_multiplier, steps_per_episode=250, goal_1_policy=None, init_qpos_file_path=None, **kwargs):
         self.env = OffScreenRenderEnv(**kwargs)
         obs = self.env.env._get_observations()
         low_dim_obs = self.get_low_dim_obs(obs)
@@ -103,8 +104,12 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.images = []
         self.sparse_reward = sparse_reward
         self.steps_per_episode = steps_per_episode
-        self.robot_init_qpos = None
+        self.init_qpos_file_path = init_qpos_file_path
         self.goal_1_policy = goal_1_policy
+
+        # load the qpos array
+        if self.init_qpos_file_path is not None:
+            self.init_qpos_arr = np.load(f'{self.init_qpos_file_path}', allow_pickle=True)
 
         # for multi-goal tasks
         self.current_goal_index = 0
@@ -194,8 +199,11 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.current_goal_index = 0
 
         # initialize the robot's qpos randomly
-        if self.robot_init_qpos is not None:
-            self.reset_robots_random(self.robot_init_qpos)
+        if self.init_qpos_file_path is not None:
+            # select a random qpos from the given npy path
+            init_qpos = random.choice(self.init_qpos_arr)
+            print("resetting robot init qpos")
+            self.reset_robots_random(init_qpos)
         
         # run previous policy for first goal state
         if self.goal_1_policy:
@@ -209,12 +217,8 @@ class LowDimensionalObsGymEnv(gym.Env):
 
     def reset_robots_random(self, init_qpos):
         for robot in self.env.robots:
-            random_qpos = init_qpos.copy()
-            random_qpos += np.random.uniform(-0.5, 0.5, size=random_qpos.shape)
-            robot.init_qpos = random_qpos
-            robot.reset()
-            # revert qpos back
             robot.init_qpos = init_qpos
+            robot.reset()
     
     def seed(self, seed=None):
         return self.env.seed(seed)

@@ -42,6 +42,8 @@ class Args:
     """directory path of the models checkpoints"""
     model_path: str = None
     """path to existing model if loading a model"""
+    init_qpos_file_path: str = None
+    """path to robot initial qpos file, in npy format [list of qpos arrays]"""
     wandb_project: str = "cl_manipulation"
     """wandb project name"""
     wandb_entity: str = "<YOUR_WANDB_ENTITY>"
@@ -157,7 +159,7 @@ if __name__ == "__main__":
             )
         else:
             envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, reward_geoms, args.dense_reward_multiplier, args.steps_per_episode, **env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
+                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, reward_geoms, args.dense_reward_multiplier, args.steps_per_episode, init_qpos_file_path=args.init_qpos_file_path, **env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
             )
 
     """ ## Speed test

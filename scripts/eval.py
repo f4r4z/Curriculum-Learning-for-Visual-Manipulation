@@ -1,6 +1,7 @@
 # add parent path to sys
 import os
 import sys
+import random
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dataclasses import dataclass
@@ -155,7 +156,9 @@ if __name__ == "__main__":
             success += 1 if info[0]["is_success"] else 0
             total_episodes += 1
             print(total_episodes)
-            last_joint_positions.append(last_pos)
+            if info[0]["is_success"]:
+                print("added to last joint position")
+                last_joint_positions.append(last_pos)
             envs.reset()
         
         last_pos = envs.envs[0].env.env.robots[0]._joint_positions
@@ -168,4 +171,5 @@ if __name__ == "__main__":
     obs_to_video(images, f"{args.video_path}")
     print("# of tasks successful", success, "out of", total_episodes)
     print("average of final robot joints", sum(last_joint_positions)/len(last_joint_positions))
+    np.save(f'{args.video_path}_qpos.npy', last_joint_positions, allow_pickle=True)
     envs.close()
