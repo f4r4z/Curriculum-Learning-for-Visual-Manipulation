@@ -69,6 +69,8 @@ def setup_envs(
                 reward_geoms=args.reward_geoms.split(",") if args.reward_geoms is not None else None,
                 dense_reward_multiplier=args.dense_reward_multiplier,
                 steps_per_episode=args.steps_per_episode,
+                goal_1_policy=PPO.load(f"{args.policy_1_path}") if args.policy_1_path is not None else None,
+                init_qpos_file_path=args.init_qpos_file_path,
                 setup_demo=args.setup_demo_path,
                 **env_args
             ), info_keywords=["is_success"]) for _ in range(args.num_envs)]

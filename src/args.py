@@ -93,6 +93,8 @@ class EnvArgs:
     """number of LIBERO environments"""
     multiprocessing_start_method: Optional[str] = None
     """The start method for starting processes if num_envs > 1. Can be 'fork', 'spawn', or 'forkserver'. 'forkserver' is default"""
+    policy_1_path: Optional[str] = None
+    """in case of multi-goal states, pass in the path for policy for first goal"""
     setup_demo_path: Optional[str] = None
     """If passed in, runs the actions in the given demonstration before every episode to setup the scene"""
     shaping_reward: bool = True
@@ -105,6 +107,8 @@ class EnvArgs:
     """multiplies the last goal state's shaping reward"""
     steps_per_episode: int = 250
     """number of steps in episode. If truncate is True, the episode will terminate after this value"""
+    init_qpos_file_path: Optional[str] = None
+    """path to robot initial qpos file, in npy format [list of qpos arrays]"""
     
 
 @dataclass

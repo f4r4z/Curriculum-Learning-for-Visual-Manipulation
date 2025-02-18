@@ -3,7 +3,8 @@ import typing
 import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import Box, Dict
-
+from stable_baselines3.common.base_class import BaseAlgorithm
+import random
 
 from libero.libero.envs import OffScreenRenderEnv
 from libero.libero.envs.objects.articulated_objects import Microwave, SlideCabinet, Window, Faucet, BasinFaucet, ShortCabinet, ShortFridge, WoodenCabinet, WhiteCabinet, FlatStove
@@ -75,6 +76,8 @@ class LowDimensionalObsGymEnv(gym.Env):
         reward_geoms: Optional[List[str]] = None, 
         dense_reward_multiplier: float = 1.0, 
         steps_per_episode=250, 
+        goal_1_policy: Optional[BaseAlgorithm] = None,
+        init_qpos_file_path: Optional[str] = None,
         setup_demo=None,
         verbose=1, # 
         **kwargs
@@ -109,8 +112,13 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.images = []
         self.sparse_reward = sparse_reward
         self.steps_per_episode = steps_per_episode
-        # self.robot_init_qpos = self.env.robots[0].init_qpos
-        self.robot_init_qpos = None
+        self.init_qpos_file_path = init_qpos_file_path
+        self.goal_1_policy = goal_1_policy
+
+        # load the qpos array
+        if self.init_qpos_file_path is not None:
+            self.init_qpos_arr = np.load(f'{self.init_qpos_file_path}', allow_pickle=True)
+        
         self.verbose = verbose
 
         # for multi-goal tasks
@@ -220,53 +228,34 @@ class LowDimensionalObsGymEnv(gym.Env):
             for action in self.setup_actions:
                 obs, _, _, _ = self.env.step(action)
 
+        obs = self.get_low_dim_obs(obs)
         self.step_count = 0
         self.current_goal_index = 0
-        # initialize the robot's qpos randomly
-        if self.robot_init_qpos is not None:
-            self.reset_robots_random(self.robot_init_qpos)
 
-        return self.get_low_dim_obs(obs), {}
+        # initialize the robot's qpos randomly
+        if self.init_qpos_file_path is not None:
+            # select a random qpos from the given npy path
+            init_qpos = random.choice(self.init_qpos_arr)
+            print("resetting robot init qpos")
+            self.reset_robots_random(init_qpos)
+        
+        # run previous policy for first goal state
+        if self.goal_1_policy:
+            done = False
+            while self.current_goal_index < 1 and not done:
+                action, _states = self.goal_1_policy.predict(obs)
+                obs, reward, done, truncated, info = self.step(action)
+                print("reset phase")
+
+        return obs, {}
 
     def reset_robots_random(self, init_qpos):
         for robot in self.env.robots:
-            random_qpos = init_qpos.copy()
-            random_qpos += np.random.uniform(-5.0, 5.0, size=random_qpos.shape)
-            robot.init_qpos = random_qpos
-            robot.reset()
-            # revert qpos back
             robot.init_qpos = init_qpos
+            robot.reset()
     
     def seed(self, seed=None):
         return self.env.seed(seed)
-
-    def get_bodies_and_geoms(self):
-        if "ketchup_1" in self.env.obj_of_interest:
-            body_main = "ketchup_1_main"
-            geom_names = [
-                "ketchup_1_main", 
-            ]
-        else:
-            body_main = "wooden_cabinet_1_cabinet_bottom"
-            geom_names = [
-                "wooden_cabinet_1_g40",
-                "wooden_cabinet_1_g41",
-                "wooden_cabinet_1_g42"
-            ]
-
-        geom_names = []
-        for i in range(self.env.sim.model.ngeom):
-            geom_name = self.env.sim.model.geom_id2name(i)
-            # print(f"Geom ID {i}: {geom_name}")
-            geom_pos = self.env.sim.model.geom_pos[i]
-            geom_size = self.env.sim.model.geom_size[i]
-            # print(f"Geom Position: {geom_pos}, Size: {geom_size}")
-            for obj in self.env.obj_of_interest:
-                if geom_name and obj in geom_name:
-                    geom_names.append(geom_name)
-        body_mains = [obj + "_main" for obj in self.env.obj_of_interest]
-
-        return body_mains, geom_names
 
     def current_joint_position(self):
         qposs = []

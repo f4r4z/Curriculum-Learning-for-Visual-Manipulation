@@ -90,6 +90,9 @@ class DenseReward:
         if self.predicate_fn_name == "placein":
             if self.verbose >= 4: print("place in")
             return self.place_inside()
+        if self.predicate_fn_name == "turnon":
+            print("turn on")
+            return self.reach(self.object_bodies[0])
         if self.predicate_fn_name == "reset":
             if self.verbose >= 4: print("reset")
             return self.reset_qpos()
@@ -194,7 +197,7 @@ class DenseReward:
         current_joint_position = self.current_joint_position()
         displacement = np.linalg.norm(current_joint_position - self.close_joint_position)
         
-        reward = (1 - np.tanh(displacement))
+        reward = (1 - np.tanh(displacement*10.0)) / 10.0
 
         return reward
 
