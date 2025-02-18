@@ -1,45 +1,13 @@
-from libero.libero.envs.predicates import *
-from libero.libero.envs.object_states import BaseObjectState, ObjectState
-from libero.libero.envs.bddl_base_domain import BDDLBaseDomain
-from libero.libero.envs.objects import SiteObject
-from src.extract_xml import locate_libero_xml, find_geoms_for_site, find_body_main
+from libero.libero.envs.object_states import BaseObjectState
+from src.libero_utils import get_body_for_site, get_list_of_geom_names_for_site, check_contact_excluding_gripper
+from .utils import patch
+
 import numpy as np
-import re
 
-def split_object_name(object_name, parent_name):
-    # Extract the prefix and the remaining part
-    match = re.match(r"(.*)_\d+", parent_name)
-    if match:
-        prefix = match.group(1)  # Everything before '_<digit>'
-        # Remove the parent_name from full_string to get the suffix
-        suffix = object_name[len(parent_name) + 1:]  # +1 for the underscore
-        return prefix, suffix
-    else:
-        raise ValueError(f"parent name '{parent_name}' is not in the expected format.")
 
-def get_body_for_site(object_name, parent_name):
-    target_object_name, target_site_name = split_object_name(object_name, parent_name)
-    path = locate_libero_xml(target_object_name)
-    body_main = find_body_main(path, target_site_name)
-    return parent_name + '_' + body_main
 
-def get_list_of_geom_names_for_site(object_name, parent_name, env):
-    list_of_geom_names = []
-    target_object_name, target_site_name = split_object_name(object_name, parent_name)
-    path = locate_libero_xml(target_object_name)
-    site_geom_positions = find_geoms_for_site(path, target_site_name)
-    for geom_name in env.sim.model.geom_names:
-        if geom_name is None:
-            continue
-        if parent_name in geom_name:  # Filter for object-specific geoms
-            geom_id = env.sim.model.geom_name2id(geom_name)
-            geom_position = env.sim.model.geom_pos[geom_id]
-            for site_geom_pos in site_geom_positions:
-                if (site_geom_pos == geom_position).all():
-                    list_of_geom_names.append(geom_name)
-    return list_of_geom_names
-
-def check_gripper_contact(self):
+@patch(BaseObjectState)
+def check_gripper_contact(self: BaseObjectState):
     gripper_geoms = self.env.robots[0].gripper # or gripper_geoms = ["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"]
     # if specific geoms mentioned
     if self.env.reward_geoms:
@@ -54,7 +22,9 @@ def check_gripper_contact(self):
         target_object_geoms = self.env.get_object(self.object_name).contact_geoms
         return self.env.check_contact(gripper_geoms, target_object_geoms)
 
-def check_grasp(self):
+
+@patch(BaseObjectState)
+def check_grasp(self: BaseObjectState):
     gripper_geoms = self.env.robots[0].gripper # or  gripper_geoms = ["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"]
     
     # if specific geoms mentioned
@@ -68,7 +38,9 @@ def check_grasp(self):
         target_object_geoms = self.env.get_object(self.object_name).contact_geoms # .contact_geoms is not really necessary, but added for readibility
         return self.env._check_grasp(gripper=gripper_geoms, object_geoms=target_object_geoms)
 
-def reach(self):
+
+@patch(BaseObjectState)
+def reach(self: BaseObjectState):
     if self.object_state_type == "site":
         body_main = get_body_for_site(self.object_name, self.parent_name)
     else:
@@ -96,7 +68,9 @@ def reach(self):
     else:
         return False
 
-def align(self, arg1):
+
+@patch(BaseObjectState)
+def align(self: BaseObjectState, other: BaseObjectState):
     """
     other object align with this object
     """
@@ -108,7 +82,7 @@ def align(self, arg1):
         ]
     
     other_object_position = self.env.sim.data.body_xpos[
-       self.env.obj_body_id[arg1.object_name]
+       self.env.obj_body_id[other.object_name]
     ]
 
     dist = np.linalg.norm(other_object_position[:2] - this_object_position[:2])
@@ -118,30 +92,9 @@ def align(self, arg1):
     else:
         return False
 
-def check_contact_excluding_gripper(sim, object_name, gripper_geoms=["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"]):
-    '''
-    returns True if object_name is in contact with another object excluding the gripper
-    '''
-    # Iterate over all MuJoCo contacts
-    for i in range(sim.data.ncon):
-        # Get geom IDs of the two contacting geoms
-        contact = sim.data.contact[i]
-        geom1 = contact.geom1
-        geom2 = contact.geom2
-        # Get geom names
-        geom1_name = sim.model.geom_id2name(geom1)
-        geom2_name = sim.model.geom_id2name(geom2)
 
-        # Check if the object is involved in the contact
-        if (geom1_name is not None and object_name in geom1_name) or (geom2_name is not None and object_name in geom2_name):
-            # Ensure the other contact geom is not the gripper
-            other_geom = geom1_name if (geom2_name is not None and object_name in geom2_name) else geom2_name
-            if other_geom is None or "gripper" not in other_geom:                
-                return True
-    return False
-
-
-def lift(self):
+@patch(BaseObjectState)
+def lift(self: BaseObjectState):
     '''
     no contact with another object
     higher than 1.5? 1.25? times (or absolute) the other interest object
@@ -172,7 +125,9 @@ def lift(self):
 
     return False
 
-def reset_qpos(self):
+
+@patch(BaseObjectState)
+def reset_qpos(self: BaseObjectState):
     """
     resets robot to original qpos
     """
@@ -184,50 +139,3 @@ def reset_qpos(self):
         return True
     else:
         return False
-
-
-class Contact(UnaryAtomic):
-    def __call__(self, arg):
-        return arg.check_gripper_contact()
-
-class Grasp(UnaryAtomic):
-    def __call__(self, arg):
-        return arg.check_grasp()
-
-class Reach(UnaryAtomic):
-    def __call__(self, arg):
-        return arg.reach()
-
-class Lift(UnaryAtomic):
-    def __call__(self, arg):
-        return arg.lift()
-
-class Align(BinaryAtomic):
-    def __call__(self, arg1, arg2):
-        return arg2.align(arg1)
-
-class PlaceIn(BinaryAtomic):
-    def __call__(self, arg1, arg2):
-        return arg2.check_contact(arg1) and arg2.check_contain(arg1) and (not arg1.check_gripper_contact())
-
-class Reset(UnaryAtomic):
-    def __call__(self, arg):
-        return arg.reset_qpos()
-
-
-VALIDATE_PREDICATE_FN_DICT["contact"] = Contact()
-VALIDATE_PREDICATE_FN_DICT["grasp"] = Grasp()
-VALIDATE_PREDICATE_FN_DICT["reach"] = Reach()
-VALIDATE_PREDICATE_FN_DICT["lift"] = Lift()
-VALIDATE_PREDICATE_FN_DICT["align"] = Align()
-VALIDATE_PREDICATE_FN_DICT["placein"] = PlaceIn()
-VALIDATE_PREDICATE_FN_DICT["reset"] = Reset()
-
-BaseObjectState.check_gripper_contact = check_gripper_contact
-BaseObjectState.check_grasp = check_grasp
-BaseObjectState.reach = reach
-BaseObjectState.lift = lift
-BaseObjectState.align = align
-BaseObjectState.reset_qpos = reset_qpos
-
-# BDDLBaseDomain.reward = reward
