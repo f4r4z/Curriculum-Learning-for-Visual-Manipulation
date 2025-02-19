@@ -200,11 +200,8 @@ class StopTrainingOnSuccessRateThreshold(BaseCallback):
         self.threshold = threshold
         self.min_count = min_count
         self.should_end = False
-
-    def _on_step(self) -> bool:
-        return not self.should_end
-
-    def _on_rollout_end(self) -> bool:
+    
+    def update_should_end(self):
         if self.should_end:
             return
 
@@ -215,5 +212,14 @@ class StopTrainingOnSuccessRateThreshold(BaseCallback):
         success_rate = float(np.mean(success_buffer))
         if success_rate > self.threshold:
             self.should_end = True
-            print(f"Success rate reached {success_rate}, which is greater than threshold {self.threshold}. Stopping training on next step.")
+            print(f"Success rate reached {success_rate}, which is greater than threshold {self.threshold}. Stopping training.")
+
+
+    def _on_step(self) -> bool:
+        if self.locals['dones'].any():
+            self.update_should_end()
+        return not self.should_end
+
+    def _on_rollout_end(self):
+        self.update_should_end()
     

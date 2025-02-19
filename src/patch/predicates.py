@@ -46,23 +46,29 @@ class Reach(MultiarayAtomic):
         goal_distance = max(goal_distance, 0.01) # Have some leeway for goal distance
         
         env = object_state.env
-        grip_site_pos = env.sim.data.get_site_xpos("gripper0_grip_site") # This is the position between the 2 claws
+        grip_site_pos: np.ndarray = env.sim.data.get_site_xpos("gripper0_grip_site") # This is the position between the 2 claws
 
         object_pos = object_state.get_geom_state()['pos']
         dist = np.linalg.norm(grip_site_pos - object_pos)
 
-        # Check whether object has been reached (without caring about goal_distance)
-        # TODO: there is a check_contain in ObjectState, but that takes in another object as a parameter, not a single point
-        # Maybe add a new function in BaseObjectState to check whether a point is in the object
-        # Also, these in_box functions approximate the objects as axis-aligned
-        if isinstance(object_state, ObjectState):
-            object: MujocoXMLObject = env.get_object(object_state.object_name)
-            return object.in_box(object_pos, grip_site_pos) # TODO: check if this works. I don't think the object actually has an in_box function
-        elif isinstance(object_state, SiteObjectState):
-            object_mat = env.sim.data.get_site_xmat(object_state.object_name)
-            object_site = env.get_object(object_state.object_name)
-            if object_site.in_box(object_pos, object_mat, grip_site_pos):
-                return True
+        # Check whether the object has been reached based on whether geoms bounding box
+        min_bounds, max_bounds = compute_bounding_box_from_geoms(env.sim, object_state.get_geoms())
+        if (grip_site_pos > min_bounds).all() and (grip_site_pos < max_bounds).all():
+            return True
+
+        # replaced below with the geom bounding box solution above
+        # # Check whether object has been reached (without caring about goal_distance)
+        # # TODO: there is a check_contain in ObjectState, but that takes in another object as a parameter, not a single point
+        # # Maybe add a new function in BaseObjectState to check whether a point is in the object
+        # # Also, these in_box functions approximate the objects as axis-aligned
+        # if isinstance(object_state, ObjectState):
+        #     object: MujocoXMLObject = env.get_object(object_state.object_name)
+        #     return object.in_box(object_pos, grip_site_pos) # FIXME: this doesn't work.
+        # elif isinstance(object_state, SiteObjectState):
+        #     object_mat = env.sim.data.get_site_xmat(object_state.object_name)
+        #     object_site = env.get_object(object_state.object_name)
+        #     if object_site.in_box(object_pos, object_mat, grip_site_pos):
+        #         return True
         
         # If object has not been reached, check if goal distance is reached
         return dist < goal_distance

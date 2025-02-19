@@ -1,6 +1,6 @@
 (define (problem LIBERO_Living_Room_Tabletop_Manipulation)
   (:domain robosuite)
-  (:language reach the ketchup)
+  (:language lift the ketchup)
     (:regions
       (basket_init_region
           (:target living_room_table)
