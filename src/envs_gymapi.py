@@ -225,7 +225,8 @@ class LowDimensionalObsGymEnv(gym.Env):
         if self.goal_1_policy:
             done = False
             while not self.result_1 and not done:
-                action, _states = self.goal_1_policy.predict(obs)
+                with torch.no_grad():
+                    action, _states = self.goal_1_policy.predict(obs)
                 obs, reward, done, truncated, info = self.step(action)
                 print("reset phase")
             if done:

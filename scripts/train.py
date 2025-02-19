@@ -323,5 +323,5 @@ if __name__ == "__main__":
     '''train'''
     model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=callbacks, progress_bar=False)
     model.save(save_path)
-
+    envs.close()
     del model

@@ -138,7 +138,8 @@ if __name__ == "__main__":
     # set up reward geoms
     reward_geoms = args.reward_geoms.split(",") if args.reward_geoms is not None else None
     # pass in policy 1
-    policy_1 = PPO.load(f"{args.policy_1_path}", device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+    policy_1 = PPO.load(f"{args.policy_1_path}", device='cpu')
+    print("policy_1 loaded")
     
     if not args.truncate:
         env_args["horizon"] = args.total_timesteps
@@ -214,6 +215,7 @@ if __name__ == "__main__":
             tensorboard_log=save_path,
             n_steps=args.n_steps,
             ent_coef=args.ent_coef,
+            batch_size=32,
             # clip_range=args.clip_range,
             seed=args.seed
         )
@@ -253,6 +255,9 @@ if __name__ == "__main__":
         log_interval = 2
     else:
         raise ValueError(f"Algorithm {args.alg} is not in supported list [ppo, sac]")
+
+    torch.cuda.empty_cache()  # Clears unused memory
+    gc.collect()
 
     if args.model_path:
         print("loading model from ", args.model_path)
@@ -309,5 +314,5 @@ if __name__ == "__main__":
     '''train'''
     model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=callbacks, progress_bar=False)
     model.save(save_path)
-
+    envs.close()
     del model
