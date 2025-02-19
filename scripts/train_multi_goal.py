@@ -215,7 +215,6 @@ if __name__ == "__main__":
             tensorboard_log=save_path,
             n_steps=args.n_steps,
             ent_coef=args.ent_coef,
-            batch_size=32,
             # clip_range=args.clip_range,
             seed=args.seed
         )
@@ -255,9 +254,6 @@ if __name__ == "__main__":
         log_interval = 2
     else:
         raise ValueError(f"Algorithm {args.alg} is not in supported list [ppo, sac]")
-
-    torch.cuda.empty_cache()  # Clears unused memory
-    gc.collect()
 
     if args.model_path:
         print("loading model from ", args.model_path)
