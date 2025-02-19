@@ -1,9 +1,19 @@
-from libero.libero.envs.object_states import BaseObjectState
+from libero.libero.envs.object_states import BaseObjectState, ObjectState, SiteObjectState
 from src.libero_utils import get_body_for_site, get_list_of_geom_names_for_site, check_contact_excluding_gripper
 from .utils import patch
 
 import numpy as np
 
+
+@patch(BaseObjectState)
+def get_geoms(self: BaseObjectState):
+    if isinstance(self, ObjectState):
+        obj = self.env.get_object(self.object_name)
+        return obj.contact_geoms
+    elif isinstance(self, SiteObjectState):
+        return get_list_of_geom_names_for_site(self.object_name, self.parent_name, self.env)
+    else:
+        raise NotImplementedError
 
 
 @patch(BaseObjectState)

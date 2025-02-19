@@ -1,6 +1,8 @@
+from robosuite.utils.binding_utils import MjSim
 from src.extract_xml import locate_libero_xml, find_geoms_for_site, find_body_main
 from libero.libero.envs.bddl_base_domain import BDDLBaseDomain
 import re
+import numpy as np
 from typing import List
 
 
@@ -61,3 +63,8 @@ def check_contact_excluding_gripper(sim, object_name, gripper_geoms=["gripper0_f
             if other_geom is None or "gripper" not in other_geom:                
                 return True
     return False
+
+
+def compute_bounding_box_from_geoms(sim: MjSim, geoms: List[str]):
+    positions = np.array([sim.data.get_geom_xpos(geom) for geom in geoms])
+    return positions.min(axis=0), positions.max(axis=0)

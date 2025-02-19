@@ -92,7 +92,8 @@ def setup_run_at_path(base_path: str, *paths: str):
 
 def setup_model(
     args: args.AlgArgs, 
-    env: VecEnv, seed, 
+    env: VecEnv,
+    seed, 
     save_path: str, 
     tensorboard_path: Optional[str] = None,
     load_path: Optional[str] = None

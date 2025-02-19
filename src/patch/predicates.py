@@ -3,6 +3,9 @@ from libero.libero.envs.object_states import BaseObjectState, ObjectState, SiteO
 from libero.libero.envs.objects import ArticulatedObject
 from robosuite.models.objects import MujocoXMLObject
 import numpy as np
+from typing import Optional
+
+from ..libero_utils import check_contact_excluding_gripper, compute_bounding_box_from_geoms
 
 
 def register_predicate_fn(target_class):
@@ -147,60 +150,54 @@ class Lift(MultiarayAtomic):
         assert len(args) >= 1
         if len(args) == 1:
             return self.is_lifted(args[0])
+        elif len(args) == 2:
+            if isinstance(args[1], BaseObjectState):
+                return self.is_lifted(args[0], other_object_state=args[1])
+            else:
+                return self.is_lifted(args[0], lift_distance=float(args[1]))
         else:
-            lift_distance = float(args[1])
-            return self.is_lifted(args[0], lift_distance)
+            return self.is_lifted(args[0], other_object_state=args[1], lift_distance=float(args[2]))
     
-    def is_lifted(self, object_state: BaseObjectState, lift_distance: float = 0):
+    def is_lifted(
+        self, 
+        object_state: BaseObjectState, 
+        other_object_state: Optional[BaseObjectState] = None, 
+        lift_distance: float = 0
+    ):
         lift_distance = max(lift_distance, 0.01) # <1cm counts as not lifted
-
         env = object_state.env
-        grip_site_pos = env.sim.data.get_site_xpos("gripper0_grip_site") # This is the position between the 2 claws
 
-        def print_geom_elevation_range(object: MujocoXMLObject):
-                geom_positions = [env.sim.data.get_geom_xpos(geom) for geom in object.contact_geoms] # + object.visual_geoms]
-                min_elevation = np.array(geom_positions).transpose()[2].min()
-                max_elevation = np.array(geom_positions).transpose()[2].max()
-                print(min_elevation, max_elevation, max_elevation - min_elevation)
+        # if the object is contacting another object (eg the table), we don't count it as lifted
+        if check_contact_excluding_gripper(env.sim, object_state.object_name):
+            return False
+        
+        # gripper must be touching. This prevents the predicate from being satisfied at the beginning when objects are initialized in the air
+        if not object_state.check_gripper_contact():
+            return False
+        
+        min_bounds, _ = compute_bounding_box_from_geoms(env.sim, object_state.get_geoms())
+        min_elevation = min_bounds[2]
 
-        if isinstance(object_state, ObjectState):
-            body_id = env.obj_body_id[object_state.object_name]
-            object_pos: np.ndarray = env.sim.data.body_xpos[body_id]
-            object_mat: np.ndarray = env.sim.data.body_xmat[body_id].reshape((3, 3))
-
-            # print(env.get_object(object_state.object_name).contact_geoms)
-            # for geom in env.get_object(object_state.object_name).contact_geoms:
-            #     print(env.sim.data.get_geom_xpos(geom) - object_pos)
-
-            print_geom_elevation_range(env.get_object(object_state.object_name))
-            print_geom_elevation_range(env.get_object(object_state.object_name))
-            # print(object, type(object))
-            # model: MujocoXMLModel = object.get_model()
-            # print(type(model), model)
-            # print(model._elements.get("contact_geoms", []))
-            # raise Exception()
-            # object_size = env.get_object(object_state.object_name).size
-        elif isinstance(object_state, SiteObjectState):
-            object_pos: np.ndarray = env.sim.data.get_site_xpos(object_state.object_name)
-            object_mat: np.ndarray = env.sim.data.get_site_xmat(object_state.object_name)
+        if other_object_state is not None:
+            _, other_max_bounds = compute_bounding_box_from_geoms(env.sim, other_object_state.get_geoms())
+            other_max_elevation = other_max_bounds[2]
         else:
-            raise Exception(f"SparseLift does not support object state of type {type(object_state)}")
+            # TODO: the table isn't always at this level. maybe update this to match the table level. env has a property "z_offset" that could be used
+            other_max_elevation = env.workspace_offset[2]
         
         # total_size = np.abs(object_mat @ object_pos)
         # print(object_state, total_size)
-        print(env.sim.model._body_name2id)
-        print(env.sim.model._site_name2id)
-        print(env.sim.data.get_body_xpos("world"))
-        print(env.sim.data.get_body_xpos("floor"))
-        print(env.sim.data.get_body_xpos("living_room_table"))
-        print(env.sim.data.get_body_xpos("living_room_table_col"))
-        print(env.sim.data.get_site_xpos("living_room_table_ketchup_init_region"))
-        print(object_pos)
+        # print(env.sim.model._body_name2id)
+        # print(env.sim.model._site_name2id)
+        # print(env.sim.data.get_body_xpos("world"))
+        # print(env.sim.data.get_body_xpos("floor"))
+        # print(env.sim.data.get_body_xpos("living_room_table"))
+        # print(env.sim.data.get_body_xpos("living_room_table_col"))
+        # print(env.sim.data.get_site_xpos("living_room_table_ketchup_init_region"))
+        # print(object_pos)
+        # print(min_elevation, other_max_elevation)
         
-
-        # dist = np.linalg.norm(grip_site_pos - object_pos)
-        
-        return False
+        return min_elevation - other_max_elevation > lift_distance
 
 
 @register_predicate_fn
