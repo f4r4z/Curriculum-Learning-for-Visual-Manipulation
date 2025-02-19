@@ -138,7 +138,7 @@ if __name__ == "__main__":
     # set up reward geoms
     reward_geoms = args.reward_geoms.split(",") if args.reward_geoms is not None else None
     # pass in policy 1
-    policy_1 = PPO.load(f"{args.policy_1_path}")
+    policy_1 = PPO.load(f"{args.policy_1_path}", device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
     
     if not args.truncate:
         env_args["horizon"] = args.total_timesteps

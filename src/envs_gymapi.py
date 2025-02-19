@@ -149,7 +149,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         # only for goal 1 policy    
         elif self.goal_1_policy:
             if self.result_1:
-                print("hey! result 1 is complete")
+                print("result 2")
                 state_2 = self.goal_states[1]
                 result_2 = self.env.env._eval_predicate(state_2)
                 state_tuple = tuple(state_2)
@@ -158,7 +158,7 @@ class LowDimensionalObsGymEnv(gym.Env):
                 dense_reward_object = self.shaping_reward[state_tuple]
                 reward += dense_reward_object.dense_reward(step_count=self.step_count)
             else:
-                print("still completing result 1 ")
+                print("result 1 ")
                 state_1 = self.goal_states[0]
                 self.result_1 = self.env.env._eval_predicate(state_1)
         elif len(self.shaping_reward) == 0:
