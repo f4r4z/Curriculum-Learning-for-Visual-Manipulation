@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import tyro
 import torch
 import numpy as np
+from typing import Optional
 
 from libero.libero import get_libero_path
 from stable_baselines3 import PPO, SAC
@@ -29,6 +30,8 @@ class Args(EnvArgs, AlgArgs):
     """file path of the model file"""
     num_episodes: int = 10
     """number of episodes to generate evaluation"""
+    verbose: Optional[int] = 1
+    """verbosity of outputs, with 0 being least"""
 
     # Environment specific arguments
     custom_bddl_path: str = None
@@ -49,7 +52,7 @@ if __name__ == "__main__":
         bddl_file = os.path.join(get_libero_path("bddl_files"), task_name)
 
     print("Setting up environment")
-    envs = setup_envs(bddl_file, args)
+    envs = setup_envs(bddl_file, args, verbose=args.verbose)
 
     # Seeding everything
     if args.seed is not None:

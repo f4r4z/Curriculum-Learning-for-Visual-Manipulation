@@ -38,14 +38,12 @@ class Args(WandbArgs, AlgArgs, EnvArgs):
     verbose: Optional[int] = 1
     """verbosity of outputs, with 0 being least"""
 
-    # Environment specific arguments
     curriculum_file: str = tyro.MISSING
     """The path to a python file containing functions that generate BDDL files"""
-
-    n_eval_episodes: int = 10
-    """number of episodes to run for evaluation and success rate checking. Set to 0 to not eval and always train to total_timesteps"""
     success_rate_threshold: float = 0.7
     """success rate to reach before moving on to the next subtask of the curriculum"""
+    final_task_timesteps: Optional[int] = None
+    """The number of timesteps to run the final task. If not set, will equal total_timesteps"""
 
 
 def load_bddls(curriculum_file: str):
@@ -60,19 +58,21 @@ def load_bddls(curriculum_file: str):
     bddls: List[Tuple[str, str]] = []
     for k, func in namespace.items():
         if not inspect.isfunction(func) or inspect.isbuiltin(func): # ignore non-functions and builtins
-            print(f"skipping {k} because it is builtin or is not a function")
+            # print(f"skipping {k} because it is builtin or is not a function")
             continue
         if k.startswith("__") and k.endswith("__"): # ignore functions named __name__
-            print(f"skipping {k} because it is in the format __name__")
+            # print(f"skipping {k} because it is in the format __name__")
             continue
         if len(inspect.signature(func).parameters) == 0:
             bddl = func()
             if type(bddl) is str:
                 bddls.append((func.__name__, bddl))
+                print(f"Added single task '{func.__name__}'")
             elif type(bddl) is list:
                 for i, s in enumerate(bddl):
                     assert type(s) is str
                     bddls.append((f"{func.__name__}_{i}", s))
+                print(f"Added task space '{func.__name__}' with {len(bddl)} steps")
     # for k, bddl in bddls:
     #     print(k)
     #     print(bddl)
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     print("Start training")
     for i, (subtask_name, bddl) in enumerate(bddls):
         print(f"Starting subtask {i+1}/{len(bddls)} ({subtask_name}) at step {model.num_timesteps}")
-
+        is_final_task = i == len(bddls)-1
 
         envs = create_envs(bddl, args, tmp_dir=tmp_path)
         if args.seed is not None:
@@ -158,7 +158,7 @@ if __name__ == "__main__":
         callbacks.append(VideoWriter(n_steps=5000 * args.num_envs))
 
         # Stop training when the model reaches the success rate threshold
-        if i < len(bddls)-1: # on the last subtask, train all the way to the end
+        if not is_final_task: # on the last subtask, train all the way to the end
             callbacks.append(StopTrainingOnSuccessRateThreshold(
                 threshold=args.success_rate_threshold, 
                 min_count=log_interval*args.num_envs,
@@ -173,8 +173,12 @@ if __name__ == "__main__":
         model.ep_info_buffer = None
         model.ep_success_buffer = None
 
+        total_timesteps = args.total_timesteps
+        if is_final_task and args.final_task_timesteps is not None:
+            total_timesteps = args.final_task_timesteps
+
         model.learn(
-            total_timesteps=args.total_timesteps,
+            total_timesteps=total_timesteps,
             tb_log_name=f"{i}_{subtask_name}",
             log_interval=log_interval,
             callback=callbacks,

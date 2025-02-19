@@ -58,7 +58,7 @@ def reach_the_ketchup():
 
 )
 	"""
-	return [bddl.format(open_amount) for open_amount in np.arange(0.5, -0.05, -0.05)]
+	return [bddl.format(open_amount) for open_amount in np.arange(0.2, -0.05, -0.05)]
 
 
 def grasp_the_ketchup():
