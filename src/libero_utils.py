@@ -65,6 +65,42 @@ def check_contact_excluding_gripper(sim, object_name, gripper_geoms=["gripper0_f
     return False
 
 
+def box_bounds(size: np.ndarray, position: np.ndarray, rotation: np.ndarray):
+    unit_cube = np.array([
+        [1, 1, 1],
+        [1, 1, -1],
+        [1, -1, 1],
+        [1, -1, -1],
+        [-1, 1, 1],
+        [-1, 1, -1],
+        [-1, -1, 1],
+        [-1, -1, -1],
+    ])
+    points = (size * unit_cube) @ rotation + position
+    return points.min(axis=0), points.max(axis=0)
+
+def get_site_bounding_box(sim: MjSim, site: str):
+    site_id = sim.model.site_name2id(site)
+    site_pos: np.ndarray = sim.data.get_site_xpos(site)
+    site_rot: np.ndarray = sim.data.get_site_xmat(site)
+    site_type: int = sim.model.site_type[site_id]
+    if site_type == 6:
+        return box_bounds(sim.model.site_size[site_id], site_pos, site_rot)
+    else:
+        raise Exception(f"computing bounds for site type {site_type} is not supported")
+
+def get_geom_bounding_box(sim: MjSim, geom: str):
+    geom_id = sim.model.geom_name2id(geom)
+    geom_pos: np.ndarray = sim.data.get_geom_xpos(geom)
+    geom_type: int = sim.model.geom_type[geom_id]
+    if geom_type == 6: # box
+        return box_bounds(sim.model.geom_size[geom_id], geom_pos, sim.data.get_geom_xmat(geom))
+    else:
+        radius = sim.model.geom_rbound[geom_id]
+        print(f"geom_type_{geom_type}", geom_pos, radius)
+        return geom_pos - radius, geom_pos + radius
+
+
 def compute_bounding_box_from_geoms(sim: MjSim, geoms: List[str]) -> Tuple[np.ndarray, np.ndarray]:
-    positions = np.array([sim.data.get_geom_xpos(geom) for geom in geoms])
-    return positions.min(axis=0), positions.max(axis=0)
+    min_bounds, max_bounds = zip(*[get_geom_bounding_box(sim, geom) for geom in geoms])
+    return np.array(min_bounds).min(axis=0), np.array(max_bounds).max(axis=0)

@@ -179,4 +179,4 @@ def lift_the_ketchup():
 
 )
 	"""
-	return [bddl.format(open_amount) for open_amount in np.arange(-0.3, 0, 0.05)]
+	return [bddl.format(open_amount) for open_amount in np.arange(-0.3, 0.15, 0.05)]

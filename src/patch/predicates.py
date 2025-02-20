@@ -1,11 +1,12 @@
 from libero.libero.envs.predicates import VALIDATE_PREDICATE_FN_DICT, UnaryAtomic, BinaryAtomic, MultiarayAtomic
 from libero.libero.envs.object_states import BaseObjectState, ObjectState, SiteObjectState
 from libero.libero.envs.objects import ArticulatedObject
-from robosuite.models.objects import MujocoXMLObject
+import mujoco
+import mujoco._structs
 import numpy as np
 from typing import Optional
 
-from ..libero_utils import check_contact_excluding_gripper, compute_bounding_box_from_geoms
+from ..libero_utils import check_contact_excluding_gripper, compute_bounding_box_from_geoms, get_geom_bounding_box
 
 
 def register_predicate_fn(target_class):
@@ -51,24 +52,15 @@ class Reach(MultiarayAtomic):
         object_pos = object_state.get_geom_state()['pos']
         dist = np.linalg.norm(grip_site_pos - object_pos)
 
+        # print("geoms:")
+        # for geom in object_state.get_geoms():
+        #     geom_id = env.sim.model.geom_name2id(geom)
+        #     print(geom, env.sim.model.geom_pos[geom_id], env.sim.model.geom_size[geom_id])
+
         # Check whether the object has been reached based on whether geoms bounding box
         min_bounds, max_bounds = compute_bounding_box_from_geoms(env.sim, object_state.get_geoms())
         if (grip_site_pos > min_bounds).all() and (grip_site_pos < max_bounds).all():
             return True
-
-        # replaced below with the geom bounding box solution above
-        # # Check whether object has been reached (without caring about goal_distance)
-        # # TODO: there is a check_contain in ObjectState, but that takes in another object as a parameter, not a single point
-        # # Maybe add a new function in BaseObjectState to check whether a point is in the object
-        # # Also, these in_box functions approximate the objects as axis-aligned
-        # if isinstance(object_state, ObjectState):
-        #     object: MujocoXMLObject = env.get_object(object_state.object_name)
-        #     return object.in_box(object_pos, grip_site_pos) # FIXME: this doesn't work.
-        # elif isinstance(object_state, SiteObjectState):
-        #     object_mat = env.sim.data.get_site_xmat(object_state.object_name)
-        #     object_site = env.get_object(object_state.object_name)
-        #     if object_site.in_box(object_pos, object_mat, grip_site_pos):
-        #         return True
         
         # If object has not been reached, check if goal distance is reached
         return dist < goal_distance
@@ -170,7 +162,6 @@ class Lift(MultiarayAtomic):
         other_object_state: Optional[BaseObjectState] = None, 
         lift_distance: float = 0
     ):
-        lift_distance = max(lift_distance, 0.01) # <1cm counts as not lifted
         env = object_state.env
 
         # if the object is contacting another object (eg the table), we don't count it as lifted
@@ -180,6 +171,9 @@ class Lift(MultiarayAtomic):
         # gripper must be touching. This prevents the predicate from being satisfied at the beginning when objects are initialized in the air
         if not object_state.check_gripper_contact():
             return False
+
+        # for geom in object_state.get_geoms():
+        #     get_geom_bounding_box(env.sim, geom)
         
         min_bounds, _ = compute_bounding_box_from_geoms(env.sim, object_state.get_geoms())
         min_elevation = min_bounds[2]
@@ -191,17 +185,12 @@ class Lift(MultiarayAtomic):
             # TODO: the table isn't always at this level. maybe update this to match the table level. env has a property "z_offset" that could be used
             other_max_elevation = env.workspace_offset[2]
         
-        # total_size = np.abs(object_mat @ object_pos)
-        # print(object_state, total_size)
-        # print(env.sim.model._body_name2id)
-        # print(env.sim.model._site_name2id)
-        # print(env.sim.data.get_body_xpos("world"))
-        # print(env.sim.data.get_body_xpos("floor"))
-        # print(env.sim.data.get_body_xpos("living_room_table"))
-        # print(env.sim.data.get_body_xpos("living_room_table_col"))
-        # print(env.sim.data.get_site_xpos("living_room_table_ketchup_init_region"))
-        # print(object_pos)
-        # print(min_elevation, other_max_elevation)
+        # print(f'{min_elevation:.4f}, {other_max_elevation:.4f}, {min_elevation - other_max_elevation:.4f}')
+        # if env.sim.data.ncon > 0:
+        #     print(type(env.sim.data), env.sim.data.contact[0])
+        # print("contacts")
+        # for contact in env.sim.data.contact[:env.sim.data.ncon]:
+        #     print(env.sim.model.geom_id2name(contact.geom1), env.sim.model.geom_id2name(contact.geom2))
         
         return min_elevation - other_max_elevation > lift_distance
 
