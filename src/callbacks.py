@@ -184,3 +184,45 @@ class RLeXploreWithOffPolicyRL(BaseCallback):
 
     def _on_rollout_end(self) -> None:
         pass
+
+
+class StopTrainingOnSuccessRateThreshold(BaseCallback):
+    """
+    Stop the training once a threshold in success rate has been reached
+
+    :param threshold:  Minimum expected success rate to stop training.
+    :param verbose: Verbosity level: 0 for no output, 1 for indicating when training ended because episodic reward
+        threshold reached
+    """
+
+    def __init__(self, threshold: float, min_count: int = 1, verbose: int = 0):
+        super().__init__(verbose=verbose)
+        self.threshold = threshold
+        self.min_count = min_count
+        self.should_end = False
+    
+    def update_should_end(self, threshold_override=None):
+        if self.should_end:
+            return
+
+        success_buffer = self.model.ep_success_buffer
+        if len(success_buffer) < 1 or len(success_buffer) < self.min_count:
+            return
+        
+        success_rate = float(np.mean(success_buffer))
+        threshold = self.threshold if threshold_override is None else threshold_override
+        if success_rate > threshold:
+            self.should_end = True
+            print(f"Success rate reached {success_rate}, which is greater than threshold {threshold}. Stopping training.")
+
+
+    def _on_step(self) -> bool:
+        if self.locals['dones'].any():
+            # use a stricter threshold on step because if we end here data won't be recorded
+            # this should only be used when all episodes immediately succeed, in which case on_rollout_end never gets called
+            self.update_should_end(threshold_override=0.9999)
+        return not self.should_end
+
+    def _on_rollout_end(self):
+        self.update_should_end()
+    
