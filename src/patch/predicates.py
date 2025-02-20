@@ -168,8 +168,8 @@ class Lift(MultiarayAtomic):
         if check_contact_excluding_gripper(env.sim, object_state.object_name):
             return False
         
-        # gripper must be touching. This prevents the predicate from being satisfied at the beginning when objects are initialized in the air
-        if not object_state.check_gripper_contact():
+        # gripper must be grasping. This prevents the predicate from being satisfied at the beginning when objects are initialized in the air
+        if not object_state.check_grasp():
             return False
 
         # for geom in object_state.get_geoms():
