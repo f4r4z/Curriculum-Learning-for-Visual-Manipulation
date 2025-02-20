@@ -43,6 +43,7 @@ class Args(EnvArgs, AlgArgs):
 if __name__ == "__main__":
     args = tyro.cli(Args)
     args.num_envs = 1
+    args.shaping_reward = False
 
     if args.custom_bddl_path is not None:
         task_name = os.path.basename(args.custom_bddl_path)
