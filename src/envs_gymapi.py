@@ -14,6 +14,7 @@ from libero.libero.envs.objects.articulated_objects import Microwave, SlideCabin
 from src.rnd import RNDNetworkLowDim
 from src.dense_reward import DenseReward
 import datetime
+import pickle
 
 current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
@@ -91,7 +92,7 @@ class MapObjects():
 class LowDimensionalObsGymEnv(gym.Env):
     """ Sparse reward environment with all the low-dimensional states
     """
-    def __init__(self, is_shaping_reward, sparse_reward, reward_geoms, dense_reward_multiplier, steps_per_episode=250, goal_1_policy=None, init_qpos_file_path=None, **kwargs):
+    def __init__(self, is_shaping_reward, sparse_reward, reward_geoms, dense_reward_multiplier, steps_per_episode=250, sim_states=None, **kwargs):
         self.env = OffScreenRenderEnv(**kwargs)
         obs = self.env.env._get_observations()
         low_dim_obs = self.get_low_dim_obs(obs)
@@ -104,12 +105,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.images = []
         self.sparse_reward = sparse_reward
         self.steps_per_episode = steps_per_episode
-        self.init_qpos_file_path = init_qpos_file_path
-        self.goal_1_policy = goal_1_policy
-
-        # load the qpos array
-        if self.init_qpos_file_path is not None:
-            self.init_qpos_arr = np.load(f'{self.init_qpos_file_path}', allow_pickle=True)
+        self.sim_states = sim_states
 
         # for multi-goal tasks
         self.current_goal_index = 0
@@ -146,21 +142,6 @@ class LowDimensionalObsGymEnv(gym.Env):
         reward = 0.0
         if success:
             reward = self.sparse_reward * success
-        # only for goal 1 policy    
-        elif self.goal_1_policy:
-            if self.result_1:
-                print("result 2")
-                state_2 = self.goal_states[1]
-                result_2 = self.env.env._eval_predicate(state_2)
-                state_tuple = tuple(state_2)
-                if result_2:
-                    success = True
-                dense_reward_object = self.shaping_reward[state_tuple]
-                reward += dense_reward_object.dense_reward(step_count=self.step_count)
-            else:
-                print("result 1 ")
-                state_1 = self.goal_states[0]
-                self.result_1 = self.env.env._eval_predicate(state_1)
         elif len(self.shaping_reward) == 0:
             # no dense reward
             state = self.goal_states[self.current_goal_index]
@@ -204,6 +185,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         print("done", done)
         info["agentview_image"] = obs["agentview_image"]
         info["is_success"] = success
+        info["sim_state"] = self.env.sim.get_state()
 
         return self.get_low_dim_obs(obs), reward, done, truncated, info
     
@@ -214,30 +196,15 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.current_goal_index = 0
         self.result_1 = False
 
-        # initialize the robot's qpos randomly
-        if self.init_qpos_file_path is not None:
-            # select a random qpos from the given npy path
-            init_qpos = random.choice(self.init_qpos_arr)
-            print("resetting robot init qpos")
-            self.reset_robots_random(init_qpos)
-        
-        # run previous policy for first goal state
-        if self.goal_1_policy:
-            done = False
-            while not self.result_1 and not done:
-                with torch.no_grad():
-                    action, _states = self.goal_1_policy.predict(obs)
-                obs, reward, done, truncated, info = self.step(action)
-                print("reset phase")
-            if done:
-                self.reset()
+        # load random simulation
+        if self.sim_states is not None:
+            # select a random sim state from given list of states
+            sim_state = random.choice(self.sim_states)
+            print("resetting to selected sim state")
+            self.env.sim.set_state(sim_state)
+            self.env.sim.forward()
 
         return obs, {}
-
-    def reset_robots_random(self, init_qpos):
-        for robot in self.env.robots:
-            robot.init_qpos = init_qpos
-            robot.reset()
     
     def seed(self, seed=None):
         return self.env.seed(seed)

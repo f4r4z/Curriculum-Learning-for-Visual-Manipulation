@@ -11,6 +11,7 @@ from IPython.display import HTML
 import torch
 import numpy as np
 import typing
+import pickle
 
 from libero.libero import get_libero_path
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -32,6 +33,8 @@ class Args:
     """file path of the model file"""
     num_episodes: int = 10
     """number of episodes to generate evaluation"""
+    sim_states_path: str = None
+    """path to initial sim states pickle file in order to randomly select initial sim states. if None, the sim state will always start from default"""
 
     # Environment specific arguments
     custom_bddl_path: str = None
@@ -101,6 +104,14 @@ if __name__ == "__main__":
     # set up reward geoms
     reward_geoms = args.reward_geoms.split(",") if args.reward_geoms is not None else None
 
+    # set up sim states
+    if args.sim_states_path:
+        with open(args.sim_states_path, "rb") as f:
+            sim_states = pickle.load(f)
+    else:
+        sim_states = None
+    print(sim_states)
+
     print("Setting up environment")
     vec_env_class = DummyVecEnv
     if args.visual_observation:
@@ -119,7 +130,7 @@ if __name__ == "__main__":
             )
         else:
             envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, reward_geoms, args.dense_reward_multiplier, args.steps_per_episode, **env_args)) for _ in range(args.num_envs)]
+                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, reward_geoms, args.dense_reward_multiplier, args.steps_per_episode, sim_states=sim_states, **env_args)) for _ in range(args.num_envs)]
             )
 
     # Seeding everything
@@ -145,7 +156,7 @@ if __name__ == "__main__":
     count = 0
     success = 0
     total_episodes = 0
-    last_joint_positions = []
+    final_sim_states = []
     for i in range(args.steps_per_episode*args.num_episodes):
         action, _states = model.predict(obs)
         obs, rewards, dones, info = envs.step(action)
@@ -157,19 +168,17 @@ if __name__ == "__main__":
             total_episodes += 1
             print(total_episodes)
             if info[0]["is_success"]:
-                print("added to last joint position")
-                last_joint_positions.append(last_pos)
+                final_sim_states.append(info[0]["sim_state"])
             envs.reset()
-        
-        last_pos = envs.envs[0].env.env.robots[0]._joint_positions
 
         if total_episodes == args.num_episodes:
             break
     
         count += 1
+
+    with open(args.video_path.replace("mp4", "pkl"), "wb") as f:
+        pickle.dump(final_sim_states, f)
         
     obs_to_video(images, f"{args.video_path}")
     print("# of tasks successful", success, "out of", total_episodes)
-    print("average of final robot joints", sum(last_joint_positions)/len(last_joint_positions))
-    np.save(f'{args.video_path}_qpos.npy', last_joint_positions, allow_pickle=True)
     envs.close()

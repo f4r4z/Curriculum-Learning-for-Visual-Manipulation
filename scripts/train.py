@@ -42,8 +42,8 @@ class Args:
     """directory path of the models checkpoints"""
     model_path: str = None
     """path to existing model if loading a model"""
-    init_qpos_file_path: str = None
-    """path to robot initial qpos file, in npy format [list of qpos arrays]"""
+    sim_states_path: str = None
+    """path to initial sim states pickle file in order to randomly select initial sim states. if None, the sim state will always start from default"""
     wandb_project: str = "cl_manipulation"
     """wandb project name"""
     wandb_entity: str = "<YOUR_WANDB_ENTITY>"
@@ -141,6 +141,13 @@ if __name__ == "__main__":
     if not args.truncate:
         env_args["horizon"] = args.total_timesteps
 
+    # set up sim states
+    if args.sim_states_path:
+        with open("sim_state.pkl", "rb") as f:
+            sim_states = pickle.load(f)
+    else:
+        sim_states = None
+
     print("Setting up environment")
     vec_env_class = SubprocVecEnv if args.num_envs > 1 else DummyVecEnv
     if args.visual_observation:
@@ -159,7 +166,8 @@ if __name__ == "__main__":
             )
         else:
             envs = vec_env_class(
-                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, reward_geoms, args.dense_reward_multiplier, args.steps_per_episode, init_qpos_file_path=args.init_qpos_file_path, **env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
+                [lambda: Monitor(LowDimensionalObsGymEnv(args.shaping_reward, args.sparse_reward, reward_geoms, args.dense_reward_multiplier, args.steps_per_episode, 
+                    sim_states=sim_states, **env_args), info_keywords=["is_success"]) for _ in range(args.num_envs)]
             )
 
     """ ## Speed test
