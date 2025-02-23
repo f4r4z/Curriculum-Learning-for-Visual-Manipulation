@@ -1,6 +1,6 @@
 (define (problem LIBERO_Living_Room_Tabletop_Manipulation)
   (:domain robosuite)
-  (:language lift the ketchup)
+  (:language grasp the ketchup)
     (:regions
       (basket_init_region
           (:target living_room_table)
@@ -49,7 +49,7 @@
   )
 
   (:goal
-    (And (Lift ketchup_1 basket_1 0.1))
+    (And (Grasp ketchup_1))
   )
 
 )
