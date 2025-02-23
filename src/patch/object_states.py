@@ -14,6 +14,11 @@ def get_geoms(self: BaseObjectState):
         return get_list_of_geom_names_for_site(self.object_name, self.parent_name, self.env)
     else:
         raise NotImplementedError
+    
+
+@patch(BaseObjectState)
+def get_position(self: BaseObjectState) -> np.ndarray:
+    return self.get_geom_state()['pos']
 
 
 @patch(BaseObjectState)
@@ -84,16 +89,8 @@ def align(self: BaseObjectState, other: BaseObjectState):
     """
     other object align with this object
     """
-    if self.object_state_type == "site":
-        this_object_position = self.env.sim.data.get_site_xpos(self.object_name)
-    else:
-        this_object_position = self.env.sim.data.body_xpos[
-            self.env.obj_body_id[self.object_name]
-        ]
-    
-    other_object_position = self.env.sim.data.body_xpos[
-       self.env.obj_body_id[other.object_name]
-    ]
+    this_object_position = self.get_position()
+    other_object_position = other.get_position()
 
     dist = np.linalg.norm(other_object_position[:2] - this_object_position[:2])
     

@@ -65,6 +65,16 @@ def check_contact_excluding_gripper(sim, object_name, gripper_geoms=["gripper0_f
     return False
 
 
+def convert_coords(points: np.ndarray):
+    """
+    Stuff like size is in a different coordinate system (x,z,y) from the simulation (x,y,z)
+    here x is forward-back, y is left-right, z is elevation
+    this function converts from the former to simulation coords
+    """
+    return np.array([points[0], points[2], points[1]])
+    # return np.array([points[2], points[0], points[1]])
+
+
 def box_bounds(size: np.ndarray, position: np.ndarray, rotation: np.ndarray):
     unit_cube = np.array([
         [1, 1, 1],
@@ -76,7 +86,10 @@ def box_bounds(size: np.ndarray, position: np.ndarray, rotation: np.ndarray):
         [-1, -1, 1],
         [-1, -1, -1],
     ])
-    points = (size * unit_cube) @ rotation + position
+    points = size/2 * unit_cube
+    points = convert_coords(points.T).T
+    points = points @ rotation + position
+    # points = (size/2 * unit_cube) @ rotation + position
     return points.min(axis=0), points.max(axis=0)
 
 def get_site_bounding_box(sim: MjSim, site: str):

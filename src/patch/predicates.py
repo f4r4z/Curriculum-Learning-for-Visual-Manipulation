@@ -4,7 +4,7 @@ from libero.libero.envs.objects import ArticulatedObject
 import mujoco
 import mujoco._structs
 import numpy as np
-from typing import Optional
+from typing import Optional, TypeVar, Type
 
 from ..libero_utils import check_contact_excluding_gripper, compute_bounding_box_from_geoms, get_geom_bounding_box
 
@@ -14,6 +14,16 @@ def register_predicate_fn(target_class):
     VALIDATE_PREDICATE_FN_DICT[target_class.__name__.lower()] = target_class()
     # print("Registered new predicate", target_class.__name__.lower())
     return target_class
+
+
+T = TypeVar('T')
+def cast_arg(arg, T: Type[T]) -> T:
+    if issubclass(T, BaseObjectState):
+        assert isinstance(arg, T)
+        return arg
+    else:
+        assert isinstance(arg, str)
+        return T(arg)
 
 
 @register_predicate_fn
@@ -36,33 +46,61 @@ class Reach(MultiarayAtomic):
     """
     def __call__(self, *args):
         assert len(args) >= 1
+        object_state = cast_arg(args[0], BaseObjectState)
         if len(args) == 1:
-            return self.reach(args[0])
+            return self.reach(object_state)
         else:
-            goal_distance = float(args[1])
-            return self.reach(args[0], goal_distance)
+            goal_distance = cast_arg(args[1], float)
+            return self.reach(object_state, goal_distance)
         
 
     def reach(self, object_state: BaseObjectState, goal_distance: float = 0):
         goal_distance = max(goal_distance, 0.01) # Have some leeway for goal distance
         
-        env = object_state.env
-        grip_site_pos: np.ndarray = env.sim.data.get_site_xpos("gripper0_grip_site") # This is the position between the 2 claws
-
-        object_pos = object_state.get_geom_state()['pos']
-        dist = np.linalg.norm(grip_site_pos - object_pos)
-
-        # print("geoms:")
-        # for geom in object_state.get_geoms():
-        #     geom_id = env.sim.model.geom_name2id(geom)
-        #     print(geom, env.sim.model.geom_pos[geom_id], env.sim.model.geom_size[geom_id])
+        # This is the position between the 2 claws
+        grip_site_pos = object_state.env.get_gripper_site_pos()
 
         # Check whether the object has been reached based on whether geoms bounding box
-        min_bounds, max_bounds = compute_bounding_box_from_geoms(env.sim, object_state.get_geoms())
+        min_bounds, max_bounds = compute_bounding_box_from_geoms(object_state.env.sim, object_state.get_geoms())
         if (grip_site_pos > min_bounds).all() and (grip_site_pos < max_bounds).all():
             return True
+
+        object_pos = object_state.get_position()
+        dist = np.linalg.norm(grip_site_pos - object_pos)
+        return dist < goal_distance
+
+
+@register_predicate_fn
+class Align(MultiarayAtomic):
+    """
+    Align an object's xy position with another object
+    """
+    def __call__(self, *args):
+        assert len(args) >= 2
+        object_state = cast_arg(args[0], BaseObjectState)
+        goal_object_state=cast_arg(args[1], BaseObjectState)
+        if len(args) == 2:
+            return self.align(object_state, goal_object_state)
+        else:
+            return self.align(object_state, goal_object_state, goal_distance=cast_arg(args[2], float))
+    
+    def align(
+        self, 
+        object_state: BaseObjectState, 
+        goal_object_state: BaseObjectState,
+        goal_distance: float = 0.0,
+    ):
+        goal_distance = max(goal_distance, 0.01) # Have some leeway for goal distance
+
+        object_xy = object_state.get_position()[:2]
+
+        # if within the xy bounds, we've already aligned enough
+        min_bounds, max_bounds = compute_bounding_box_from_geoms(object_state.env.sim, goal_object_state.get_geoms())
+        if (object_xy > min_bounds[:2]).all() and (object_xy < max_bounds[:2]).all():
+            return True
         
-        # If object has not been reached, check if goal distance is reached
+        goal_object_xy = goal_object_state.get_position()[:2]
+        dist = np.linalg.norm(object_xy - goal_object_xy)
         return dist < goal_distance
 
 
@@ -142,7 +180,7 @@ class Close(MultiarayAtomic):
 @register_predicate_fn
 class Lift(MultiarayAtomic):
     """
-    Lift an object by a given distance
+    Lift an object by a given distance compared to another object or the table
     """
     def __call__(self, *args):
         assert len(args) >= 1
@@ -171,9 +209,6 @@ class Lift(MultiarayAtomic):
         # gripper must be grasping. This prevents the predicate from being satisfied at the beginning when objects are initialized in the air
         if not object_state.check_grasp():
             return False
-
-        # for geom in object_state.get_geoms():
-        #     get_geom_bounding_box(env.sim, geom)
         
         min_bounds, _ = compute_bounding_box_from_geoms(env.sim, object_state.get_geoms())
         min_elevation = min_bounds[2]
@@ -182,23 +217,11 @@ class Lift(MultiarayAtomic):
             _, other_max_bounds = compute_bounding_box_from_geoms(env.sim, other_object_state.get_geoms())
             other_max_elevation = other_max_bounds[2]
         else:
-            # TODO: the table isn't always at this level. maybe update this to match the table level. env has a property "z_offset" that could be used
-            other_max_elevation = env.workspace_offset[2]
-        
-        # print(f'{min_elevation:.4f}, {other_max_elevation:.4f}, {min_elevation - other_max_elevation:.4f}')
-        # if env.sim.data.ncon > 0:
-        #     print(type(env.sim.data), env.sim.data.contact[0])
-        # print("contacts")
-        # for contact in env.sim.data.contact[:env.sim.data.ncon]:
-        #     print(env.sim.model.geom_id2name(contact.geom1), env.sim.model.geom_id2name(contact.geom2))
+            other_max_elevation = env.workspace_offset[2] # if no other object, use table elevation
         
         return min_elevation - other_max_elevation > lift_distance
 
 
-@register_predicate_fn
-class Align(BinaryAtomic):
-    def __call__(self, arg1, arg2):
-        return arg2.align(arg1)
     
 
 @register_predicate_fn
