@@ -110,7 +110,6 @@ if __name__ == "__main__":
             sim_states = pickle.load(f)
     else:
         sim_states = None
-    print(sim_states)
 
     print("Setting up environment")
     vec_env_class = DummyVecEnv

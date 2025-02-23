@@ -143,7 +143,7 @@ if __name__ == "__main__":
 
     # set up sim states
     if args.sim_states_path:
-        with open("sim_state.pkl", "rb") as f:
+        with open(args.sim_states_path, "rb") as f:
             sim_states = pickle.load(f)
     else:
         sim_states = None
