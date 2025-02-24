@@ -179,6 +179,7 @@ if __name__ == "__main__":
         
     with open(args.video_path.replace("mp4", "pkl"), "wb") as f:
         pickle.dump(final_sim_states, f)
-    obs_to_video(images, f"{args.video_path}"
+        
+    obs_to_video(images, f"{args.video_path}")
 
     envs.close()
