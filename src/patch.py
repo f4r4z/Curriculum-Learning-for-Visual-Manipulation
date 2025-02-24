@@ -54,6 +54,24 @@ def check_gripper_contact(self):
         target_object_geoms = self.env.get_object(self.object_name).contact_geoms
         return self.env.check_contact(gripper_geoms, target_object_geoms)
 
+def check_gripper_contain(self):
+    gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
+    if self.object_state_type == "site":
+        this_object = self.env.object_sites_dict[self.object_name]
+        this_object_position = self.env.sim.data.get_site_xpos(self.object_name)
+        this_object_mat = self.env.sim.data.get_site_xmat(self.object_name)
+
+        return this_object.in_box(
+            this_object_position, this_object_mat, gripper_site_pos
+        )
+    else:
+        object_1 = self.env.get_object(self.object_name)
+        object_1_position = self.env.sim.data.body_xpos[
+            self.env.obj_body_id[self.object_name]
+        ]
+
+        return object_1.in_box(object_1_position, gripper_site_pos)
+
 def check_grasp(self):
     gripper_geoms = self.env.robots[0].gripper # or  gripper_geoms = ["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"]
     
@@ -214,6 +232,9 @@ class Reset(UnaryAtomic):
     def __call__(self, arg):
         return arg.reset_qpos()
 
+class GripperOut(UnaryAtomic):
+    def __call__(self, arg1):
+        return not arg1.check_gripper_contain()
 
 VALIDATE_PREDICATE_FN_DICT["contact"] = Contact()
 VALIDATE_PREDICATE_FN_DICT["grasp"] = Grasp()
@@ -222,6 +243,7 @@ VALIDATE_PREDICATE_FN_DICT["lift"] = Lift()
 VALIDATE_PREDICATE_FN_DICT["align"] = Align()
 VALIDATE_PREDICATE_FN_DICT["placein"] = PlaceIn()
 VALIDATE_PREDICATE_FN_DICT["reset"] = Reset()
+VALIDATE_PREDICATE_FN_DICT["gripperout"] = GripperOut()
 
 BaseObjectState.check_gripper_contact = check_gripper_contact
 BaseObjectState.check_grasp = check_grasp
@@ -229,5 +251,6 @@ BaseObjectState.reach = reach
 BaseObjectState.lift = lift
 BaseObjectState.align = align
 BaseObjectState.reset_qpos = reset_qpos
+BaseObjectState.check_gripper_contain = check_gripper_contain
 
 # BDDLBaseDomain.reward = reward

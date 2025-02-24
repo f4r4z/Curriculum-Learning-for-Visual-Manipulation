@@ -175,9 +175,10 @@ if __name__ == "__main__":
     
         count += 1
 
+    print("# of tasks successful", success, "out of", total_episodes)
+        
     with open(args.video_path.replace("mp4", "pkl"), "wb") as f:
         pickle.dump(final_sim_states, f)
-        
-    obs_to_video(images, f"{args.video_path}")
-    print("# of tasks successful", success, "out of", total_episodes)
+    obs_to_video(images, f"{args.video_path}"
+
     envs.close()

@@ -109,6 +109,7 @@ class LowDimensionalObsGymEnv(gym.Env):
 
         # for multi-goal tasks
         self.current_goal_index = 0
+        self.completed_goals = set()
 
         # for now, we will focus on objects with one goal state
         if is_shaping_reward:
@@ -148,21 +149,28 @@ class LowDimensionalObsGymEnv(gym.Env):
             state_tuple = tuple(state)
             result = self.env.env._eval_predicate(state)
             if result:
-                reward += self.sparse_reward / 10.0
-                if self.current_goal_index + 1 < len(self.goal_states):
-                    self.current_goal_index += 1
-                    print("current goal index: ", self.current_goal_index)
+                if state_tuple not in self.completed_goals:
+                    print(f"achieved {state_tuple}")
+                    self.completed_goals.add(state_tuple)
+                    reward += self.sparse_reward / 10.0
+                    if self.current_goal_index + 1 < len(self.goal_states):
+                        self.current_goal_index += 1
+                        print("current goal index: ", self.current_goal_index)
         elif len(self.shaping_reward) > 0:
             # dense and sparse reward for completing goals in order
             state = self.goal_states[self.current_goal_index]
             state_tuple = tuple(state)
             result = self.env.env._eval_predicate(state)
             if result:
-                print(f"achieved {state_tuple}")
-                reward += self.sparse_reward / 10.0
-                if self.current_goal_index + 1 < len(self.goal_states):
-                    self.current_goal_index += 1
-                    print("current goal index: ", self.current_goal_index)
+                # if already completed, we do not get any reward
+                if state_tuple not in self.completed_goals:
+                    print(f"achieved {state_tuple}")
+                    # add to set to avoid duplicate sparse rewards
+                    self.completed_goals.add(state_tuple)
+                    reward += self.sparse_reward / 10.0
+                    if self.current_goal_index + 1 < len(self.goal_states):
+                        self.current_goal_index += 1
+                        print("current goal index: ", self.current_goal_index)
             else:
                 dense_reward_object = self.shaping_reward[state_tuple]
                 if self.current_goal_index == len(self.goal_states) - 1:
@@ -194,7 +202,7 @@ class LowDimensionalObsGymEnv(gym.Env):
         obs = self.get_low_dim_obs(obs)
         self.step_count = 0
         self.current_goal_index = 0
-        self.result_1 = False
+        self.completed_goals.clear()
 
         # load random simulation
         if self.sim_states is not None:
