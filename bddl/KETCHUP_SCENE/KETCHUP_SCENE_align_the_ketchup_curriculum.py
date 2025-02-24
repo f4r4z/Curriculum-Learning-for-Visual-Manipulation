@@ -58,6 +58,17 @@ base_bddl = """
 )
 """
 
+def reach_the_ketchup():
+	bddl = base_bddl.format("(And (Reach ketchup_1 {}))")
+	return [bddl.format(open_amount) for open_amount in np.arange(0.15, -0.0001, -0.01)]
+
+def grasp_the_ketchup():
+	return base_bddl.format("(And (Grasp ketchup_1))")
+
+def lift_the_ketchup():
+	bddl = base_bddl.format("(And (Lift ketchup_1 basket_1 {}))")
+	return [bddl.format(open_amount) for open_amount in np.arange(-0.15, 0.1001, 0.01)]
+
 def align_the_ketchup():
 	bddl = base_bddl.format("(And (Align ketchup_1 basket_1 {}) (Lift ketchup_1 basket_1 0.1) (Grasp ketchup_1))")
 	return [bddl.format(align_distance) for align_distance in np.arange(0.4, -0.0001, -0.01)]
