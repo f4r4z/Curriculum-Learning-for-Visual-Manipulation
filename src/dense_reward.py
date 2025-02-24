@@ -36,6 +36,7 @@ class DenseReward:
 
         for index, obj in enumerate(self.object_states):
             if obj.object_state_type == "site":
+                print("hey")
                 self.object_geoms.append(get_list_of_geom_names_for_site(obj.object_name, obj.parent_name, obj.env))
                 self.object_bodies.append(get_body_for_site(obj.object_name, obj.parent_name))
             else:
@@ -49,9 +50,10 @@ class DenseReward:
             self.env.reward_geoms = None
 
         # for up reward
-        self.prior_object_height = 0
-        self.prior_orientation = self.env.sim.data.body_xquat[self.env.sim.model.body_name2id(self.object_bodies[0])]
-        self.prior_position = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(self.object_bodies[0])]
+        if self.predicate_fn_name == "up":
+            self.prior_object_height = 0
+            self.prior_orientation = self.env.sim.data.body_xquat[self.env.sim.model.body_name2id(self.object_bodies[0])]
+            self.prior_position = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(self.object_bodies[0])]
         '''
         # information to print out
         print(goal_state)
