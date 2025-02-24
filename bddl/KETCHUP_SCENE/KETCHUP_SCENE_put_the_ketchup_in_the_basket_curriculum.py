@@ -74,5 +74,4 @@ def align_the_ketchup():
 	return [bddl.format(align_distance) for align_distance in np.arange(0.4, -0.0001, -0.05)]
 
 def put_the_ketchup_in_the_basket():
-	bddl = base_bddl.format("(And (In ketchup_1 basket_1_contain_region) (Not (Grasp ketchup_1)))")
-	return [bddl.format(align_distance) for align_distance in np.arange(0.4, -0.0001, -0.05)]
+	return base_bddl.format("(And (In ketchup_1 basket_1_contain_region) (Not (Grasp ketchup_1)))")
