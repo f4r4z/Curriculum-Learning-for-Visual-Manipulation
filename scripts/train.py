@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
 
     print("Setting up model")
-    model = setup_model(args, envs, args.seed, save_path, args.model_path)
+    model = setup_model(args, envs, args.seed, save_path, load_path=args.model_path)
     log_interval = 1 if args.alg == "ppo" else 2
     # device = args.get_device()
 
