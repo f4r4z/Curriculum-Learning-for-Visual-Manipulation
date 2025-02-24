@@ -52,7 +52,7 @@ base_bddl = """
   )
 
   (:goal
-    {}
+    (And {})
   )
 
 )

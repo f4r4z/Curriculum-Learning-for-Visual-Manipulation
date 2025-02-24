@@ -49,7 +49,7 @@
   )
 
   (:goal
-    (And (Align ketchup_1 basket_1 0.1) (Lift ketchup_1 basket_1 0.1) (Grasp ketchup_1))
+    (And (And (Align ketchup_1 basket_1 0.1) (Lift ketchup_1 basket_1 0.1) (Grasp ketchup_1)))
   )
 
 )
