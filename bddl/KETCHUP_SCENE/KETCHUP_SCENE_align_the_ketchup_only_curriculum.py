@@ -60,4 +60,4 @@ base_bddl = """
 
 def align_the_ketchup():
 	bddl = base_bddl.format("(And (Align ketchup_1 basket_1 {}))")
-	return [bddl.format(align_distance) for align_distance in np.arange(0.2, -0.0001, -0.01)]
+	return [bddl.format(align_distance) for align_distance in np.arange(0.5, -0.0001, -0.01)]
