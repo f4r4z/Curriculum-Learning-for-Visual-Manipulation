@@ -94,6 +94,11 @@ class Align(MultiarayAtomic):
 
         object_xy = object_state.get_position()[:2]
 
+        # gripper must be grasping. This prevents the robot from throwing an object to satisfy this predicate
+        # FIXME: this might need to be removed in case we want to align an object without grasping it (eg when an object is on top of another object being grasped)
+        if not object_state.check_grasp():
+            return False
+
         # if within the xy bounds, we've already aligned enough
         min_bounds, max_bounds = compute_bounding_box_from_geoms(object_state.env.sim, goal_object_state.get_geoms())
         if (object_xy > min_bounds[:2]).all() and (object_xy < max_bounds[:2]).all():
@@ -207,6 +212,7 @@ class Lift(MultiarayAtomic):
             return False
         
         # gripper must be grasping. This prevents the predicate from being satisfied at the beginning when objects are initialized in the air
+        # FIXME: this will not work if we want to lift an object without grasping it
         if not object_state.check_grasp():
             return False
         
