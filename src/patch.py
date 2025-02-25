@@ -43,7 +43,7 @@ def check_gripper_contact(self):
     gripper_geoms = self.env.robots[0].gripper # or gripper_geoms = ["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"]
     # if specific geoms mentioned
     if self.env.reward_geoms:
-        return self.env._check_grasp(gripper=gripper_geoms, object_geoms=self.env.reward_geoms)
+        return self.env.check_contact(gripper_geoms, self.env.reward_geoms)
 
     # object could be an object (articulated, hop) or a site
     # sites do not have a way to dynamically get geoms/check contact
