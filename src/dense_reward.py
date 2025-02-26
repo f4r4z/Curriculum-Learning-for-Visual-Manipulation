@@ -32,11 +32,13 @@ class DenseReward:
             if self.predicate_fn_name == 'close':
                 close_ranges = self.env.object_states_dict[self.object_names[0]].query_dict[self.object_names[0]].object_properties["articulation"]["default_close_ranges"]
                 self.close_joint_position = np.array([np.mean(close_ranges)])
+                
+        elif len(goal_state) == 1:
+            self.predicate_fn_name = goal_state[0]
 
 
         for index, obj in enumerate(self.object_states):
             if obj.object_state_type == "site":
-                print("hey")
                 self.object_geoms.append(get_list_of_geom_names_for_site(obj.object_name, obj.parent_name, obj.env))
                 self.object_bodies.append(get_body_for_site(obj.object_name, obj.parent_name))
             else:
