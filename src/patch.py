@@ -236,6 +236,10 @@ class GripperOut(UnaryAtomic):
     def __call__(self, arg1):
         return not arg1.check_gripper_contain()
 
+class Persist():
+    def __call__(self):
+        return False
+
 VALIDATE_PREDICATE_FN_DICT["contact"] = Contact()
 VALIDATE_PREDICATE_FN_DICT["grasp"] = Grasp()
 VALIDATE_PREDICATE_FN_DICT["reach"] = Reach()
@@ -244,6 +248,7 @@ VALIDATE_PREDICATE_FN_DICT["align"] = Align()
 VALIDATE_PREDICATE_FN_DICT["placein"] = PlaceIn()
 VALIDATE_PREDICATE_FN_DICT["reset"] = Reset()
 VALIDATE_PREDICATE_FN_DICT["gripperout"] = GripperOut()
+VALIDATE_PREDICATE_FN_DICT["persist"] = Persist()
 
 BaseObjectState.check_gripper_contact = check_gripper_contact
 BaseObjectState.check_grasp = check_grasp
