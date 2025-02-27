@@ -8,7 +8,7 @@ base_bddl = """
       (microwave_init_region
           (:target kitchen_table)
           (:ranges (
-              (-0.01 0.3 0.01 0.32)
+              (-0.01 0.33999999999999997 0.01 0.36)
             )
           )
           (:yaw_rotation (
@@ -19,7 +19,29 @@ base_bddl = """
       (white_yellow_mug_init_region
           (:target kitchen_table)
           (:ranges (
-              (-0.025 -0.15 0.025 -0.1)
+              (-0.025 -0.025 0.025 0.025)
+            )
+          )
+          (:yaw_rotation (
+              (0.0 0.0)
+            )
+          )
+      )
+      (porcelain_mug_init_region
+          (:target kitchen_table)
+          (:ranges (
+              (-0.125 -0.275 -0.07500000000000001 -0.225)
+            )
+          )
+          (:yaw_rotation (
+              (0.0 0.0)
+            )
+          )
+      )
+      (porcelain_mug_front_region
+          (:target kitchen_table)
+          (:ranges (
+              (-0.05 -0.3 0.05 -0.2)
             )
           )
           (:yaw_rotation (
@@ -44,6 +66,7 @@ base_bddl = """
   )
 
   (:objects
+    porcelain_mug_1 - porcelain_mug
     white_yellow_mug_1 - white_yellow_mug
   )
 
@@ -53,6 +76,7 @@ base_bddl = """
   )
 
   (:init
+    (On porcelain_mug_1 kitchen_table_porcelain_mug_init_region)
     (On white_yellow_mug_1 kitchen_table_white_yellow_mug_init_region)
     (On microwave_1 kitchen_table_microwave_init_region)
     (Open microwave_1)
