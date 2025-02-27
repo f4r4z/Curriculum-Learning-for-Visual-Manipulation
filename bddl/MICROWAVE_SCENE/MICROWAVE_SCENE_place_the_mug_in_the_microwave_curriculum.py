@@ -33,6 +33,9 @@ base_bddl = """
       (heating_region
           (:target microwave_1)
       )
+      (handle_region
+          (:target microwave_1)
+      )
     )
 
   (:fixtures
