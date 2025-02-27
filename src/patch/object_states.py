@@ -1,5 +1,5 @@
 from libero.libero.envs.object_states import BaseObjectState, ObjectState, SiteObjectState
-from src.libero_utils import get_body_for_site, get_list_of_geom_names_for_site, check_contact_excluding_gripper
+from src.libero_utils import get_body_for_site, get_list_of_geom_names_for_site, check_contact_excluding_gripper, get_site_bounding_box, compute_bounding_box_from_geoms
 from .utils import patch
 
 import numpy as np
@@ -14,6 +14,18 @@ def get_geoms(self: BaseObjectState):
         return get_list_of_geom_names_for_site(self.object_name, self.parent_name, self.env)
     else:
         raise NotImplementedError
+    
+
+@patch(BaseObjectState)
+def compute_bounding_box(self: BaseObjectState):
+    """
+    If site, return the site's bounding box. Otherwise return the bounding box of the geoms.
+    """
+    # return min_bounds, max_bounds
+    if isinstance(self, SiteObjectState):
+        return get_site_bounding_box(self.env.sim, self.object_name)
+    else:
+        return compute_bounding_box_from_geoms(self.env.sim, self.get_geoms())
     
 
 @patch(BaseObjectState)

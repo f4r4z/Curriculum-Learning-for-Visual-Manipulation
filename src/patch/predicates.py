@@ -6,7 +6,7 @@ import mujoco._structs
 import numpy as np
 from typing import Optional, TypeVar, Type
 
-from ..libero_utils import check_contact_excluding_gripper, compute_bounding_box_from_geoms, get_geom_bounding_box
+from ..libero_utils import check_contact_excluding_gripper
 
 
 def register_predicate_fn(target_class):
@@ -61,7 +61,7 @@ class Reach(MultiarayAtomic):
         grip_site_pos = object_state.env.get_gripper_site_pos()
 
         # Check whether the object has been reached based on whether geoms bounding box
-        min_bounds, max_bounds = compute_bounding_box_from_geoms(object_state.env.sim, object_state.get_geoms())
+        min_bounds, max_bounds = object_state.compute_bounding_box()
         if (grip_site_pos > min_bounds).all() and (grip_site_pos < max_bounds).all():
             return True
 
@@ -78,7 +78,7 @@ class Align(MultiarayAtomic):
     def __call__(self, *args):
         assert len(args) >= 2
         object_state = cast_arg(args[0], BaseObjectState)
-        goal_object_state=cast_arg(args[1], BaseObjectState)
+        goal_object_state = cast_arg(args[1], BaseObjectState)
         if len(args) == 2:
             return self.align(object_state, goal_object_state)
         else:
@@ -100,13 +100,58 @@ class Align(MultiarayAtomic):
             return False
 
         # if within the xy bounds, we've already aligned enough
-        min_bounds, max_bounds = compute_bounding_box_from_geoms(object_state.env.sim, goal_object_state.get_geoms())
+        min_bounds, max_bounds = goal_object_state.compute_bounding_box()
         if (object_xy > min_bounds[:2]).all() and (object_xy < max_bounds[:2]).all():
             return True
         
         goal_object_xy = goal_object_state.get_position()[:2]
         dist = np.linalg.norm(object_xy - goal_object_xy)
         return dist < goal_distance
+
+
+@register_predicate_fn
+class Proximity(MultiarayAtomic):
+    """
+    Move one object such that it is within a given distance from another object
+    """
+    def __call__(self, *args):
+        assert len(args) >= 2
+        object_state = cast_arg(args[0], BaseObjectState)
+        goal_object_state = cast_arg(args[1], BaseObjectState)
+        if len(args) == 2:
+            return self.proximity(object_state, goal_object_state)
+        else:
+            return self.proximity(object_state, goal_object_state, goal_distance=cast_arg(args[2], float))
+    
+    def proximity(
+        self, 
+        object_state: BaseObjectState, 
+        goal_object_state: BaseObjectState,
+        goal_distance: float = 0.0,
+    ):
+        goal_distance = max(goal_distance, 0.01) # Have some leeway for goal distance
+
+        object_pos = object_state.get_position()
+
+        # gripper must be grasping. This prevents the robot from throwing an object to satisfy this predicate
+        # FIXME: this might need to be removed in case we want to align an object without grasping it (eg when an object is on top of another object being grasped)
+        if not object_state.check_grasp():
+            return False
+        
+        if goal_object_state.check_contain(object_state): # TODO: does this work when object_state is a site?
+            return True
+
+        # if within the xy bounds, we've already aligned enough
+        min_bounds, max_bounds = goal_object_state.compute_bounding_box()
+        # print(min_bounds, max_bounds, object_pos)
+        if (object_pos > min_bounds).all() and (object_pos < max_bounds).all():
+            return True
+        
+        goal_object_pos = goal_object_state.get_position()
+        dist = np.linalg.norm(object_pos - goal_object_pos)
+        return dist < goal_distance
+
+
 
 
 @register_predicate_fn
@@ -153,7 +198,10 @@ class Open(MultiarayAtomic):
         env = object_state.env
         for joint in env.get_object(object_state.object_name).joints:
             qpos = env.sim.data.get_joint_qpos(joint)
-            object = env.get_object(object_state.parent_name)
+            if isinstance(object_state, SiteObjectState):
+                object = env.get_object(object_state.parent_name)
+            else:
+                object = env.get_object(object_state.object_name)
 
             assert isinstance(object, ArticulatedObject), (
                 f"{object_state.object_name}'s parent, {object_state.parent_name} "
@@ -177,7 +225,6 @@ class Close(MultiarayAtomic):
             close_amount = 1
         else:
             close_amount = float(args[1])
-        close_amount = float(args[1])
         # partial close is just the opposite of partial open, but with the parameter flipped
         return not Open()(args[0], 1-close_amount, *args[2:])
     
@@ -216,11 +263,11 @@ class Lift(MultiarayAtomic):
         if not object_state.check_grasp():
             return False
         
-        min_bounds, _ = compute_bounding_box_from_geoms(env.sim, object_state.get_geoms())
+        min_bounds, _ = object_state.compute_bounding_box()
         min_elevation = min_bounds[2]
 
         if other_object_state is not None:
-            _, other_max_bounds = compute_bounding_box_from_geoms(env.sim, other_object_state.get_geoms())
+            _, other_max_bounds = other_object_state.compute_bounding_box()
             other_max_elevation = other_max_bounds[2]
         else:
             other_max_elevation = env.workspace_offset[2] # if no other object, use table elevation
