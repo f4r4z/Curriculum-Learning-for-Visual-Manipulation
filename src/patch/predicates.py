@@ -1,10 +1,11 @@
 from libero.libero.envs.predicates import VALIDATE_PREDICATE_FN_DICT, UnaryAtomic, BinaryAtomic, MultiarayAtomic
 from libero.libero.envs.object_states import BaseObjectState, ObjectState, SiteObjectState
 from libero.libero.envs.objects import ArticulatedObject
+from libero.libero.envs.bddl_base_domain import BDDLBaseDomain
 import mujoco
 import mujoco._structs
 import numpy as np
-from typing import Optional, TypeVar, Type
+from typing import Optional, TypeVar, Type, List
 
 from ..libero_utils import check_contact_excluding_gripper
 
@@ -18,12 +19,47 @@ def register_predicate_fn(target_class):
 
 T = TypeVar('T')
 def cast_arg(arg, T: Type[T]) -> T:
-    if issubclass(T, BaseObjectState):
+    if isinstance(arg, T):
+        return arg
+    elif issubclass(T, BaseObjectState):
         assert isinstance(arg, T)
         return arg
     else:
         assert isinstance(arg, str)
         return T(arg)
+
+
+def is_joint_past_threshold(
+    env: BDDLBaseDomain,
+    joint_name: str,
+    init_ranges: List[float],
+    goal_ranges: List[float],
+    threshold_amount: float,
+):
+    """
+    Whether the joint's qpos is past a given threshold amount between init and goal
+    threshold_amount is a value between 0 and 1, 0 meaning just past init and 1 being past/at the goal
+    """
+    qpos = env.sim.data.get_joint_qpos(joint_name)
+
+    # if no ranges provided, just assume init
+    if len(goal_ranges) == 0 or len(init_ranges) == 0:
+        return False
+    
+    # the ranges provide a leeway. depending on which is smaller, we choose the innermost side of the leeway
+    if goal_ranges[0] < init_ranges[0]:
+        goal_qpos = max(goal_ranges)
+        init_qpos = min(init_ranges)
+    else:
+        goal_qpos = min(goal_ranges)
+        init_qpos = max(init_ranges)
+
+    # to count as partial open, qpos must be on the fully open side of the threshold
+    threshold = threshold_amount * goal_qpos + (1-threshold_amount) * init_qpos
+    if goal_qpos < init_qpos:
+        return qpos < threshold
+    else:
+        return qpos > threshold
 
 
 @register_predicate_fn
@@ -67,7 +103,54 @@ class Reach(MultiarayAtomic):
 
         object_pos = object_state.get_position()
         dist = np.linalg.norm(grip_site_pos - object_pos)
+        print(dist)
         return dist < goal_distance
+    
+
+@register_predicate_fn
+class Lift(MultiarayAtomic):
+    """
+    Lift an object by a given distance compared to another object or the table
+    """
+    def __call__(self, *args):
+        assert len(args) >= 1
+        if len(args) == 1:
+            return self.is_lifted(args[0])
+        elif len(args) == 2:
+            if isinstance(args[1], BaseObjectState):
+                return self.is_lifted(args[0], other_object_state=args[1])
+            else:
+                return self.is_lifted(args[0], lift_distance=float(args[1]))
+        else:
+            return self.is_lifted(args[0], other_object_state=args[1], lift_distance=float(args[2]))
+    
+    def is_lifted(
+        self, 
+        object_state: BaseObjectState, 
+        other_object_state: Optional[BaseObjectState] = None, 
+        lift_distance: float = 0
+    ):
+        env = object_state.env
+
+        # if the object is contacting another object (eg the table), we don't count it as lifted
+        if check_contact_excluding_gripper(env.sim, object_state.object_name):
+            return False
+        
+        # gripper must be grasping. This prevents the predicate from being satisfied at the beginning when objects are initialized in the air
+        # FIXME: this will not work if we want to lift an object without grasping it
+        if not object_state.check_grasp():
+            return False
+        
+        min_bounds, _ = object_state.compute_bounding_box()
+        min_elevation = min_bounds[2]
+
+        if other_object_state is not None:
+            _, other_max_bounds = other_object_state.compute_bounding_box()
+            other_max_elevation = other_max_bounds[2]
+        else:
+            other_max_elevation = env.workspace_offset[2] # if no other object, use table elevation
+        
+        return min_elevation - other_max_elevation > lift_distance
 
 
 @register_predicate_fn
@@ -162,55 +245,29 @@ class Open(MultiarayAtomic):
     """
     def __call__(self, *args):
         assert len(args) >= 1
+        object_state = cast_arg(args[0], BaseObjectState)
         if len(args) == 1:
-            open_amount = 1
+            return self.is_partial_open(object_state)
         else:
-            open_amount = float(args[1])
-        return self.is_partial_open(args[0], open_amount)
-    
-    def is_articulated_object_partial_open(self, object: ArticulatedObject, qpos, open_amount):
-        "Checks whether the object is open by the given open_amount in range [0, 1]"
+            return self.is_partial_open(object_state, cast_arg(args[1], float))
 
-        default_open_ranges = object.object_properties["articulation"]["default_open_ranges"]
-        default_close_ranges = object.object_properties["articulation"]["default_close_ranges"]
-
-        # if no ranges provided, just assume it is closed
-        if len(default_open_ranges) == 0 or len(default_close_ranges) == 0:
-            return False
-        
-        # the ranges provide a leeway. depending on which is smaller, we choose the innermost side of the leeway
-        if default_open_ranges[0] < default_close_ranges[0]:
-            fully_open = max(default_open_ranges)
-            fully_closed = min(default_close_ranges)
-        else:
-            fully_open = min(default_open_ranges)
-            fully_closed = max(default_close_ranges)
-
-        # to count as partial open, qpos must be on the fully open side of the threshold
-        threshold = open_amount * fully_open + (1-open_amount) * fully_closed
-        if fully_open < fully_closed:
-            return qpos < threshold
-        else:
-            return qpos > threshold
-
-    def is_partial_open(self, object_state: BaseObjectState, open_amount: float):
+    def is_partial_open(self, object_state: BaseObjectState, open_amount: float = 1.0):
         "Checks whether any joint is open by open_amounts"
         env = object_state.env
-        for joint in env.get_object(object_state.object_name).joints:
-            qpos = env.sim.data.get_joint_qpos(joint)
-            if isinstance(object_state, SiteObjectState):
-                object = env.get_object(object_state.parent_name)
-            else:
-                object = env.get_object(object_state.object_name)
+        object = env.get_object(object_state.object_name)
 
-            assert isinstance(object, ArticulatedObject), (
-                f"{object_state.object_name}'s parent, {object_state.parent_name} "
-                "is not an articulated object. Open can only be used with articulated objects"
-            )
-            if self.is_articulated_object_partial_open(object, qpos, open_amount):
-                return True
-            
-        return False
+        if isinstance(object_state, SiteObjectState):
+            articulated_object = env.get_object(object.parent_name)
+        else:
+            articulated_object = object
+        assert isinstance(articulated_object, ArticulatedObject), (
+            f"{object_state.object_name}'s parent, {object_state.parent_name} "
+            "is not an articulated object. Open/Close can only be used with articulated objects"
+        )
+
+        open_ranges = articulated_object.object_properties["articulation"]["default_open_ranges"]
+        close_ranges = articulated_object.object_properties["articulation"]["default_close_ranges"]
+        return any(is_joint_past_threshold(env, joint, close_ranges, open_ranges, open_amount) for joint in object.joints)
 
 
 @register_predicate_fn
@@ -221,58 +278,60 @@ class Close(MultiarayAtomic):
     """
     def __call__(self, *args):
         assert len(args) >= 1
-        if len(args) == 1:
-            close_amount = 1
-        else:
-            close_amount = float(args[1])
         # partial close is just the opposite of partial open, but with the parameter flipped
-        return not Open()(args[0], 1-close_amount, *args[2:])
-    
+        if len(args) == 1:
+            return not Open()(args[0], 0)
+        else:
+            return not Open()(args[0], 1-cast_arg(args[1], float))
+
 
 @register_predicate_fn
-class Lift(MultiarayAtomic):
+class TurnOn(MultiarayAtomic):
     """
-    Lift an object by a given distance compared to another object or the table
+    Turn on an articulated object by a given fraction.
+    The bounds for fully on/off is given by the object_properties of the articulated object
     """
     def __call__(self, *args):
         assert len(args) >= 1
+        object_state = cast_arg(args[0], BaseObjectState)
         if len(args) == 1:
-            return self.is_lifted(args[0])
-        elif len(args) == 2:
-            if isinstance(args[1], BaseObjectState):
-                return self.is_lifted(args[0], other_object_state=args[1])
-            else:
-                return self.is_lifted(args[0], lift_distance=float(args[1]))
+            return self.is_partial_on(object_state)
         else:
-            return self.is_lifted(args[0], other_object_state=args[1], lift_distance=float(args[2]))
-    
-    def is_lifted(
-        self, 
-        object_state: BaseObjectState, 
-        other_object_state: Optional[BaseObjectState] = None, 
-        lift_distance: float = 0
-    ):
+            return self.is_partial_on(object_state, cast_arg(args[1], float))
+
+    def is_partial_on(self, object_state: BaseObjectState, open_amount: float = 1.0):
+        "Checks whether any joint is open by open_amounts"
         env = object_state.env
+        object = env.get_object(object_state.object_name)
 
-        # if the object is contacting another object (eg the table), we don't count it as lifted
-        if check_contact_excluding_gripper(env.sim, object_state.object_name):
-            return False
-        
-        # gripper must be grasping. This prevents the predicate from being satisfied at the beginning when objects are initialized in the air
-        # FIXME: this will not work if we want to lift an object without grasping it
-        if not object_state.check_grasp():
-            return False
-        
-        min_bounds, _ = object_state.compute_bounding_box()
-        min_elevation = min_bounds[2]
-
-        if other_object_state is not None:
-            _, other_max_bounds = other_object_state.compute_bounding_box()
-            other_max_elevation = other_max_bounds[2]
+        if isinstance(object_state, SiteObjectState):
+            articulated_object = env.get_object(object.parent_name)
         else:
-            other_max_elevation = env.workspace_offset[2] # if no other object, use table elevation
-        
-        return min_elevation - other_max_elevation > lift_distance
+            articulated_object = object
+        assert isinstance(articulated_object, ArticulatedObject), (
+            f"{object_state.object_name}'s parent, {object_state.parent_name} "
+            "is not an articulated object. TurnOn/TurnOff can only be used with articulated objects"
+        )
+
+        on_ranges = articulated_object.object_properties["articulation"]["default_turnon_ranges"]
+        off_ranges = articulated_object.object_properties["articulation"]["default_turnoff_ranges"]
+        return any(is_joint_past_threshold(env, joint, off_ranges, on_ranges, open_amount) for joint in object.joints)
+
+
+@register_predicate_fn
+class TurnOff(MultiarayAtomic):
+    """
+    Turn off an articulated object by a given fraction.
+    The bounds for fully on/off is given by the object_properties of the articulated object
+    Note: this won't work very well with flat_stove because setting it to on puts it far past the turnon threshold. You'll have to do TurnOff -1 -> 1 or similar
+    """
+    def __call__(self, *args):
+        assert len(args) >= 1
+        # partial close is just the opposite of partial open, but with the parameter flipped
+        if len(args) == 1:
+            return not TurnOn()(args[0], 0)
+        else:
+            return not TurnOn()(args[0], 1-cast_arg(args[1], float))
 
 
     

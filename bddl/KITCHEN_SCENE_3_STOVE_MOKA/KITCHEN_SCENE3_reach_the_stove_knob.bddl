@@ -38,6 +38,9 @@
       (cook_region
           (:target flat_stove_1)
       )
+      (knob_region
+          (:target flat_stove_1)
+      )
     )
 
   (:fixtures
@@ -62,7 +65,7 @@
   )
 
   (:goal
-    (And (Turnon flat_stove_1 0.2))
+    (And (Reach flat_stove_1_knob_region))
   )
 
 )

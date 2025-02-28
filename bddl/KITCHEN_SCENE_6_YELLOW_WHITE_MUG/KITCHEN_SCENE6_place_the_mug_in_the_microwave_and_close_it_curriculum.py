@@ -91,7 +91,7 @@ base_bddl = """
 
 def reach_the_mug():
 	bddl = base_bddl.format("(Reach white_yellow_mug_1 {})")
-	return [bddl.format(reach_distance) for reach_distance in np.arange(0.4, -0.0001, -0.05)]
+	return [bddl.format(reach_distance) for reach_distance in np.arange(0.3, -0.0001, -0.05)]
 
 def grasp_the_mug():
 	return base_bddl.format("(Grasp white_yellow_mug_1)")
