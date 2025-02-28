@@ -103,7 +103,6 @@ class Reach(MultiarayAtomic):
 
         object_pos = object_state.get_position()
         dist = np.linalg.norm(grip_site_pos - object_pos)
-        print(dist)
         return dist < goal_distance
     
 
