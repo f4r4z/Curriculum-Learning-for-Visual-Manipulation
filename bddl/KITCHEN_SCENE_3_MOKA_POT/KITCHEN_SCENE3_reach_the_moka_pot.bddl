@@ -38,6 +38,9 @@
       (cook_region
           (:target flat_stove_1)
       )
+      (grasp_region
+          (:target moka_pot_1)
+      )
     )
 
   (:fixtures
@@ -62,7 +65,7 @@
   )
 
   (:goal
-    (And (Reach moka_pot_1))
+    (And (Reach moka_pot_1_grasp_region))
   )
 
 )
