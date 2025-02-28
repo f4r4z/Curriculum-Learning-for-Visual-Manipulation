@@ -103,6 +103,6 @@ if __name__ == "__main__":
     
     obs_to_video(images, f"{args.video_path}")
     print("# of tasks successful", success, "out of", total_episodes)
-    print("average of final robot joints", sum(last_joint_positions)/len(last_joint_positions))
+    print("average of final robot joints", sum(last_joint_positions)/len(last_joint_positions) if len(last_joint_positions) > 0 else "N/A")
     np.save(f'{args.video_path}_qpos.npy', last_joint_positions, allow_pickle=True)
     envs.close()
