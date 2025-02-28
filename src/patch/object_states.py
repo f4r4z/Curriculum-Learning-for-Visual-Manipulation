@@ -1,4 +1,5 @@
 from libero.libero.envs.object_states import BaseObjectState, ObjectState, SiteObjectState
+from libero.libero.envs.objects import SiteObject
 from src.libero_utils import get_body_for_site, get_list_of_geom_names_for_site, check_contact_excluding_gripper, get_site_bounding_box, compute_bounding_box_from_geoms
 from .utils import patch
 
@@ -11,7 +12,10 @@ def get_geoms(self: BaseObjectState):
         obj = self.env.get_object(self.object_name)
         return obj.contact_geoms
     elif isinstance(self, SiteObjectState):
-        return get_list_of_geom_names_for_site(self.object_name, self.parent_name, self.env)
+        site_obj: SiteObject = self.env.get_object(self.object_name)
+        if not hasattr(site_obj, "geoms"): # cache the geoms because this operation is expensive
+            site_obj.geoms = get_list_of_geom_names_for_site(self.object_name, self.parent_name, self.env)
+        return site_obj.geoms
     else:
         raise NotImplementedError
     
@@ -57,13 +61,9 @@ def check_grasp(self: BaseObjectState):
     # if specific geoms mentioned
     if self.env.reward_geoms:
         return self.env._check_grasp(gripper=gripper_geoms, object_geoms=self.env.reward_geoms)
-
-    if self.object_state_type == "site":
-        list_of_geom_names = get_list_of_geom_names_for_site(self.object_name, self.parent_name, self.env)
-        return self.env._check_grasp(gripper=gripper_geoms, object_geoms=list_of_geom_names)
-    else:
-        target_object_geoms = self.env.get_object(self.object_name).contact_geoms # .contact_geoms is not really necessary, but added for readibility
-        return self.env._check_grasp(gripper=gripper_geoms, object_geoms=target_object_geoms)
+    
+    target_object_geoms = self.get_geoms()
+    return self.env._check_grasp(gripper=gripper_geoms, object_geoms=target_object_geoms)
 
 
 @patch(BaseObjectState)
