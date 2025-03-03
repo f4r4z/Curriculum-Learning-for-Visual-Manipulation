@@ -133,8 +133,11 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Exception in bddl {i} '{subtask_name}'")
             raise e
-    envs.reset()
-        
+
+
+    # Create temporary env using first bddl for the model to use in initialization
+    envs = create_envs(bddls[0][1], args, tmp_dir=tmp_path)
+
 
     # Seeding everything
     if args.seed is not None:
