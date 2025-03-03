@@ -13,6 +13,7 @@ import wandb
 import torch
 import numpy as np
 from typing import List, Tuple, Optional
+import copy
 
 from stable_baselines3.common.callbacks import CheckpointCallback
 
@@ -121,9 +122,19 @@ if __name__ == "__main__":
     )
 
 
-    print("Setting up environment")
-    # Create temporary env using first bddls because model requires an env to initialize
-    envs = create_envs(bddls[0][1], args, tmp_dir=tmp_path)
+    print("Verifying bddls")
+    verify_args = copy.copy(args)
+    verify_args.num_envs = 1
+    for i, (subtask_name, bddl) in enumerate(bddls):
+        try:
+            envs = create_envs(bddl, verify_args, tmp_dir=tmp_path)
+            envs.reset()
+            envs.step(np.array([envs.action_space.sample()]))
+        except Exception as e:
+            print(f"Exception in bddl {i} '{subtask_name}'")
+            raise e
+    envs.reset()
+        
 
     # Seeding everything
     if args.seed is not None:
