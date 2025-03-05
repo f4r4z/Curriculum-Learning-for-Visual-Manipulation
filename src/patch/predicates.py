@@ -71,6 +71,13 @@ class Contact(UnaryAtomic):
 @register_predicate_fn
 class Grasp(UnaryAtomic):
     def __call__(self, arg: BaseObjectState):
+        # if the gripper is not inside the object, it isn't being grasped
+        # this can be useful for sites that don't have their own geoms
+        grip_site_pos = arg.env.get_gripper_site_pos()
+        min_bounds, max_bounds = arg.compute_bounding_box()
+        if not ((grip_site_pos > min_bounds).all() and (grip_site_pos < max_bounds).all()):
+            return False
+        
         return arg.check_grasp()
 
 
