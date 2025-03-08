@@ -133,9 +133,6 @@ if __name__ == "__main__":
             "camera_widths": 128,
         }
     
-    # if args.shaping_reward:
-    #     env_args["shaping_reward"] = True
-    
     # set up reward geoms
     reward_geoms = args.reward_geoms.split(",") if args.reward_geoms is not None else None
     

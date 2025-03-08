@@ -243,13 +243,6 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
         print(f"desired goal value for task {self.instruction} with object {self.obj_of_interest} is {goal_value} with tolerance {max(self.goal_ranges) - min(self.goal_ranges)}")
         self.desired_goal = np.full(goal_shape, goal_value)
 
-        # if "flat_stove" in self.obj_of_interest:
-        #     print("HER for flat stove")
-        #     self.desired_goal = np.full(goal_shape, -0.005)
-        # elif "microwave" in self.obj_of_interest or "white_cabinet" in self.obj_of_interest:
-        #     print("HER for microwave or white cabinet")
-        #     self.desired_goal = np.zeros_like(achieved_goal)  # this is hardcoded and only works for microwave task
-
         self.observation_space = Dict({
             "observation": Box(low=-np.inf, high=np.inf, shape=low_dim_obs.shape, dtype="float32"),
             "desired_goal": Box(low=-np.inf, high=np.inf, shape=goal_shape, dtype="float32"),

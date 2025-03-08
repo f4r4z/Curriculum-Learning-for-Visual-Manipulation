@@ -197,9 +197,8 @@ class DenseReward:
 
         current_joint_position = self.current_joint_position()
         displacement = np.linalg.norm(current_joint_position - self.close_joint_position)
-        print("DISPLACEMENT", displacement)
         
-        reward = (1 - np.tanh(displacement))
+        reward = (1 - np.tanh(displacement*10.0)) / 10.0
 
         return reward
 
