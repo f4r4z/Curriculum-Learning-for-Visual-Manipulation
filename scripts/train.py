@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import tyro
 import torch
 import numpy as np
-from typing import List, Tuple, Optional
+from typing import Optional
 
 from libero.libero import get_libero_path
 from stable_baselines3.common.callbacks import CheckpointCallback
@@ -103,5 +103,5 @@ if __name__ == "__main__":
     print("Start training")
     model.learn(total_timesteps=args.total_timesteps, log_interval=log_interval, callback=callbacks, progress_bar=False)
     model.save(save_path)
-
+    envs.close()
     del model

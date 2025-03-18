@@ -1,11 +1,16 @@
 # This module contains commandline args that might be shared between different scripts
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Type
 
+import os
 import torch
+import numpy as np
+import h5py
+import pickle
 import wandb
 
 from stable_baselines3.common.vec_env import VecEnv
+from stable_baselines3 import PPO, SAC
 
 from rllte.xplore.reward import RND, Disagreement, E3B, Fabric, ICM, NGU, PseudoCounts, RE3, RIDE
 from rllte.common.prototype import BaseReward
@@ -47,6 +52,14 @@ class AlgArgs:
         if self.exploration_alg is not None:
             alg_str = f"{self.exploration_alg}_{alg_str}"
         return alg_str
+    
+    @property
+    def alg_class(self):
+        if self.alg == 'ppo':
+            return PPO
+        elif self.alg == 'sac':
+            return SAC
+        raise Exception(f"invalid alg '{self.alg}'")
     
     def get_device(self):
         print("devices: ", [torch.cuda.get_device_properties(i).name for i in range(torch.cuda.device_count())])
@@ -94,10 +107,6 @@ class EnvArgs:
     """number of LIBERO environments"""
     multiprocessing_start_method: Optional[str] = None
     """The start method for starting processes if num_envs > 1. Can be 'fork', 'spawn', or 'forkserver'. 'forkserver' is default"""
-    policy_1_path: Optional[str] = None
-    """in case of multi-goal states, pass in the path for policy for first goal"""
-    setup_demo_path: Optional[str] = None
-    """If passed in, runs the actions in the given demonstration before every episode to setup the scene"""
     shaping_reward: bool = True
     """if toggled, shaping reward will be off for all goal states"""
     sparse_reward: float = 10.0
@@ -108,8 +117,34 @@ class EnvArgs:
     """multiplies the last goal state's shaping reward"""
     steps_per_episode: int = 250
     """number of steps in episode. If truncate is True, the episode will terminate after this value"""
-    init_qpos_file_path: Optional[str] = None
-    """path to robot initial qpos file, in npy format [list of qpos arrays]"""
+    setup_demo_path: Optional[str] = None
+    """a directory containing a demo.hdf5 file. If passed in, runs the actions in the given demonstration before every episode to setup the scene"""
+    sim_states_path: Optional[str] = None
+    """path to initial sim states pickle file in order to randomly select initial sim states. if None, the sim state will always start from default"""
+
+    def fetch_sim_states(self):
+        """load and cache the sim states from sim_states_path. If cached, directly return the states and do not load"""
+        if self.sim_states_path is None:
+            return None
+        if not hasattr(self, 'sim_states'):
+            self.sim_states: Optional[np.ndarray] = None
+        if self.sim_states is None:
+            with open(self.sim_states_path, "rb") as f:
+                self.sim_states = pickle.load(f)
+        return self.sim_states
+    
+    def fetch_setup_demo(self):
+        if self.setup_demo_path is None:
+            return None
+        if not hasattr(self, 'setup_demo'):
+            self.setup_demo: Optional[np.ndarray] = None
+        if self.setup_demo is None:
+            hdf5_path = os.path.join(self.setup_demo_path, "demo.hdf5")
+            f = h5py.File(hdf5_path, "r")
+            self.setup_demo = f['data/demo_1/actions'][:]
+            if self.verbose >= 1: print("loaded setup demo with length", len(self.setup_demo))
+        return self.setup_demo
+
     
 
 @dataclass

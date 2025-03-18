@@ -42,7 +42,7 @@ def check_gripper_contact(self: BaseObjectState):
     gripper_geoms = self.env.robots[0].gripper # or gripper_geoms = ["gripper0_finger1_pad_collision", "gripper0_finger2_pad_collision"]
     # if specific geoms mentioned
     if self.env.reward_geoms:
-        return self.env._check_grasp(gripper=gripper_geoms, object_geoms=self.env.reward_geoms)
+        return self.env.check_contact(gripper_geoms, self.env.reward_geoms)
 
     # object could be an object (articulated, hop) or a site
     # sites do not have a way to dynamically get geoms/check contact
@@ -53,6 +53,26 @@ def check_gripper_contact(self: BaseObjectState):
         target_object_geoms = self.env.get_object(self.object_name).contact_geoms
         return self.env.check_contact(gripper_geoms, target_object_geoms)
 
+
+@patch(BaseObjectState)
+def check_gripper_contain(self: BaseObjectState):
+    gripper_site_pos = self.env.sim.data.site_xpos[self.env.robots[0].eef_site_id]
+    if self.object_state_type == "site":
+        this_object = self.env.object_sites_dict[self.object_name]
+        this_object_position = self.env.sim.data.get_site_xpos(self.object_name)
+        this_object_mat = self.env.sim.data.get_site_xmat(self.object_name)
+
+        return this_object.in_box(
+            this_object_position, this_object_mat, gripper_site_pos
+        )
+    else:
+        object_1 = self.env.get_object(self.object_name)
+        object_1_position = self.env.sim.data.body_xpos[
+            self.env.obj_body_id[self.object_name]
+        ]
+
+        return object_1.in_box(object_1_position, gripper_site_pos)
+    
 
 @patch(BaseObjectState)
 def check_grasp(self: BaseObjectState):

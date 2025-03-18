@@ -59,15 +59,10 @@ if __name__ == "__main__":
         torch.manual_seed(args.seed)
         np.random.seed(args.seed)
 
-    if args.alg == "ppo":
-        algorithm = PPO
-    elif args.alg == "sac":
-        algorithm = SAC
-
     # start evaluation
     print("Loading models")
-    model_1 = algorithm.load(f"{args.load_path_1}", env=envs if args.her else None)
-    model_2 = algorithm.load(f"{args.load_path_2}", env=envs if args.her else None)
+    model_1 = args.alg_class.load(f"{args.load_path_1}", env=envs if args.her else None)
+    model_2 = args.alg_class.load(f"{args.load_path_2}", env=envs if args.her else None)
     
     # start with model 1
     model = model_1
@@ -109,5 +104,3 @@ if __name__ == "__main__":
     obs_to_video(images, f"{args.video_path}")
     print("# of tasks successful", success, "out of", total_episodes)
     envs.close()
-
-    init_qpos = [-1.92024761e-03,  1.42055016,  2.73124770e-01, -7.01385291e-02, 5.27799245e-01,  8.66614671e-01, -2.22282502]

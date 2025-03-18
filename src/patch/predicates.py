@@ -352,3 +352,15 @@ class PlaceIn(BinaryAtomic):
 class Reset(UnaryAtomic):
     def __call__(self, arg):
         return arg.reset_qpos()
+    
+
+@register_predicate_fn
+class GripperOut(UnaryAtomic):
+    def __call__(self, arg1):
+        return not arg1.check_gripper_contain()
+
+
+@register_predicate_fn
+class Persist():
+    def __call__(self):
+        return False

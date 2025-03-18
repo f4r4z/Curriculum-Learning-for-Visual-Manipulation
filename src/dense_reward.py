@@ -36,6 +36,9 @@ class DenseReward:
                 close_ranges = self.env.object_states_dict[self.object_names[0]].query_dict[self.object_names[0]].object_properties["articulation"]["default_close_ranges"]
                 self.close_joint_position = np.array([np.mean(close_ranges)])
 
+        elif len(goal_state) == 1:
+            self.predicate_fn_name = goal_state[0]
+
 
         for index, obj in enumerate(self.object_states):
             if obj.object_state_type == "site":
@@ -52,9 +55,10 @@ class DenseReward:
             self.env.reward_geoms = None
 
         # for up reward
-        self.prior_object_height = 0
-        self.prior_orientation = self.env.sim.data.body_xquat[self.env.sim.model.body_name2id(self.object_bodies[0])]
-        self.prior_position = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(self.object_bodies[0])]
+        if self.predicate_fn_name == "lift":
+            self.prior_object_height = 0
+            self.prior_orientation = self.env.sim.data.body_xquat[self.env.sim.model.body_name2id(self.object_bodies[0])]
+            self.prior_position = self.env.sim.data.body_xpos[self.env.sim.model.body_name2id(self.object_bodies[0])]
         '''
         # information to print out
         print(goal_state)

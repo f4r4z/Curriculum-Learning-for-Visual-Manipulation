@@ -11,8 +11,6 @@ from libero.libero.envs.objects.articulated_objects import Microwave, SlideCabin
 
 from src.dense_reward import DenseReward
 import datetime
-import os
-import h5py
 
 current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
@@ -75,10 +73,9 @@ class LowDimensionalObsGymEnv(gym.Env):
         sparse_reward: float, 
         reward_geoms: Optional[List[str]] = None, 
         dense_reward_multiplier: float = 1.0, 
-        steps_per_episode=250, 
-        goal_1_policy: Optional[BaseAlgorithm] = None,
-        init_qpos_file_path: Optional[str] = None,
-        setup_demo=None,
+        steps_per_episode = 250,
+        sim_states: Optional[np.ndarray] = None, 
+        setup_demo: Optional[np.ndarray] = None,
         verbose=1, # 
         **kwargs
     ):
@@ -112,17 +109,13 @@ class LowDimensionalObsGymEnv(gym.Env):
         self.images = []
         self.sparse_reward = sparse_reward
         self.steps_per_episode = steps_per_episode
-        self.init_qpos_file_path = init_qpos_file_path
-        self.goal_1_policy = goal_1_policy
-
-        # load the qpos array
-        if self.init_qpos_file_path is not None:
-            self.init_qpos_arr = np.load(f'{self.init_qpos_file_path}', allow_pickle=True)
-        
+        self.sim_states = sim_states
+        self.setup_demo = setup_demo
         self.verbose = verbose
 
         # for multi-goal tasks
         self.current_goal_index = 0
+        self.completed_goals = set()
 
         # for now, we will focus on objects with one goal state
         if is_shaping_reward:
@@ -143,15 +136,6 @@ class LowDimensionalObsGymEnv(gym.Env):
                 print("using shaping rewards:", self.shaping_reward)
             if self.sparse_reward > 0:
                 print("using sparse rewards:", self.goal_states)
-        
-        # setup actions from demo
-        if setup_demo is None:
-            self.setup_actions = np.array([])
-        else:
-            hdf5_path = os.path.join(setup_demo, "demo.hdf5")
-            f = h5py.File(hdf5_path, "r")
-            self.setup_actions = f['data/demo_1/actions'][:]
-            if self.verbose >= 1: print("loaded setup actions with length", len(self.setup_actions))
 
     
     def get_low_dim_obs(self, obs):
@@ -162,9 +146,6 @@ class LowDimensionalObsGymEnv(gym.Env):
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
 
-        # grip_pos = obs['robot0_gripper_qpos'][0]
-        # print("gripper is", "closed" if grip_pos < 0.01 else "open" if grip_pos > 0.03 else "-")
-
         # sparse completion reward
         if self.sparse_reward:
             success = self.env.check_success()
@@ -173,42 +154,34 @@ class LowDimensionalObsGymEnv(gym.Env):
         reward = 0.0
         if success:
             reward = self.sparse_reward
-        # only for goal 1 policy    
-        elif self.goal_1_policy:
-            if self.result_1:
-                print("hey! result 1 is complete")
-                state_2 = self.goal_states[1]
-                result_2 = self.env.env._eval_predicate(state_2)
-                state_tuple = tuple(state_2)
-                if result_2:
-                    success = True
-                dense_reward_object = self.shaping_reward[state_tuple]
-                reward += dense_reward_object.dense_reward(step_count=self.step_count)
-            else:
-                print("still completing result 1 ")
-                state_1 = self.goal_states[0]
-                self.result_1 = self.env.env._eval_predicate(state_1)
         elif len(self.shaping_reward) == 0:
             # if not using dense reward, only check sparse predicate
             state = self.goal_states[self.current_goal_index] # complete multiple goals in order
             state_tuple = tuple(state)
             result = self.env.env._eval_predicate(state) # FIXME: would this be an extra call to the predicates, since check_success() was called earlier?
             if result:
-                reward += self.sparse_reward / 10.0
-                if self.current_goal_index + 1 < len(self.goal_states):
-                    self.current_goal_index += 1
-                    if self.verbose >= 3: print("current goal index: ", self.current_goal_index)
+                if state_tuple not in self.completed_goals:
+                    if self.verbose >= 3: print(f"achieved {state_tuple}")
+                    self.completed_goals.add(state_tuple)
+                    reward += self.sparse_reward / 10.0
+                    if self.current_goal_index + 1 < len(self.goal_states):
+                        self.current_goal_index += 1
+                        if self.verbose >= 3: print("current goal index: ", self.current_goal_index)
         elif len(self.shaping_reward) > 0:
             # when using dense reward, check sparse predicate and add dense reward
             state = self.goal_states[self.current_goal_index] # complete multiple goals in order
             state_tuple = tuple(state)
             result = self.env.env._eval_predicate(state)
             if result:
-                if self.verbose >= 3: print(f"achieved {state_tuple}")
-                reward += self.sparse_reward / 10.0
-                if self.current_goal_index + 1 < len(self.goal_states):
-                    self.current_goal_index += 1
-                    if self.verbose >= 3: print("current goal index: ", self.current_goal_index)
+                # if already completed, we do not get any reward
+                if state_tuple not in self.completed_goals:
+                    if self.verbose >= 3: print(f"achieved {state_tuple}")
+                    # add to set to avoid duplicate sparse rewards
+                    self.completed_goals.add(state_tuple)
+                    reward += self.sparse_reward / 10.0
+                    if self.current_goal_index + 1 < len(self.goal_states):
+                        self.current_goal_index += 1
+                        if self.verbose >= 3: print("current goal index: ", self.current_goal_index)
             else:
                 dense_reward_object = self.shaping_reward[state_tuple]
                 if self.current_goal_index == len(self.goal_states) - 1:
@@ -232,45 +205,32 @@ class LowDimensionalObsGymEnv(gym.Env):
             print("done. success:", success)
         info["agentview_image"] = obs["agentview_image"]
         info["is_success"] = success
+        info["sim_state"] = self.env.sim.get_state()
 
         return self.get_low_dim_obs(obs), reward, done, truncated, info
     
     def reset(self, seed=None):
         obs = self.env.reset()
+
+        # load random simulation
+        if self.sim_states is not None:
+            # select a random sim state from given list of states
+            sim_state = random.choice(self.sim_states)
+            print("resetting to selected sim state")
+            self.env.sim.set_state(sim_state)
+            self.env.sim.forward()
         
-        if len(self.setup_actions) > 0:
-            if self.verbose >= 2: print("running setup actions")
-            for action in self.setup_actions:
+        if self.setup_demo is not None:
+            if self.verbose >= 2: print("running setup demo")
+            for action in self.setup_demo:
                 obs, _, _, _ = self.env.step(action)
 
         obs = self.get_low_dim_obs(obs)
         self.step_count = 0
         self.current_goal_index = 0
-        self.result_1 = False
-
-        # initialize the robot's qpos randomly
-        if self.init_qpos_file_path is not None:
-            # select a random qpos from the given npy path
-            init_qpos = random.choice(self.init_qpos_arr)
-            print("resetting robot init qpos")
-            self.reset_robots_random(init_qpos)
-        
-        # run previous policy for first goal state
-        if self.goal_1_policy:
-            done = False
-            while not self.result_1 and not done:
-                action, _states = self.goal_1_policy.predict(obs)
-                obs, reward, done, truncated, info = self.step(action)
-                print("reset phase")
-            if done:
-                self.reset()
+        self.completed_goals.clear()
 
         return obs, {}
-
-    def reset_robots_random(self, init_qpos):
-        for robot in self.env.robots:
-            robot.init_qpos = init_qpos
-            robot.reset()
     
     def seed(self, seed=None):
         return self.env.seed(seed)
@@ -300,13 +260,6 @@ class LowDimensionalObsGymGoalEnv(gym.Env):
         
         print(f"desired goal value for task {self.instruction} with object {self.obj_of_interest} is {goal_value} with tolerance {max(self.goal_ranges) - min(self.goal_ranges)}")
         self.desired_goal = np.full(goal_shape, goal_value)
-
-        # if "flat_stove" in self.obj_of_interest:
-        #     print("HER for flat stove")
-        #     self.desired_goal = np.full(goal_shape, -0.005)
-        # elif "microwave" in self.obj_of_interest or "white_cabinet" in self.obj_of_interest:
-        #     print("HER for microwave or white cabinet")
-        #     self.desired_goal = np.zeros_like(achieved_goal)  # this is hardcoded and only works for microwave task
 
         self.observation_space = Dict({
             "observation": Box(low=-np.inf, high=np.inf, shape=low_dim_obs.shape, dtype="float32"),

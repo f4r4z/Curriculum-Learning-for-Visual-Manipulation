@@ -9,9 +9,9 @@ import tyro
 import torch
 import numpy as np
 from typing import Optional
+import pickle
 
 from libero.libero import get_libero_path
-from stable_baselines3 import PPO, SAC
 
 import src.patch
 from src.utils import setup_envs, obs_to_video
@@ -61,14 +61,9 @@ if __name__ == "__main__":
         torch.manual_seed(args.seed)
         np.random.seed(args.seed)
 
-    if args.alg == "ppo":
-        algorithm = PPO
-    elif args.alg == "sac":
-        algorithm = SAC
-
     # start evaluation
     print("loading model")
-    model = algorithm.load(f"{args.load_path}", env=envs if args.her else None)
+    model = args.alg_class.load(f"{args.load_path}", env=envs if args.her else None)
 
     obs = envs.reset()
 
@@ -78,7 +73,7 @@ if __name__ == "__main__":
     count = 0
     success = 0
     total_episodes = 0
-    last_joint_positions = []
+    final_sim_states = []
     for i in range(args.steps_per_episode*args.num_episodes):
         action, _states = model.predict(obs)
         obs, rewards, dones, info = envs.step(action)
@@ -90,19 +85,19 @@ if __name__ == "__main__":
             total_episodes += 1
             print(total_episodes)
             if info[0]["is_success"]:
-                print("added to last joint position")
-                last_joint_positions.append(last_pos)
+                final_sim_states.append(info[0]["sim_state"])
             envs.reset()
-        
-        last_pos = envs.envs[0].env.env.robots[0]._joint_positions
 
         if total_episodes == args.num_episodes:
             break
     
         count += 1
-    
-    obs_to_video(images, f"{args.video_path}")
+
     print("# of tasks successful", success, "out of", total_episodes)
-    print("average of final robot joints", sum(last_joint_positions)/len(last_joint_positions) if len(last_joint_positions) > 0 else "N/A")
-    np.save(f'{args.video_path}_qpos.npy', last_joint_positions, allow_pickle=True)
+        
+    with open(args.video_path.replace("mp4", "pkl"), "wb") as f:
+        pickle.dump(final_sim_states, f)
+        
+    obs_to_video(images, f"{args.video_path}")
+
     envs.close()
