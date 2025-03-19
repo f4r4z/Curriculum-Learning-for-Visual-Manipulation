@@ -82,7 +82,8 @@ def reach_the_pot():
 	return [bddl.format(reach_distance) for reach_distance in np.arange(0.4, -0.0001, -0.05)]
 
 def grasp_the_pot():
-	return base_bddl.format("(Grasp moka_pot_1_handle_region)")
+	bddl = base_bddl.format("(Grasp moka_pot_1_handle_region {})")
+	return [bddl.format(grasp_amount) for grasp_amount in np.arange(0.0, 1.0001, 0.1)]
 
 def lift_the_pot():
 	bddl = base_bddl.format("(Lift moka_pot_1 flat_stove_1_cook_region {})")
