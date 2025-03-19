@@ -87,7 +87,6 @@ def box_bounds(size: np.ndarray, position: np.ndarray, rotation: np.ndarray):
         [-1, -1, -1],
     ])
     points = size/2 * unit_cube
-    points = convert_coords(points.T).T
     points = points @ rotation + position
     # points = (size/2 * unit_cube) @ rotation + position
     return points.min(axis=0), points.max(axis=0)
@@ -107,7 +106,8 @@ def get_geom_bounding_box(sim: MjSim, geom: str):
     geom_pos: np.ndarray = sim.data.get_geom_xpos(geom)
     geom_type: int = sim.model.geom_type[geom_id]
     if geom_type == 6: # box
-        return box_bounds(sim.model.geom_size[geom_id], geom_pos, sim.data.get_geom_xmat(geom))
+        size = convert_coords(sim.model.geom_size[geom_id].T).T
+        return box_bounds(size, geom_pos, sim.data.get_geom_xmat(geom))
     else:
         radius = sim.model.geom_rbound[geom_id]
         print(f"geom_type_{geom_type}", geom_pos, radius)
