@@ -38,7 +38,7 @@ base_bddl = """
             )
           )
       )
-      (grasp_region
+      (handle_region
           (:target moka_pot_1)
       )
       (cook_region

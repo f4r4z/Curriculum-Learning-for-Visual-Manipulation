@@ -38,7 +38,7 @@ base_bddl = """
             )
           )
       )
-      (grasp_region
+      (handle_region
           (:target moka_pot_1)
       )
       (cook_region
@@ -78,11 +78,11 @@ base_bddl = """
 """
 
 # def reach_the_pot():
-# 	bddl = base_bddl.format("(Reach moka_pot_1_grasp_region {})")
+# 	bddl = base_bddl.format("(Reach moka_pot_1_handle_region {})")
 # 	return [bddl.format(reach_distance) for reach_distance in np.arange(0.4, -0.0001, -0.05)]
 
 # def grasp_the_pot():
-# 	return base_bddl.format("(Grasp moka_pot_1_grasp_region)")
+# 	return base_bddl.format("(Grasp moka_pot_1_handle_region)")
 
 # def lift_the_pot():
 # 	bddl = base_bddl.format("(Lift moka_pot_1 flat_stove_1_cook_region {})")
