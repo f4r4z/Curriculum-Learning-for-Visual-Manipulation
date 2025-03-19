@@ -69,16 +69,32 @@ class Contact(UnaryAtomic):
 
 
 @register_predicate_fn
-class Grasp(UnaryAtomic):
-    def __call__(self, arg: BaseObjectState):
+class Grasp(MultiarayAtomic):
+    def __call__(self, *args):
+        assert len(args) >= 1
+        object_state = cast_arg(args[0], BaseObjectState)
+        if len(args) == 1:
+            return self.grasp(object_state)
+        else:
+            goal_distance = cast_arg(args[1], float)
+            return self.grasp(object_state, goal_distance)
+    
+    def grasp(self, object_state: BaseObjectState, grasp_amount: float = 1):
         # if the gripper is not inside the object, it isn't being grasped
         # this can be useful for sites that don't have their own geoms
-        grip_site_pos = arg.env.get_gripper_site_pos()
-        min_bounds, max_bounds = arg.compute_bounding_box()
+        grip_site_pos = object_state.env.get_gripper_site_pos()
+        min_bounds, max_bounds = object_state.compute_bounding_box()
         if not ((grip_site_pos > min_bounds).all() and (grip_site_pos < max_bounds).all()):
             return False
         
-        return arg.check_grasp()
+        if object_state.check_grasp():
+            return True
+        
+        if grasp_amount > 0.99:
+            return False # must be grasping the object if grasp_amount = 1 (otherwise it'll just be grasping air)
+        
+        gripper_joint = object_state.env.robots[0].gripper_joints[0]
+        return is_joint_past_threshold(object_state.env, gripper_joint, [0.038, 0.04], [0, 0.002], grasp_amount)
 
 
 @register_predicate_fn
@@ -105,6 +121,7 @@ class Reach(MultiarayAtomic):
 
         # Check whether the object has been reached based on whether geoms bounding box
         min_bounds, max_bounds = object_state.compute_bounding_box()
+        # print((grip_site_pos > min_bounds).all() and (grip_site_pos < max_bounds).all(), grip_site_pos, object_state.get_position(), min_bounds, max_bounds)
         if (grip_site_pos > min_bounds).all() and (grip_site_pos < max_bounds).all():
             return True
 
