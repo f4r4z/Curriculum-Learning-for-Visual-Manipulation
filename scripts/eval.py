@@ -69,8 +69,8 @@ if __name__ == "__main__":
 
     images = []
 
-    print("generating video")
     count = 0
+    step_count = 0
     success = 0
     total_episodes = 0
     final_sim_states = []
@@ -78,12 +78,15 @@ if __name__ == "__main__":
         action, _states = model.predict(obs)
         obs, rewards, dones, info = envs.step(action)
         images.append(info[0]["agentview_image"])
+        step_count += 1
         
         if dones[0]:
             count = 0
             success += 1 if info[0]["is_success"] else 0
             total_episodes += 1
-            print(total_episodes)
+            print(f"episode {total_episodes}/{args.num_episodes}")
+            print(f"{success} successes out of {total_episodes} ({success / total_episodes:.6f})")
+            print(f"average episode length: {step_count / total_episodes:.2f}")
             if info[0]["is_success"]:
                 final_sim_states.append(info[0]["sim_state"])
             envs.reset()
@@ -92,12 +95,16 @@ if __name__ == "__main__":
             break
     
         count += 1
-
-    print("# of tasks successful", success, "out of", total_episodes)
         
+    print("saving final sim states")
     with open(args.video_path.replace("mp4", "pkl"), "wb") as f:
         pickle.dump(final_sim_states, f)
         
+    print("generating video")
     obs_to_video(images, f"{args.video_path}")
+
+    print("\nfinal:")
+    print(f"{success} successes out of {total_episodes} ({success / total_episodes:.6f})")
+    print(f"average episode length: {step_count / total_episodes:.2f}")
 
     envs.close()
