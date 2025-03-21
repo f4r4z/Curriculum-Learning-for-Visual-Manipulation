@@ -88,11 +88,11 @@ def grasp_the_bowl():
     
 def lift_the_bowl():
     bddl = base_bddl.format("(Lift white_bowl_1 plate_1 {})")
-    return [bddl.format(lift_distance) for lift_distance in np.arange(0.15, 0.03001, 0.01)]
+    return [bddl.format(lift_distance) for lift_distance in np.arange(-0.15, 0.03001, 0.01)]
     
 def align_the_bowl():
     bddl = base_bddl.format("(And (Lift white_bowl_1 plate_1 0) (Align white_bowl_1 plate_1 {}))")
-    return [bddl.format(align_distance) for align_distance in np.arange(0.4, -0.00001, 0.01)]
+    return [bddl.format(align_distance) for align_distance in np.arange(0.4, -0.00001, -0.01)]
 
 def put_the_bowl_on_the_plate():
 	return base_bddl.format("(On white_bowl_1 plate_1)")
