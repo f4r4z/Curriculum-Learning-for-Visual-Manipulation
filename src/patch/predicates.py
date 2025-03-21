@@ -244,7 +244,10 @@ class Proximity(MultiarayAtomic):
         if not object_state.check_grasp():
             return False
         
-        if goal_object_state.check_contain(object_state): # TODO: does this work when object_state is a site?
+        # TODO: bug with LIBERO. only works when goal is a site, not object. current temp fix is to check first
+        # also I believe that even when it is a site, it uses axis-aligned bounding boxes,
+        # so this will be equivalent to the compute_bounding_box check below
+        if goal_object_state.object_state_type == 'site' and goal_object_state.check_contain(object_state):
             return True
 
         # if within the xy bounds, we've already aligned enough
