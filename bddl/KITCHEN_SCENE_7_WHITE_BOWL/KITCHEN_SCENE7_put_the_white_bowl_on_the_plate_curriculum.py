@@ -77,7 +77,7 @@ base_bddl = """
 
 def reach_the_bowl():
     bddl = base_bddl.format("(Reach white_bowl_1 {})")
-    return [bddl.format(reach_distance) for reach_distance in np.arange(0.4, -0.00001, -0.05)]
+    return [bddl.format(reach_distance) for reach_distance in np.arange(0.3, -0.00001, -0.05)]
 
 def contact_the_bowl():
 	return base_bddl.format("(Contact white_bowl_1)")
@@ -92,7 +92,11 @@ def lift_the_bowl():
     
 def align_the_bowl():
     bddl = base_bddl.format("(And (Lift white_bowl_1 plate_1 0) (Align white_bowl_1 plate_1 {}))")
-    return [bddl.format(align_distance) for align_distance in np.arange(0.4, -0.00001, -0.01)]
+    return [bddl.format(align_distance) for align_distance in np.arange(0.3, -0.00001, -0.01)]
+
+def move_the_bowl_to_the_plate():
+    bddl = base_bddl.format("(And (Proximity white_bowl_1 plate_1 {}) (Grasp white_bowl_1))")
+    return [bddl.format(align_distance) for align_distance in np.arange(0.3, -0.00001, -0.01)]
 
 def put_the_bowl_on_the_plate():
 	return base_bddl.format("(On white_bowl_1 plate_1)")

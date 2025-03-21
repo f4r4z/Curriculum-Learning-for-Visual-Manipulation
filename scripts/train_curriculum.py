@@ -114,12 +114,6 @@ if __name__ == "__main__":
     models_path = os.path.join(save_path, "models")
     checkpoints_path = os.path.join(save_path, "checkpoints")
     tmp_path = os.path.join(save_path, "tmp")
-    args.init_wandb_if_toggled(
-        dir=save_path,
-        config=vars(args),
-        sync_tensorboard=True,
-        name=run_name
-    )
 
 
     print("Verifying bddls")
@@ -133,6 +127,14 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Exception in bddl {i} '{subtask_name}'")
             raise e
+
+
+    args.init_wandb_if_toggled(
+        dir=save_path,
+        config=vars(args),
+        sync_tensorboard=True,
+        name=run_name
+    )
 
 
     # Create temporary env using first bddl for the model to use in initialization
