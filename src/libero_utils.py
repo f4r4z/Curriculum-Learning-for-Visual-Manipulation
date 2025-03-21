@@ -106,7 +106,7 @@ def get_geom_bounding_box(sim: MjSim, geom: str):
     geom_pos: np.ndarray = sim.data.get_geom_xpos(geom)
     geom_type: int = sim.model.geom_type[geom_id]
     if geom_type == 6: # box
-        return box_bounds(size, geom_pos, sim.data.get_geom_xmat(geom))
+        return box_bounds(sim.model.geom_size[geom_id], geom_pos, sim.data.get_geom_xmat(geom))
     else:
         radius = sim.model.geom_rbound[geom_id]
         print(f"geom_type_{geom_type}", geom_pos, radius)
