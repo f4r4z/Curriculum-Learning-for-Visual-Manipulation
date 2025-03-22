@@ -95,7 +95,7 @@ def align_the_bowl():
 
 def move_the_bowl_to_the_plate():
     bddl = base_bddl.format("(And (Or (Proximity white_bowl_1 plate_1 {}) (On white_bowl_1 plate_1)) (Grasp white_bowl_1))")
-    return [bddl.format(align_distance) for align_distance in np.arange(0.3, -0.00001, -0.01)]
+    return [bddl.format(align_distance) for align_distance in np.arange(0.2, -0.00001, -0.01)]
 
 def put_the_bowl_on_the_plate():
 	return base_bddl.format("(On white_bowl_1 plate_1)")
