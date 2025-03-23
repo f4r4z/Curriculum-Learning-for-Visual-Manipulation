@@ -114,7 +114,7 @@ def align_the_ketchup():
     return [bddl.format(align_distance) for align_distance in np.arange(0.4, -0.0001, -0.05)]
 
 def move_the_ketchup_to_the_basket():
-    bddl = base_bddl.format("(And (Proximity ketchup_1 basket_1 {}) (Grasp ketchup_1))")
+    bddl = base_bddl.format("(And (Proximity ketchup_1 basket_1 {}) (Lift ketchup_1 basket_1 0.02))")
     return [bddl.format(align_distance) for align_distance in np.arange(0.2, -0.00001, -0.01)]
 
 def put_the_ketchup_in_the_basket():
