@@ -86,7 +86,7 @@ def box_bounds(size: np.ndarray, position: np.ndarray, rotation: np.ndarray):
         [-1, -1, 1],
         [-1, -1, -1],
     ])
-    points = convert_coords(size)/2 * unit_cube
+    points = convert_coords(size) * unit_cube
     points = points @ rotation + position
     # points = (size/2 * unit_cube) @ rotation + position
     return points.min(axis=0), points.max(axis=0)
