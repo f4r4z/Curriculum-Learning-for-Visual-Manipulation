@@ -110,11 +110,11 @@ def lift_the_ketchup():
     return [bddl.format(open_amount) for open_amount in np.arange(-0.15, 0.1001, 0.01)]
 
 def align_the_ketchup():
-    bddl = base_bddl.format("(And (Align ketchup_1 basket_1 {}) (Lift ketchup_1 basket_1 0.02))")
+    bddl = base_bddl.format("(And (Align ketchup_1 basket_1_contain_region {}) (Lift ketchup_1 basket_1 0.02))")
     return [bddl.format(align_distance) for align_distance in np.arange(0.6, -0.0001, -0.05)]
 
 def lower_the_ketchup_to_the_basket():
-    bddl = base_bddl.format("(And (Proximity ketchup_1 basket_1 {}) (Align ketchup_1 basket_1))")
+    bddl = base_bddl.format("(And (Proximity ketchup_1 basket_1_contain_region {}) (Align ketchup_1 basket_1_contain_region))")
     return [bddl.format(align_distance) for align_distance in np.arange(0.4, -0.00001, -0.01)]
 
 def put_the_ketchup_in_the_basket():
