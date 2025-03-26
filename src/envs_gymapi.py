@@ -183,7 +183,7 @@ class LowDimensionalObsGymEnv(gym.Env):
             for state in self.goal_states:
                 if self.env.env._eval_predicate(state):        
                     print("small reward for state: ", state)
-                    reward += self.sparse_reward / 1000.0
+                    # reward += self.sparse_reward / 1000.0
 
         # logistics
         print(f"reward at step {self.step_count}: {reward}")
