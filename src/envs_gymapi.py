@@ -172,6 +172,7 @@ class LowDimensionalObsGymEnv(gym.Env):
                         self.current_goal_index += 1
                         print("current goal index: ", self.current_goal_index)
             else:
+                state_tuple = tuple(self.goal_states[len(self.goal_states) - 1])
                 dense_reward_object = self.shaping_reward[state_tuple]
                 if self.current_goal_index == len(self.goal_states) - 1:
                     reward += self.dense_reward_multiplier * dense_reward_object.dense_reward(step_count=self.step_count)
