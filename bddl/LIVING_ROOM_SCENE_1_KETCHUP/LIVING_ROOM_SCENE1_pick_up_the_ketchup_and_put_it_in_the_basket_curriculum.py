@@ -63,6 +63,9 @@ base_bddl = """
       (contain_region
           (:target basket_1)
       )
+      (grasp_region
+          (:target ketchup_1)
+      )
     )
 
   (:fixtures
@@ -98,11 +101,11 @@ base_bddl = """
 """
 
 def reach_the_ketchup():
-    bddl = base_bddl.format("(Reach ketchup_1 {})")
+    bddl = base_bddl.format("(Reach ketchup_1_grasp_region {})")
     return [bddl.format(open_amount) for open_amount in np.arange(0.15, -0.0001, -0.05)]
 
 def grasp_the_ketchup():
-    bddl = base_bddl.format("(Grasp ketchup_1 {})")
+    bddl = base_bddl.format("(Grasp ketchup_1_grasp_region {})")
     return [bddl.format(grasp_amount) for grasp_amount in np.arange(0.0, 1.00001, 0.1)]
 
 def lift_the_ketchup():
