@@ -124,6 +124,7 @@ if __name__ == "__main__":
             envs = create_envs(bddl, verify_args, tmp_dir=tmp_path)
             envs.reset()
             envs.step(np.array([envs.action_space.sample()]))
+            envs.close()
         except Exception as e:
             print(f"Exception in bddl {i} '{subtask_name}'")
             raise e
@@ -154,6 +155,7 @@ if __name__ == "__main__":
     # device = args.get_device()
 
 
+    envs.close()
     print("Start training")
     for i, (subtask_name, bddl) in enumerate(bddls):
         print(f"Starting subtask {i+1}/{len(bddls)} ({subtask_name}) at step {model.num_timesteps}")

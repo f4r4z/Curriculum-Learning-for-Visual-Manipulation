@@ -76,7 +76,13 @@ def setup_envs(
             ), info_keywords=["is_success"]) for _ in range(args.num_envs)]
     
     if args.num_envs > 1:
-        return SubprocVecEnv(envs, start_method=args.multiprocessing_start_method)
+        while True:
+            try:
+                env = SubprocVecEnv(envs, start_method=args.multiprocessing_start_method)
+                return env
+            except OSError as e:
+                print(f"Got error while creating envs, trying again: {e}")
+                env.close()
     else:
         return DummyVecEnv(envs)
 
