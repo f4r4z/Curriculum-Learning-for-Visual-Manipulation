@@ -1,4 +1,5 @@
 import os
+import time
 from typing import List, Optional, Tuple
 
 import imageio
@@ -82,7 +83,8 @@ def setup_envs(
                 return env
             except OSError as e:
                 print(f"Got error while creating envs, trying again: {e}")
-                env.close()
+                time.sleep(1)
+                
     else:
         return DummyVecEnv(envs)
 
