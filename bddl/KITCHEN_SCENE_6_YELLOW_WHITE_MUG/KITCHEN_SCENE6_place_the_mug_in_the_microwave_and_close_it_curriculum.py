@@ -94,7 +94,8 @@ def reach_the_mug():
 	return [bddl.format(reach_distance) for reach_distance in np.arange(0.3, -0.0001, -0.05)]
 
 def grasp_the_mug():
-	return base_bddl.format("(Grasp white_yellow_mug_1)")
+    bddl = base_bddl.format("(Grasp white_yellow_mug_1 {})")
+    return [bddl.format(grasp_amount) for grasp_amount in np.arange(0.0, 1.00001, 0.1)]
 
 def lift_the_mug():
 	bddl = base_bddl.format("(Lift white_yellow_mug_1 microwave_1_heating_region {})")
@@ -112,5 +113,5 @@ def place_the_mug_and_reach_the_microwave_handle():
 	return [bddl.format(reach_distance) for reach_distance in np.arange(0.4, -0.0001, -0.05)]
 
 def place_the_mug_and_close_the_microwave():
-	bddl = base_bddl.format("(And (In white_yellow_mug_1 microwave_1_heating_region) (Not (Grasp white_yellow_mug_1)) (Close microwave_1 {}))")
+	bddl = base_bddl.format("(And (In white_yellow_mug_1 microwave_1_heating_region) (Close microwave_1 {}))")
 	return [bddl.format(close_amount) for close_amount in np.arange(0.1, 1.0001, 0.1)]
