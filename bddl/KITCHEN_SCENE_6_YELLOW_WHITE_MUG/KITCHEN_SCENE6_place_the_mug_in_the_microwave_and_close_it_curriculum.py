@@ -91,11 +91,15 @@ base_bddl = """
 
 def reach_the_mug():
 	bddl = base_bddl.format("(Reach white_yellow_mug_1 {})")
-	return [bddl.format(reach_distance) for reach_distance in np.arange(0.3, -0.0001, -0.05)]
+	return [bddl.format(reach_distance) for reach_distance in np.arange(0.2, -0.0001, -0.05)]
+
+def contact_the_mug():
+    return base_bddl.format("(Contact white_yellow_mug_1)")
 
 def grasp_the_mug():
-    bddl = base_bddl.format("(Grasp white_yellow_mug_1 {})")
-    return [bddl.format(grasp_amount) for grasp_amount in np.arange(0.0, 1.00001, 0.1)]
+    return base_bddl.format("(Grasp white_yellow_mug_1)")
+    # bddl = base_bddl.format("(Grasp white_yellow_mug_1 {})")
+    # return [bddl.format(grasp_amount) for grasp_amount in np.arange(0.1, 1.00001, 0.1)]
 
 def lift_the_mug():
 	bddl = base_bddl.format("(Lift white_yellow_mug_1 microwave_1_heating_region {})")
