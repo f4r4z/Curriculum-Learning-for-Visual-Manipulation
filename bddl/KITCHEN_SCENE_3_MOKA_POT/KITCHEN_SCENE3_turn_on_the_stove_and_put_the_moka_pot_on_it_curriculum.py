@@ -89,11 +89,11 @@ def lift_the_pot():
 	bddl = base_bddl.format("(Lift moka_pot_1 flat_stove_1_cook_region {})")
 	return [bddl.format(lift_distance) for lift_distance in np.arange(-0.15, 0.03001, 0.01)]
 
-def align_the_mug_over_the_stove():
+def align_the_pot_over_the_stove():
 	bddl = base_bddl.format("(And (Lift moka_pot_1 flat_stove_1_cook_region 0) (Align moka_pot_1 flat_stove_1_cook_region {}))")
 	return [bddl.format(move_distance) for move_distance in np.arange(0.4, -0.0001, -0.01)]
 
-def place_the_mug_on_the_stove():
+def place_the_pot_on_the_stove():
 	return base_bddl.format("(And (On moka_pot_1 flat_stove_1_cook_region) (Not (Grasp moka_pot_1)))")
 
 def reach_the_stove():

@@ -89,26 +89,6 @@ base_bddl = """
 )
 """
 
-def reach_the_mug():
-	bddl = base_bddl.format("(Reach white_yellow_mug_1 {})")
-	return [bddl.format(reach_distance) for reach_distance in np.arange(0.2, -0.0001, -0.05)]
-
-def contact_the_mug():
-    return base_bddl.format("(Contact white_yellow_mug_1)")
-
-def grasp_the_mug():
-    return base_bddl.format("(Grasp white_yellow_mug_1)")
-    # bddl = base_bddl.format("(Grasp white_yellow_mug_1 {})")
-    # return [bddl.format(grasp_amount) for grasp_amount in np.arange(0.1, 1.00001, 0.1)]
-
-def lift_the_mug():
-	bddl = base_bddl.format("(Lift white_yellow_mug_1 microwave_1_heating_region {})")
-	return [bddl.format(lift_distance) for lift_distance in np.arange(-0.15, 0.0001, 0.01)]
-
-def move_the_mug_to_the_microwave():
-	bddl = base_bddl.format("(Proximity white_yellow_mug_1 microwave_1_heating_region {})")
-	return [bddl.format(move_distance) for move_distance in np.arange(0.4, -0.0001, -0.01)]
-
 def place_the_mug_in_the_microwave():
 	bddl =  base_bddl.format("(And (In white_yellow_mug_1 microwave_1_heating_region) (Not (Grasp white_yellow_mug_1 {})))")
 	return [bddl.format(grasp_amount) for grasp_amount in np.arange(1.0, -0.00001, -0.1)]
