@@ -94,7 +94,7 @@ def place_the_mug_in_the_microwave():
 	return [bddl.format(grasp_amount) for grasp_amount in np.arange(1.0, -0.00001, -0.1)]
 
 def place_the_mug_and_reach_the_microwave_handle():
-	bddl = base_bddl.format("(And (In white_yellow_mug_1 microwave_1_heating_region) (Not (Grasp white_yellow_mug_1)) (Reach microwave_1_handle_region {}))")
+	bddl = base_bddl.format("(And (In white_yellow_mug_1 microwave_1_heating_region) (Not (Grasp white_yellow_mug_1 0)) (Reach microwave_1_handle_region {}))")
 	return [bddl.format(reach_distance) for reach_distance in np.arange(0.4, -0.0001, -0.05)]
 
 def place_the_mug_and_close_the_microwave():
