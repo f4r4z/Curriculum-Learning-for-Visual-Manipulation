@@ -1,3 +1,6 @@
+import numpy as np
+
+base_bddl = """
 (define (problem LIBERO_Living_Room_Tabletop_Manipulation)
   (:domain robosuite)
   (:language pick up the ketchup and put it in the basket)
@@ -60,6 +63,9 @@
       (contain_region
           (:target basket_1)
       )
+      (grasp_region
+          (:target ketchup_1)
+      )
     )
 
   (:fixtures
@@ -88,7 +94,19 @@
   )
 
   (:goal
-    (And (SparseLift ketchup_1))
+    (And {})
   )
 
 )
+"""
+
+def align_the_ketchup():
+    bddl = base_bddl.format("(And (Align ketchup_1 basket_1_contain_region {}) (Lift ketchup_1 basket_1 0.02))")
+    return [bddl.format(align_distance) for align_distance in np.arange(0.6, -0.0001, -0.05)]
+
+def lower_the_ketchup_to_the_basket():
+    bddl = base_bddl.format("(And (Proximity ketchup_1 basket_1_contain_region {}) (Align ketchup_1 basket_1_contain_region))")
+    return [bddl.format(align_distance) for align_distance in np.arange(0.4, -0.00001, -0.01)]
+
+def put_the_ketchup_in_the_basket():
+    return base_bddl.format("(And (In ketchup_1 basket_1_contain_region) (Not (Grasp ketchup_1)))")
